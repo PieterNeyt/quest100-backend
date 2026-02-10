@@ -23,7 +23,7 @@ package:
     - IMAGE=$CI_REGISTRY_IMAGE/backend
     - echo "Building image $IMAGE"
     - echo "$CI_REGISTRY_PASSWORD" | docker login registry.gitlab.com -u "$CI_REGISTRY_USER" --password-stdin
-    - docker build -t $IMAGE:latest
+    - docker build -t $IMAGE:latest .
     - docker push $IMAGE:latest
   rules:
     - if: $CI_DEFAULT_BRANCH == $CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"
