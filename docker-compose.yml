@@ -7,9 +7,9 @@ services:
       POSTGRES_USER: ${QUEST_DB_USERNAME}
       POSTGRES_PASSWORD: ${QUEST_DB_PASSWORD}
     ports:
-      - "${BLUEPRINT_DB_PORT}:5443"
+      - "5443:5432"
     volumes:
-      - psql_volume_bp:/var/lib/postgresql/data
+      - psql_volume_bp:/var/lib/postgresql
 
 volumes:
   psql_volume_bp:
