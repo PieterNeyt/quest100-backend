@@ -1,23 +1,50 @@
 package database
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/joho/godotenv/autoload"
 )
 
-func SetupDatabase(databaseUrl string) {
-	conn, err := pgx.Connect(context.Background(), databaseUrl)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+type Service interface {
+	Close() error
+}
+
+type service struct {
+	db *sql.DB
+}
+
+var (
+	database   = os.Getenv("QUEST_DB_DATABASE")
+	password   = os.Getenv("QUEST_DB_PASSWORD")
+	username   = os.Getenv("QUEST_DB_USERNAME")
+	port       = os.Getenv("QUEST_DB_PORT")
+	host       = os.Getenv("QUEST_DB_HOST")
+	schema     = os.Getenv("QUEST_DB_SCHEMA")
+	dbInstance *service
+)
+
+func New() Service {
+	// Reuse Connection
+	if dbInstance != nil {
+		return dbInstance
 	}
-	defer func(conn *pgx.Conn, ctx context.Context) {
-		err := conn.Close(ctx)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to close database connection: %v\n", err)
-		}
-	}(conn, context.Background())
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
+	db, err := sql.Open("pgx", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dbInstance = &service{
+		db: db,
+	}
+	return dbInstance
+}
+
+func (s *service) Close() error {
+	log.Printf("Disconnected from database: %s", database)
+	return s.db.Close()
 }
