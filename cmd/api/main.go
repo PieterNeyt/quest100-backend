@@ -1,20 +1,50 @@
 package main
 
 import (
+	"Quest100Backend/internal/infrastructure/server"
+	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
-// TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
-func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
+func gracefulShutdown(apiServer *http.Server, done chan bool) {
+	// Create context that listens for the interrupt signal from the OS.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
+	// Listen for the interrupt signal.
+	<-ctx.Done()
+
+	log.Println("shutting down gracefully, press Ctrl+C again to force")
+	stop() // Allow Ctrl+C to force shutdown
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := apiServer.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown with error: %v", err)
 	}
+
+	log.Println("Server exiting")
+
+	// Notify the main goroutine that the shutdown is complete
+	done <- true
+}
+
+func main() {
+	server := server.NewServer()
+
+	done := make(chan bool, 1)
+	go gracefulShutdown(server, done)
+
+	err := server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		panic(fmt.Sprintf("http server error: %s", err))
+	}
+
+	<-done
+	log.Println("Graceful shutdown complete.")
 }
