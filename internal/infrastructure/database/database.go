@@ -1,21 +1,24 @@
 package database
 
 import (
-	"database/sql"
+	databaseProfile "Quest100Backend/internal/profile/infrastructure/database"
 	"fmt"
 	"log"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/joho/godotenv/autoload"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Service interface {
 	Close() error
+	GetDB() *gorm.DB
 }
 
 type service struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
 var (
@@ -33,18 +36,44 @@ func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	db, err := sql.Open("pgx", connStr)
+
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		host, username, password, database, port,
+	)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	autoMigration(db)
+
+	log.Printf("Connected to database: %s", database)
+
 	dbInstance = &service{
 		db: db,
 	}
 	return dbInstance
 }
 
+func autoMigration(db *gorm.DB) {
+	databaseProfile.AutoMigration(db)
+}
+
+func (s *service) GetDB() *gorm.DB {
+	return s.db
+}
+
 func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", database)
-	return s.db.Close()
+
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+
+	return sqlDB.Close()
 }
