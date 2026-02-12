@@ -1,7 +1,7 @@
 package server
 
 import (
-	"Quest100Backend/internal/profile/infrastructure/server"
+	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,7 +22,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 	}))
 
-	server.SetupProfileRoutes(r, s.db.GetDB())
+	profileRouting.SetupProfileRoutes(r, s.db.GetDB())
 
 	r.GET("/websocket", s.websocketHandler)
 

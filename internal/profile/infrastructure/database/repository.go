@@ -32,7 +32,7 @@ func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 }
 
 func (r *profileRepository) UpdateProfile(profile *domain.Profile) error {
-	result := r.db.Save(&profile)
+	result := r.db.Where("id = ?", profile.ID).Updates(profile)
 	if result.Error != nil {
 		return fmt.Errorf("failed to save profile: %w", result.Error)
 	}
