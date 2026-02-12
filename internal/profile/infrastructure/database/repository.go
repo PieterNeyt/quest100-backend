@@ -20,7 +20,8 @@ func NewProfileRepository(db *gorm.DB) domain.ProfileRepository {
 func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile, error) {
 	var profile domain.Profile
 
-	result := r.db.First(&profile, "id = ?", profileId)
+	result := r.db.Debug().Preload("KudosHistory").First(&profile, "id = ?", profileId)
+
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("profile with id %s not found", profileId)
@@ -32,7 +33,7 @@ func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 }
 
 func (r *profileRepository) UpdateProfile(profile *domain.Profile) error {
-	result := r.db.Where("id = ?", profile.ID).Updates(profile)
+	result := r.db.Where("id = ?", profile.ID).Save(profile)
 	if result.Error != nil {
 		return fmt.Errorf("failed to save profile: %w", result.Error)
 	}

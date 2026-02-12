@@ -9,16 +9,21 @@ import (
 )
 
 func AutoMigration(db *gorm.DB) {
-	err := db.AutoMigrate(&domain.Profile{})
-	if err != nil {
-		log.Printf("Failed to migrate database: %v", err)
+	errProfile := db.AutoMigrate(&domain.Profile{})
+	if errProfile != nil {
+		log.Printf("Failed to migrate database: %v", errProfile)
+	}
+
+	errKudosEntry := db.AutoMigrate(&domain.KudosEntry{})
+	if errKudosEntry != nil {
+		log.Printf("Failed to migrate database: %v", errKudosEntry)
 	}
 
 	seedDatabase(db)
 }
 
 func seedDatabase(db *gorm.DB) {
-	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000000")
+	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
 
 	hugo := domain.Profile{
 		ID:        hardcodedID,
