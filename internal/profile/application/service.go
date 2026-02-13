@@ -36,7 +36,7 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 		return nil, fmt.Errorf("invalid ATTENDANCE_KUDOS value: %w", err)
 	}
 
-	if err := profile.AddKudos(kudos, os.Getenv("ATTENDANCE_MESSAGE")); err != nil {
+	if err := profile.AddKudos(kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance); err != nil {
 		return nil, fmt.Errorf("failed to add kudos: %w", err)
 	}
 

@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"time"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -11,24 +11,35 @@ type ProfileRepository interface {
 	UpdateProfile(profile *Profile) error
 }
 
+type Language string
+
+const (
+	NL  Language = "NL"
+	ENG          = "EN"
+)
+
 type Profile struct {
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey;"`
-	FirstName    string
-	LastName     string
-	Email        string `gorm:"uniqueIndex"`
-	Kudos        int
-	KudosHistory []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
+	ID                uuid.UUID `gorm:"type:uuid;primaryKey;"`
+	FirstName         string
+	LastName          string
+	Email             string `gorm:"uniqueIndex"`
+	Kudos             int
+	ArchetypeID       int
+	PrefferedLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
+	PlayerStats       PlayerStats  `gorm:"foreignKey:ProfileID;references:ID"`
+	KudosHistory      []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
 }
 
-type KudosEntry struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;"`
-	ProfileID uuid.UUID `gorm:"type:uuid;index;"`
-	Amount    int
-	Reason    string
-	Date      time.Time `gorm:"autoCreateTime"`
+type PlayerStats struct {
+	ProfileID      uuid.UUID `gorm:"type:uuid;primaryKey;"`
+	KudoKnowledge  int
+	KudoAttendance int
+	KudoTeamwork   int
+	KudoAtmosphere int
+	KudoEngagement int
 }
 
-func (p *Profile) AddKudos(kudos int, reason string) error {
+func (p *Profile) AddKudos(kudos int, reason string, kudoType KudoType) error {
 	if kudos < 0 {
 		return &NegativeKudosError{Arg: kudos, Message: "Kudos can't be negative"}
 	}
@@ -39,6 +50,28 @@ func (p *Profile) AddKudos(kudos int, reason string) error {
 		ProfileID: p.ID,
 		Amount:    kudos,
 		Reason:    reason,
+		Type:      kudoType,
 	})
+
+	p.UpdatePlayerStats(kudos, kudoType)
 	return nil
+}
+
+func (p *Profile) UpdatePlayerStats(amount int, kudoType KudoType) {
+	switch kudoType {
+	case KudoKnowledge:
+		p.PlayerStats.KudoKnowledge += amount
+	case KudoAttendance:
+		p.PlayerStats.KudoAttendance += amount
+	case KudoTeamwork:
+		p.PlayerStats.KudoTeamwork += amount
+	case KudoAtmosphere:
+		p.PlayerStats.KudoAtmosphere += amount
+	case KudoEngagement:
+		p.PlayerStats.KudoEngagement += amount
+	}
+
+	if err := p.CalculateArcheType(); err != nil {
+		log.Printf("Error calculating archetype: %v", err)
+	}
 }

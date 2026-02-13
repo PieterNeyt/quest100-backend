@@ -10,3 +10,12 @@ type NegativeKudosError struct {
 func (e *NegativeKudosError) Error() string {
 	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
 }
+
+type NoPlayerStatsError struct {
+	Arg     int
+	Message string
+}
+
+func (e *NoPlayerStatsError) Error() string {
+	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
+}
