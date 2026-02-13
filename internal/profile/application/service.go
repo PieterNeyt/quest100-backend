@@ -11,6 +11,7 @@ import (
 
 type ProfileService interface {
 	HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, error)
+	GiveAwardTo(recieverId uuid.UUID, kudoType domain.KudoType, message string) error
 }
 
 type profileService struct {
@@ -45,4 +46,23 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 	}
 
 	return profile, nil
+}
+
+func (s *profileService) GiveAwardTo(recieverId uuid.UUID, kudoType domain.KudoType, message string) error {
+	profile, err := s.profileRepo.GetProfileById(recieverId)
+	if err != nil {
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {
+		if err := profile.AddKudos(kudos, message, kudoType); err != nil {
+			return fmt.Errorf("failed to add kudos: %w", err)
+		}
+	}
+
+	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+		return fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return nil
 }

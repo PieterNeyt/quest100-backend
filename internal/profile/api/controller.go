@@ -45,3 +45,18 @@ func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
 		"profile": profile,
 	})
 }
+
+func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
+	var transaction AwardsTransaction
+
+	if err := c.ShouldBindJSON(&transaction); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.profileService.GiveAwardTo(transaction.Receiver, transaction.Type, transaction.Message); err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Kudos succesfully given to"})
+}

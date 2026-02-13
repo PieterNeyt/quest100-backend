@@ -19,3 +19,12 @@ type NoPlayerStatsError struct {
 func (e *NoPlayerStatsError) Error() string {
 	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
 }
+
+type ProfileError struct {
+	Arg     int
+	Message string
+}
+
+func (e *ProfileError) Error() string {
+	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
+}
