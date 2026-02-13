@@ -25,7 +25,7 @@ type Profile struct {
 	Email             string `gorm:"uniqueIndex"`
 	Kudos             int
 	ArchetypeID       int
-	PrefferedLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
+	PreferredLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
 	PlayerStats       PlayerStats  `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory      []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
 }

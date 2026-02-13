@@ -35,7 +35,7 @@ func seedDatabase(db *gorm.DB) {
 		Email:             "dorhugo@student.kdg.be",
 		Kudos:             0,
 		ArchetypeID:       1,
-		PrefferedLanguage: domain.NL,
+		PreferredLanguage: domain.NL,
 	}
 
 	award := domain.AwardHistoryEntry{
