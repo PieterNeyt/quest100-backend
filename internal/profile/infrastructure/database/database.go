@@ -9,19 +9,17 @@ import (
 )
 
 func AutoMigration(db *gorm.DB) {
-	errProfile := db.AutoMigrate(&domain.Profile{})
-	if errProfile != nil {
-		log.Printf("Failed to migrate database: %v", errProfile)
+	if err := db.AutoMigrate(&domain.Profile{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
 	}
-
-	errKudosEntry := db.AutoMigrate(&domain.KudosEntry{})
-
-	if errKudosEntry != nil {
-		log.Printf("Failed to migrate database: %v", errKudosEntry)
+	if err := db.AutoMigrate(&domain.KudosEntry{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
 	}
-	errPlayerStats := db.AutoMigrate(&domain.PlayerStats{})
-	if errPlayerStats != nil {
-		log.Printf("Failed to migrate database: %v", errKudosEntry)
+	if err := db.AutoMigrate(&domain.PlayerStats{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
+	}
+	if err := db.AutoMigrate(&domain.AwardHistoryEntry{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
 	}
 
 	seedDatabase(db)
@@ -40,8 +38,16 @@ func seedDatabase(db *gorm.DB) {
 		PrefferedLanguage: domain.NL,
 	}
 
+	award := domain.AwardHistoryEntry{
+		RecieverID: uuid.New(),
+		ProfileID:  uuid.New(),
+	}
 	err := db.Where(domain.Profile{ID: hardcodedID}).FirstOrCreate(&hugo).Error
+	errr := db.Where(domain.AwardHistoryEntry{RecieverID: award.RecieverID}).FirstOrCreate(&award).Error
 	if err != nil {
 		log.Printf("Could not seed database: %v", err)
+	}
+	if errr != nil {
+		log.Printf("Could not seed database: %v", errr)
 	}
 }
