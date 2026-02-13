@@ -18,11 +18,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:4200"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type"},
+		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "X-Graph-Token"},
 		AllowCredentials: true,
 	}))
 
-	profileRouting.SetupProfileRoutes(r, s.db.GetDB())
+	api := r.Group("/api", AuthMiddleware())
+	profileRouting.SetupProfileRoutes(api, s.db.GetDB())
 
 	r.GET("/websocket", s.websocketHandler)
 
