@@ -7,16 +7,18 @@ import (
 )
 
 type GraphProfile struct {
-	Id      uuid.UUID `json:"id"`
-	Name    string    `json:"givenName"`
-	Surname string    `json:"surname"`
-	Mail    string    `json:"mail"`
+	Id                uuid.UUID `json:"id"`
+	Name              string    `json:"givenName"`
+	Surname           string    `json:"surname"`
+	Mail              string    `json:"mail"`
+	PreferredLanguage Language  `json:"preferredLanguage"`
 }
 
 func (g *GraphProfile) UnmarshalJSON(data []byte) error {
 	type Alias GraphProfile
 	aux := &struct {
-		Id string `json:"id"`
+		Id                string `json:"id"`
+		PreferredLanguage string `json:"preferredLanguage"`
 		*Alias
 	}{
 		Alias: (*Alias)(g),
@@ -31,5 +33,14 @@ func (g *GraphProfile) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	g.Id = parsedUUID
+
+	switch aux.PreferredLanguage[0:2] {
+	case "en":
+		g.PreferredLanguage = ENG
+	case "nl":
+		g.PreferredLanguage = NL
+	default:
+		g.PreferredLanguage = ENG
+	}
 	return nil
 }

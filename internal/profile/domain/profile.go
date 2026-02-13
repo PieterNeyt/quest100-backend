@@ -20,13 +20,13 @@ const (
 )
 
 type Profile struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-	Email     string    `gorm:"uniqueIndex" json:"email"`
-	Kudos     int       `json:"kudos"`
+	ID                uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
+	FirstName         string    `json:"firstName"`
+	LastName          string    `json:"lastName"`
+	Email             string    `gorm:"uniqueIndex" json:"email"`
+	Kudos             int       `json:"kudos"`
 	ArchetypeID       int
-	PrefferedLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
+	PrefferedLanguage Language     `gorm:"type:varchar(2);check:preffered_language IN ('NL','EN')"`
 	PlayerStats       PlayerStats  `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory      []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
 }
@@ -90,10 +90,14 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 
 func CreateProfile(graph *GraphProfile) *Profile {
 	return &Profile{
-		ID:        graph.Id,
-		FirstName: graph.Name,
-		LastName:  graph.Surname,
-		Email:     graph.Mail,
-		Kudos:     0,
+		ID:                graph.Id,
+		FirstName:         graph.Name,
+		LastName:          graph.Surname,
+		Email:             graph.Mail,
+		Kudos:             0,
+		ArchetypeID:       1,
+		PlayerStats:       PlayerStats{},
+		KudosHistory:      []KudosEntry{},
+		PrefferedLanguage: graph.PreferredLanguage,
 	}
 }
