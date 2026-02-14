@@ -11,6 +11,7 @@ import (
 
 type QRCodeGenerator interface {
 	GenerateQRCode(data string) (string, error)
+	GenerateAttendanceQRCode(classID string, baseURL string) (string, error)
 }
 
 type qrCodeGenerator struct {
@@ -39,4 +40,9 @@ func (g *qrCodeGenerator) GenerateQRCode(data string) (string, error) {
 
 	base64Str := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return fmt.Sprintf("data:image/png;base64,%s", base64Str), nil
+}
+
+func (g *qrCodeGenerator) GenerateAttendanceQRCode(classID string, baseURL string) (string, error) {
+	attendanceURL := fmt.Sprintf("%s/attendance/%s", baseURL, classID)
+	return g.GenerateQRCode(attendanceURL)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupQRCodeRoutes(r *gin.Engine) {
+func SetupQRCodeRoutes(r *gin.RouterGroup) {
 
 	qrGenerator := domain.NewQRCodeGenerator(256)
 	qrService := application.NewQRCodeService(qrGenerator)

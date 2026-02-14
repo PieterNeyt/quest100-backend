@@ -4,7 +4,6 @@ import (
 	"Quest100Backend/internal/profile/domain"
 	"log"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -15,19 +14,24 @@ func AutoMigration(db *gorm.DB) {
 	}
 
 	errKudosEntry := db.AutoMigrate(&domain.KudosEntry{})
-
 	if errKudosEntry != nil {
 		log.Printf("Failed to migrate database: %v", errKudosEntry)
 	}
+
 	errPlayerStats := db.AutoMigrate(&domain.PlayerStats{})
 	if errPlayerStats != nil {
 		log.Printf("Failed to migrate database: %v", errKudosEntry)
 	}
 
-	seedDatabase(db)
+	errAttendance := db.AutoMigrate(&domain.AttendanceRecord{})
+	if errAttendance != nil {
+		log.Printf("Failed to migrate AttendanceRecord: %v", errAttendance)
+	}
+
+	// seedDatabase(db)
 }
 
-func seedDatabase(db *gorm.DB) {
+/*func seedDatabase(db *gorm.DB) {
 	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
 
 	hugo := domain.Profile{
@@ -45,3 +49,4 @@ func seedDatabase(db *gorm.DB) {
 		log.Printf("Could not seed database: %v", err)
 	}
 }
+*/

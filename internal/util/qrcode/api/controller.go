@@ -33,7 +33,7 @@ func (h *QRCodeHandler) GenerateQRCode(c *gin.Context) {
 		return
 	}
 
-	qrCodeBase64, err := h.qrService.GenerateQRCode(req.ID)
+	qrCodeBase64, err := h.qrService.GenerateAttendanceQRCode(req.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

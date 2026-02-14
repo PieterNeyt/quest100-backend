@@ -25,7 +25,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	api := r.Group("/api", AuthMiddleware())
 	profileRouting.SetupProfileRoutes(api, s.db.GetDB())
-	qrcodeRouting.SetupQRCodeRoutes(r)
+	qrcodeRouting.SetupQRCodeRoutes(api)
 
 	r.GET("/websocket", s.websocketHandler)
 
