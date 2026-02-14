@@ -1,6 +1,10 @@
 package domain
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 type NegativeKudosError struct {
 	Arg     int
@@ -8,5 +12,23 @@ type NegativeKudosError struct {
 }
 
 func (e *NegativeKudosError) Error() string {
+	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
+}
+
+type NoPlayerStatsError struct {
+	Arg     int
+	Message string
+}
+
+func (e *NoPlayerStatsError) Error() string {
+	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
+}
+
+type ProfileIdError struct {
+	Arg     uuid.UUID
+	Message string
+}
+
+func (e *ProfileIdError) Error() string {
 	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
 }

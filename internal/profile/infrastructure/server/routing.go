@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupProfileRoutes(r *gin.Engine, db *gorm.DB) {
+func SetupProfileRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	profileRepo := database.NewProfileRepository(db)
 	profileService := application.NewProfileService(profileRepo)
 	profileHandler := api.NewProfileHandler(profileService)
@@ -17,5 +17,6 @@ func SetupProfileRoutes(r *gin.Engine, db *gorm.DB) {
 	profileGroup := r.Group("/profiles")
 	{
 		profileGroup.POST("/attendance/:classId", profileHandler.HandleAttendance)
+		profileGroup.GET("/sync", profileHandler.Sync)
 	}
 }
