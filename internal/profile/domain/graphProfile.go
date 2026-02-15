@@ -12,6 +12,7 @@ type GraphProfile struct {
 	Surname           string    `json:"surname"`
 	Mail              string    `json:"mail"`
 	PreferredLanguage Language  `json:"preferredLanguage"`
+	Role              Role      `json:"role"`
 }
 
 func (g *GraphProfile) UnmarshalJSON(data []byte) error {
@@ -19,6 +20,7 @@ func (g *GraphProfile) UnmarshalJSON(data []byte) error {
 	aux := &struct {
 		Id                string `json:"id"`
 		PreferredLanguage string `json:"preferredLanguage"`
+		JobTitle          string `json:"jobTitle"`
 		*Alias
 	}{
 		Alias: (*Alias)(g),
@@ -41,6 +43,15 @@ func (g *GraphProfile) UnmarshalJSON(data []byte) error {
 		g.PreferredLanguage = NL
 	default:
 		g.PreferredLanguage = ENG
+	}
+
+	switch aux.JobTitle {
+	case "Student":
+		g.Role = Student
+	case "Lector":
+		g.Role = Lector
+	default:
+		g.Role = Student
 	}
 	return nil
 }

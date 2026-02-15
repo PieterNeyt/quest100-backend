@@ -19,6 +19,13 @@ const (
 	ENG          = "EN"
 )
 
+type Role string
+
+const (
+	Student Role = "student"
+	Lector       = "lector"
+)
+
 type Profile struct {
 	ID                uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
 	FirstName         string    `json:"firstName"`
@@ -26,9 +33,10 @@ type Profile struct {
 	Email             string    `gorm:"uniqueIndex" json:"email"`
 	Kudos             int       `json:"kudos"`
 	ArchetypeID       int
-	PrefferedLanguage Language     `gorm:"type:varchar(2);check:preffered_language IN ('NL','EN')"`
+	PreferredLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
 	PlayerStats       PlayerStats  `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory      []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
+	Role              Role         `gorm:"type:varchar(10);check:role IN ('student', 'lector')" json:"role"`
 }
 
 type PlayerStats struct {
@@ -98,6 +106,7 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		ArchetypeID:       1,
 		PlayerStats:       PlayerStats{},
 		KudosHistory:      []KudosEntry{},
-		PrefferedLanguage: graph.PreferredLanguage,
+		PreferredLanguage: graph.PreferredLanguage,
+		Role:              graph.Role,
 	}
 }
