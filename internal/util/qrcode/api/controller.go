@@ -17,15 +17,6 @@ func NewQRCodeHandler(qrService application.QRCodeService) *QRCodeHandler {
 	}
 }
 
-type GenerateQRRequest struct {
-	ID string `json:"id" binding:"required"`
-}
-
-type GenerateQRResponse struct {
-	QRCode string `json:"qrCode"`
-	ID     string `json:"id"`
-}
-
 func (h *QRCodeHandler) GenerateQRCode(c *gin.Context) {
 	var req GenerateQRRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

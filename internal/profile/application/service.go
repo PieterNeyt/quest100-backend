@@ -33,11 +33,10 @@ func NewProfileService(profileRepo domain.ProfileRepository) ProfileService {
 
 func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
 
-	profile, err := s.profileRepo.GetProfileById(profileId)
+	profile, err := s.GetProfileById(profileId)
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
 	}
-
 	if err := profile.RecordAttendance(classId); err != nil {
 		var dupErr *domain.DuplicateAttendanceError
 		if errors.As(err, &dupErr) {
@@ -55,7 +54,7 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 		return nil, 0, false, fmt.Errorf("failed to add kudos: %w", err)
 	}
 
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.UpdateProfile(profile); err != nil {
 		return nil, 0, false, fmt.Errorf("failed to update profile: %w", err)
 	}
 
@@ -69,7 +68,7 @@ func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 	return s.profileRepo.UpdateProfile(profile)
 }
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
-	profile, err := s.profileRepo.GetProfileById(graphProfile.Id)
+	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
 		profile = domain.CreateProfile(graphProfile)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {
@@ -82,7 +81,7 @@ func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profil
 		return nil, fmt.Errorf("failed to sync profile: %w", err)
 	}
 
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.UpdateProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 
