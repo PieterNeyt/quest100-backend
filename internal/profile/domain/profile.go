@@ -9,6 +9,8 @@ import (
 type ProfileRepository interface {
 	GetProfileById(id uuid.UUID) (*Profile, error)
 	UpdateProfile(profile *Profile) error
+	SaveProfile(profile *Profile) error
+	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 }
 
 type Language string
@@ -97,6 +99,6 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		ArchetypeID:       1,
 		PlayerStats:       PlayerStats{},
 		KudosHistory:      []KudosEntry{},
-		PrefferedLanguage: graph.PreferredLanguage,
+		PreferredLanguage: graph.PreferredLanguage,
 	}
 }

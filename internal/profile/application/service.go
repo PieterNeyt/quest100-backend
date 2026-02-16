@@ -16,7 +16,7 @@ type ProfileService interface {
 	HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, error)
 	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error)
 	GetGraphProfile(token string) (*domain.GraphProfile, error)
-	GiveAwardTo(recieverId uuid.UUID, kudoType domain.KudoType, message string) error
+	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) error
 }
 
 type profileService struct {
@@ -96,10 +96,14 @@ func (s *profileService) GetGraphProfile(token string) (*domain.GraphProfile, er
 	return &user, nil
 }
 
-func (s *profileService) GiveAwardTo(recieverId uuid.UUID, kudoType domain.KudoType, message string) error {
-	profile, err := s.profileRepo.GetProfileById(recieverId)
+func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, kudoType domain.KudoType, message string) error {
+	profile, err := s.profileRepo.GetProfileById(receiverId)
 	if err != nil {
 		return fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	if err := s.profileRepo.AddAwardHistoryEntry(senderId, receiverId); err != nil {
+		return fmt.Errorf("failed to add award history entry: %w", err)
 	}
 
 	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {

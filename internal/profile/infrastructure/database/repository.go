@@ -47,3 +47,15 @@ func (r *profileRepository) SaveProfile(profile *domain.Profile) error {
 	}
 	return nil
 }
+func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
+	entry := domain.AwardHistoryEntry{
+		RecieverID: receiverId,
+		ProfileID:  senderId,
+	}
+
+	result := r.db.Create(&entry)
+	if result.Error != nil {
+		return fmt.Errorf("failed to save award history entry: %w", result.Error)
+	}
+	return nil
+}

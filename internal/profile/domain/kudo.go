@@ -26,6 +26,7 @@ type KudosEntry struct {
 }
 
 type AwardHistoryEntry struct {
-	RecieverID uuid.UUID `gorm:"type:uuid;primaryKey;"`
-	ProfileID  uuid.UUID `gorm:"type:uuid;index;"`
+	RecieverID uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ProfileID  uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Timestamp  time.Time `gorm:"autoCreateTime"`
 }

@@ -3,7 +3,6 @@ package api
 import (
 	"Quest100Backend/internal/profile/application"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -27,14 +26,19 @@ func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
 		return
 	}
 
-	//TIJDELIJKE OPLOSSING: We gebruiken een hardcoded profile ID omdat we nog geen authenticatie hebben
-	profileId, err := uuid.Parse(os.Getenv("HARDCODED_PROFILE_ID"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID configuration"})
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
 		return
 	}
 
-	profile, err := h.profileService.HandleAttendance(classId, profileId)
+	var profileUUID uuid.UUID
+	if profileUUID, err = uuid.Parse(profileID.(string)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	profile, err := h.profileService.HandleAttendance(classId, profileUUID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -72,7 +76,19 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 		return
 	}
 
-	if err := h.profileService.GiveAwardTo(transaction.Receiver, transaction.Type, transaction.Message); err != nil {
+	senderID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	senderUUID, err := uuid.Parse(senderID.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	if err := h.profileService.GiveAwardTo(senderUUID, transaction.Receiver, transaction.Type, transaction.Message); err != nil {
 		c.JSON(404, gin.H{"error": err.Error()})
 	}
 
