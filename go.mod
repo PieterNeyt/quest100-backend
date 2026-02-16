@@ -3,9 +3,11 @@ module Quest100Backend
 go 1.25
 
 require (
+	github.com/MicahParks/keyfunc/v2 v2.1.0
 	github.com/coder/websocket v1.8.14
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	gorm.io/driver/postgres v1.6.0

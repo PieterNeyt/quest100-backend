@@ -39,3 +39,11 @@ func (r *profileRepository) UpdateProfile(profile *domain.Profile) error {
 	}
 	return nil
 }
+
+func (r *profileRepository) SaveProfile(profile *domain.Profile) error {
+	result := r.db.Save(profile)
+	if result.Error != nil {
+		return fmt.Errorf("failed to save profile: %w", result.Error)
+	}
+	return nil
+}

@@ -19,11 +19,11 @@ const (
 )
 
 type Profile struct {
-	ID                uuid.UUID `gorm:"type:uuid;primaryKey;"`
-	FirstName         string
-	LastName          string
-	Email             string `gorm:"uniqueIndex"`
-	Kudos             int
+	ID                uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
+	FirstName         string    `json:"firstName"`
+	LastName          string    `json:"lastName"`
+	Email             string    `gorm:"uniqueIndex" json:"email"`
+	Kudos             int       `json:"kudos"`
 	ArchetypeID       int
 	PreferredLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
 	PlayerStats       PlayerStats  `gorm:"foreignKey:ProfileID;references:ID"`
@@ -73,5 +73,30 @@ func (p *Profile) UpdatePlayerStats(amount int, kudoType KudoType) {
 
 	if err := p.CalculateArcheType(); err != nil {
 		log.Printf("Error calculating archetype: %v", err)
+	}
+}
+
+func (p *Profile) Sync(graph *GraphProfile) error {
+	if p.ID != graph.Id {
+		return &ProfileIdError{Arg: graph.Id, Message: "Profile id doesn't match"}
+	}
+
+	p.FirstName = graph.Name
+	p.LastName = graph.Surname
+	p.Email = graph.Mail
+	return nil
+}
+
+func CreateProfile(graph *GraphProfile) *Profile {
+	return &Profile{
+		ID:                graph.Id,
+		FirstName:         graph.Name,
+		LastName:          graph.Surname,
+		Email:             graph.Mail,
+		Kudos:             0,
+		ArchetypeID:       1,
+		PlayerStats:       PlayerStats{},
+		KudosHistory:      []KudosEntry{},
+		PrefferedLanguage: graph.PreferredLanguage,
 	}
 }

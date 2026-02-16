@@ -46,6 +46,24 @@ func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
 	})
 }
 
+func (h *ProfileHandler) Sync(c *gin.Context) {
+	token := c.GetHeader("X-Graph-Token")
+
+	graphProfile, err := h.profileService.GetGraphProfile(token)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	profile, err := h.profileService.Sync(graphProfile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
 func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 	var transaction AwardsTransaction
 
