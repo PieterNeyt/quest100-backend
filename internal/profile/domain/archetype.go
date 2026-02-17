@@ -61,7 +61,7 @@ func (p *Profile) GetArchetype() Archetype {
 		ID:   archetype.ID,
 		Name: archetype.Name,
 		Descriptions: map[Language]string{
-			p.PrefferedLanguage: archetype.Descriptions[p.PrefferedLanguage],
+			p.PreferredLanguage: archetype.Descriptions[p.PreferredLanguage],
 		},
 	}
 }

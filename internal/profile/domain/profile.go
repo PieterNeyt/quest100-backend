@@ -28,7 +28,7 @@ type Profile struct {
 	Kudos                int       `json:"kudos"`
 	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
 	ArchetypeID          int
-	PrefferedLanguage    Language           `gorm:"type:varchar(2);check:preffered_language IN ('NL','EN')"`
+	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
 	PlayerStats          PlayerStats        `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
@@ -138,6 +138,6 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		PlayerStats:       PlayerStats{},
 		KudosHistory:      []KudosEntry{},
 		AttendanceRecords: []AttendanceRecord{},
-		PrefferedLanguage: graph.PreferredLanguage,
+		PreferredLanguage: graph.PreferredLanguage,
 	}
 }
