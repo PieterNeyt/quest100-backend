@@ -18,5 +18,6 @@ func SetupProfileRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	{
 		profileGroup.POST("/attendance/:classId", profileHandler.HandleAttendance)
 		profileGroup.GET("/sync", profileHandler.Sync)
+		profileGroup.PUT("/language", profileHandler.UpdateLanguage)
 	}
 }
