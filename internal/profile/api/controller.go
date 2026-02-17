@@ -107,18 +107,19 @@ func (h *ProfileHandler) Sync(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
-}
-func (h *ProfileHandler) GetProfilePicture(c *gin.Context) {
-	token := c.GetHeader("X-Graph-Token")
+	microsoftPicture := ""
 
 	base64Img, err := h.profileService.GetGraphProfilePicture(token)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"profilePicture": ""})
-		return
+	if err == nil {
+		microsoftPicture = base64Img
 	}
 
-	c.JSON(http.StatusOK, gin.H{"profilePicture": base64Img})
+	response := SyncProfileResponse{
+		Profile:                 profile,
+		MicrosoftProfilePicture: microsoftPicture,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *ProfileHandler) UpdateProfilePicture(c *gin.Context) {
