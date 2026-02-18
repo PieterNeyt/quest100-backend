@@ -41,7 +41,7 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 		return
 	}
 
-	profile.PrefferedLanguage = domain.Language(input.Language)
+	profile.PreferredLanguage = domain.Language(input.Language)
 
 	if err := h.profileService.UpdateProfile(profile); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update language"})
@@ -102,6 +102,60 @@ func (h *ProfileHandler) Sync(c *gin.Context) {
 	}
 
 	profile, err := h.profileService.Sync(graphProfile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	microsoftPicture := ""
+
+	base64Img, err := h.profileService.GetGraphProfilePicture(token)
+	if err == nil {
+		microsoftPicture = base64Img
+	}
+
+	response := SyncProfileResponse{
+		Profile:                 profile,
+		MicrosoftProfilePicture: microsoftPicture,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *ProfileHandler) UpdateProfilePicture(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+	profileId := profileID.(uuid.UUID)
+
+	var body struct {
+		ProfilePicture string `json:"profilePicture" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	profile, err := h.profileService.UpdateProfilePicture(profileId, body.ProfilePicture)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
+func (h *ProfileHandler) DeleteProfilePicture(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+	profileId := profileID.(uuid.UUID)
+
+	profile, err := h.profileService.DeleteProfilePicture(profileId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
