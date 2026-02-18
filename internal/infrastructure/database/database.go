@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	_ "github.com/joho/godotenv/autoload"
 	"gorm.io/driver/postgres"
@@ -28,6 +29,7 @@ var (
 	port       = os.Getenv("QUEST_DB_PORT")
 	host       = os.Getenv("QUEST_DB_HOST")
 	schema     = os.Getenv("QUEST_DB_SCHEMA")
+	resetDB    = os.Getenv("RESET_DATABASE")
 	dbInstance *service
 )
 
@@ -49,6 +51,11 @@ func New() Service {
 		log.Fatal(err)
 	}
 
+	if strings.ToLower(resetDB) == "true" {
+		log.Println("dropping all tables")
+		dropAllTables(db)
+	}
+
 	autoMigration(db)
 
 	log.Printf("Connected to database: %s", database)
@@ -57,6 +64,33 @@ func New() Service {
 		db: db,
 	}
 	return dbInstance
+}
+
+func dropAllTables(db *gorm.DB) {
+	var tables []string
+
+	schemaName := schema
+	if schemaName == "" {
+		schemaName = "public"
+	}
+
+	err := db.Raw(`
+       SELECT tablename 
+       FROM pg_tables 
+       WHERE schemaname = ?
+    `, schemaName).Scan(&tables).Error
+
+	if err != nil {
+		log.Printf("Error fetching tables: %v", err)
+		return
+	}
+
+	// Drop alle tabellen
+	for _, table := range tables {
+		if err := db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS \"%s\" CASCADE", table)).Error; err != nil {
+			log.Printf("Error dropping table %s: %v", table, err)
+		}
+	}
 }
 
 func autoMigration(db *gorm.DB) {

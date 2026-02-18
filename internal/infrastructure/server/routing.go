@@ -2,6 +2,7 @@ package server
 
 import (
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
+	qrcodeRouting "Quest100Backend/internal/util/qrcode/infrastructure/server"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,6 +25,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	api := r.Group("/api", AuthMiddleware())
 	profileRouting.SetupProfileRoutes(api, s.db.GetDB())
+	qrcodeRouting.SetupQRCodeRoutes(api)
 
 	r.GET("/websocket", s.websocketHandler)
 

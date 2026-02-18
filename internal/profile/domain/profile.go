@@ -27,6 +27,17 @@ const (
 )
 
 type Profile struct {
+	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
+	FirstName            string    `json:"firstName"`
+	LastName             string    `json:"lastName"`
+	Email                string    `gorm:"uniqueIndex" json:"email"`
+	Kudos                int       `json:"kudos"`
+	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
+	ArchetypeID          int
+	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
+	PlayerStats          PlayerStats        `gorm:"foreignKey:ProfileID;references:ID"`
+	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
+	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
 	ID                uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
 	FirstName         string    `json:"firstName"`
 	LastName          string    `json:"lastName"`
@@ -46,6 +57,42 @@ type PlayerStats struct {
 	KudoTeamwork   int
 	KudoAtmosphere int
 	KudoEngagement int
+}
+
+type AttendanceRecord struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
+	ProfileID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"profileId"`
+	ClassID   uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"classId"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
+	for _, record := range p.AttendanceRecords {
+		if record.ClassID == classId {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Profile) RecordAttendance(classId uuid.UUID) error {
+	if p.HasAttendedClass(classId) {
+		return &DuplicateAttendanceError{
+			ProfileID: p.ID,
+			ClassID:   classId,
+			Message:   "Attendance already recorded for this class",
+		}
+	}
+
+	record := AttendanceRecord{
+		ID:        uuid.New(),
+		ProfileID: p.ID,
+		ClassID:   classId,
+		Timestamp: time.Now(),
+	}
+
+	p.AttendanceRecords = append(p.AttendanceRecords, record)
+	return nil
 }
 
 func (p *Profile) AddKudos(kudos int, reason string, kudoType KudoType) error {
@@ -106,6 +153,8 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		ArchetypeID:       1,
 		PlayerStats:       PlayerStats{},
 		KudosHistory:      []KudosEntry{},
+		AttendanceRecords: []AttendanceRecord{},
+		PreferredLanguage: graph.PreferredLanguage,
 		PreferredLanguage: graph.PreferredLanguage,
 		Role:              graph.Role,
 	}
