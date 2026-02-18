@@ -2,6 +2,7 @@ package domain
 
 import (
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -38,16 +39,7 @@ type Profile struct {
 	PlayerStats          PlayerStats        `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
-	ID                uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
-	FirstName         string    `json:"firstName"`
-	LastName          string    `json:"lastName"`
-	Email             string    `gorm:"uniqueIndex" json:"email"`
-	Kudos             int       `json:"kudos"`
-	ArchetypeID       int
-	PreferredLanguage Language     `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')"`
-	PlayerStats       PlayerStats  `gorm:"foreignKey:ProfileID;references:ID"`
-	KudosHistory      []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
-	Role              Role         `gorm:"type:varchar(10);check:role IN ('student', 'lector')" json:"role"`
+	Role                 Role               `gorm:"type:varchar(10);check:role IN ('student', 'lector')" json:"role"`
 }
 
 type PlayerStats struct {
@@ -154,7 +146,6 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		PlayerStats:       PlayerStats{},
 		KudosHistory:      []KudosEntry{},
 		AttendanceRecords: []AttendanceRecord{},
-		PreferredLanguage: graph.PreferredLanguage,
 		PreferredLanguage: graph.PreferredLanguage,
 		Role:              graph.Role,
 	}
