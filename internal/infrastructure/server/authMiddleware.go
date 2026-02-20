@@ -1,6 +1,7 @@
 package server
 
 import (
+	"Quest100Backend/internal/demo"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,6 +33,11 @@ func init() {
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// DEMO CHECK
+		if demo.IsDemoToken(c) {
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No token"})
