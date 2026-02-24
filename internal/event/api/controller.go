@@ -1,0 +1,207 @@
+package api
+
+import (
+	"Quest100Backend/internal/event/application"
+	"Quest100Backend/internal/event/domain"
+	"errors"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+type EventHandler struct {
+	eventService application.EventService
+}
+
+func NewEventHandler(eventService application.EventService) *EventHandler {
+	return &EventHandler{eventService: eventService}
+}
+
+func getProfileID(c *gin.Context) (uuid.UUID, bool) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return uuid.Nil, false
+	}
+	return profileID.(uuid.UUID), true
+}
+
+func (h *EventHandler) GetAllEvents(c *gin.Context) {
+	categoryStr := c.Query("category")
+	if categoryStr != "" {
+		events, err := h.eventService.GetEventsByCategory(domain.EventCategory(categoryStr))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, events)
+		return
+	}
+
+	events, err := h.eventService.GetAllEvents()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, events)
+}
+
+func (h *EventHandler) GetEvent(c *gin.Context) {
+	eventID, err := uuid.Parse(c.Param("eventId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+	event, err := h.eventService.GetEventByID(eventID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+	c.JSON(http.StatusOK, event)
+}
+
+func (h *EventHandler) CreateEvent(c *gin.Context) {
+	profileID, ok := getProfileID(c)
+	if !ok {
+		return
+	}
+
+	var body struct {
+		Title        string               `json:"title" binding:"required"`
+		Description  string               `json:"description"`
+		Photo        *string              `json:"photo"`
+		Category     domain.EventCategory `json:"category" binding:"required"`
+		EventDate    time.Time            `json:"eventDate" binding:"required"`
+		MaxAttendees *int                 `json:"maxAttendees"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	event, err := h.eventService.CreateEvent(application.CreateEventInput{
+		Title:        body.Title,
+		Description:  body.Description,
+		Photo:        body.Photo,
+		Category:     body.Category,
+		OrganizerID:  profileID,
+		EventDate:    body.EventDate,
+		MaxAttendees: body.MaxAttendees,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, event)
+}
+
+func (h *EventHandler) UpdateEvent(c *gin.Context) {
+	profileID, ok := getProfileID(c)
+	if !ok {
+		return
+	}
+	eventID, err := uuid.Parse(c.Param("eventId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	var body struct {
+		Title        string               `json:"title" binding:"required"`
+		Description  string               `json:"description"`
+		Photo        *string              `json:"photo"`
+		Category     domain.EventCategory `json:"category" binding:"required"`
+		EventDate    time.Time            `json:"eventDate" binding:"required"`
+		MaxAttendees *int                 `json:"maxAttendees"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	event, err := h.eventService.UpdateEvent(eventID, profileID, application.UpdateEventInput{
+		Title:        body.Title,
+		Description:  body.Description,
+		Photo:        body.Photo,
+		Category:     body.Category,
+		EventDate:    body.EventDate,
+		MaxAttendees: body.MaxAttendees,
+	})
+	if err != nil {
+		var unauthorized *domain.UnauthorizedError
+		if errors.As(err, &unauthorized) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, event)
+}
+
+func (h *EventHandler) DeleteEvent(c *gin.Context) {
+	profileID, ok := getProfileID(c)
+	if !ok {
+		return
+	}
+	eventID, err := uuid.Parse(c.Param("eventId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	if err := h.eventService.DeleteEvent(eventID, profileID); err != nil {
+		var unauthorized *domain.UnauthorizedError
+		if errors.As(err, &unauthorized) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully"})
+}
+
+func (h *EventHandler) JoinEvent(c *gin.Context) {
+	profileID, ok := getProfileID(c)
+	if !ok {
+		return
+	}
+	eventID, err := uuid.Parse(c.Param("eventId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	event, err := h.eventService.JoinEvent(eventID, profileID)
+	if err != nil {
+		var fullErr *domain.EventFullError
+		if errors.As(err, &fullErr) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "You are now going", "event": event})
+}
+
+func (h *EventHandler) CancelEvent(c *gin.Context) {
+	profileID, ok := getProfileID(c)
+	if !ok {
+		return
+	}
+	eventID, err := uuid.Parse(c.Param("eventId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	if err := h.eventService.CancelEvent(eventID, profileID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Attendance cancelled"})
+}

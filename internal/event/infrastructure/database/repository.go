@@ -1,0 +1,88 @@
+package database
+
+import (
+	"Quest100Backend/internal/event/domain"
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+type eventRepository struct {
+	db *gorm.DB
+}
+
+func NewEventRepository(db *gorm.DB) domain.EventRepository {
+	return &eventRepository{db: db}
+}
+
+func (r *eventRepository) SaveEvent(event *domain.Event) error {
+	if err := r.db.Create(event).Error; err != nil {
+		return fmt.Errorf("failed to create event: %w", err)
+	}
+	return nil
+}
+
+func (r *eventRepository) GetEventByID(id uuid.UUID) (*domain.Event, error) {
+	var event domain.Event
+	result := r.db.
+		Preload("Attendees").
+		First(&event, "id = ?", id)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("event with id %s not found", id)
+		}
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+	return &event, nil
+}
+
+func (r *eventRepository) GetAllEvents() ([]*domain.Event, error) {
+	var events []*domain.Event
+	if err := r.db.Preload("Attendees").Find(&events).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch events: %w", err)
+	}
+	return events, nil
+}
+
+func (r *eventRepository) GetEventsByCategory(category domain.EventCategory) ([]*domain.Event, error) {
+	var events []*domain.Event
+	if err := r.db.Preload("Attendees").Where("category = ?", category).Find(&events).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch events by category: %w", err)
+	}
+	return events, nil
+}
+
+func (r *eventRepository) UpdateEvent(event *domain.Event) error {
+	if err := r.db.Session(&gorm.Session{FullSaveAssociations: true}).
+		Omit("Messages").
+		Save(event).Error; err != nil {
+		return fmt.Errorf("failed to update event: %w", err)
+	}
+	return nil
+}
+
+func (r *eventRepository) DeleteEvent(id uuid.UUID) error {
+	if err := r.db.Where("event_id = ?", id).Delete(&domain.EventAttendee{}).Error; err != nil {
+		return fmt.Errorf("failed to delete attendees: %w", err)
+	}
+	if err := r.db.Where("event_id = ?", id).Delete(&domain.ChatMessage{}).Error; err != nil {
+		return fmt.Errorf("failed to delete chat messages: %w", err)
+	}
+	if err := r.db.Delete(&domain.Event{}, "id = ?", id).Error; err != nil {
+		return fmt.Errorf("failed to delete event: %w", err)
+	}
+	return nil
+}
+
+func (r *eventRepository) RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID) error {
+	result := r.db.
+		Where("event_id = ? AND profile_id = ?", eventID, profileID).
+		Delete(&domain.EventAttendee{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to remove attendee: %w", result.Error)
+	}
+	return nil
+}
