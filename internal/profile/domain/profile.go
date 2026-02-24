@@ -20,13 +20,6 @@ const (
 	ENG          = "EN"
 )
 
-type Role string
-
-const (
-	Student Role = "student"
-	Lector       = "lector"
-)
-
 type Profile struct {
 	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
 	FirstName            string    `json:"firstName"`
@@ -39,7 +32,6 @@ type Profile struct {
 	PlayerStats          PlayerStats        `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
-	Role                 Role               `gorm:"type:varchar(10);check:role IN ('student', 'lector')" json:"role"`
 }
 
 type PlayerStats struct {
@@ -147,6 +139,5 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		KudosHistory:      []KudosEntry{},
 		AttendanceRecords: []AttendanceRecord{},
 		PreferredLanguage: graph.PreferredLanguage,
-		Role:              graph.Role,
 	}
 }
