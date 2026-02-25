@@ -20,7 +20,10 @@ func NewProfileRepository(db *gorm.DB) domain.ProfileRepository {
 func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile, error) {
 	var profile domain.Profile
 
-	result := r.db.Debug().Preload("KudosHistory").First(&profile, "id = ?", profileId)
+	result := r.db.Debug().
+		Preload("KudosHistory").
+		Preload("AttendanceRecords").
+		First(&profile, "id = ?", profileId)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

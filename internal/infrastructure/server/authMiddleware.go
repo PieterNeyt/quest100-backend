@@ -10,6 +10,7 @@ import (
 	"github.com/MicahParks/keyfunc/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var jwks *keyfunc.JWKS
@@ -66,6 +67,16 @@ func AuthMiddleware() gin.HandlerFunc {
 		if claims.Issuer != expectedIssuer {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid issuer"})
 			return
+		}
+
+		// Extract oid claim
+		mapClaims := jwt.MapClaims{}
+		_, _ = jwt.ParseWithClaims(tokenString, mapClaims, jwks.Keyfunc)
+
+		if oidClaim, ok := mapClaims["oid"].(string); ok {
+			if profileID, err := uuid.Parse(oidClaim); err == nil {
+				c.Set("profileID", profileID)
+			}
 		}
 
 		c.Next()

@@ -41,3 +41,13 @@ type ProfileError struct {
 func (e *ProfileError) Error() string {
 	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
 }
+
+type DuplicateAttendanceError struct {
+	ProfileID uuid.UUID
+	ClassID   uuid.UUID
+	Message   string
+}
+
+func (e *DuplicateAttendanceError) Error() string {
+	return fmt.Sprintf("duplicate attendance for profile %v in class %v: %s", e.ProfileID, e.ClassID, e.Message)
+}
