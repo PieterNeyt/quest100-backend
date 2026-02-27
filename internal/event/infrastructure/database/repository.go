@@ -47,17 +47,8 @@ func (r *eventRepository) GetAllEvents() ([]*domain.Event, error) {
 	return events, nil
 }
 
-func (r *eventRepository) GetEventsByCategory(category domain.EventCategory) ([]*domain.Event, error) {
-	var events []*domain.Event
-	if err := r.db.Preload("Attendees").Where("category = ?", category).Find(&events).Error; err != nil {
-		return nil, fmt.Errorf("failed to fetch events by category: %w", err)
-	}
-	return events, nil
-}
-
 func (r *eventRepository) UpdateEvent(event *domain.Event) error {
 	if err := r.db.Session(&gorm.Session{FullSaveAssociations: true}).
-		Omit("Messages").
 		Save(event).Error; err != nil {
 		return fmt.Errorf("failed to update event: %w", err)
 	}
@@ -67,9 +58,6 @@ func (r *eventRepository) UpdateEvent(event *domain.Event) error {
 func (r *eventRepository) DeleteEvent(id uuid.UUID) error {
 	if err := r.db.Where("event_id = ?", id).Delete(&domain.EventAttendee{}).Error; err != nil {
 		return fmt.Errorf("failed to delete attendees: %w", err)
-	}
-	if err := r.db.Where("event_id = ?", id).Delete(&domain.ChatMessage{}).Error; err != nil {
-		return fmt.Errorf("failed to delete chat messages: %w", err)
 	}
 	if err := r.db.Delete(&domain.Event{}, "id = ?", id).Error; err != nil {
 		return fmt.Errorf("failed to delete event: %w", err)

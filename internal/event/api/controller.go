@@ -28,17 +28,6 @@ func getProfileID(c *gin.Context) (uuid.UUID, bool) {
 }
 
 func (h *EventHandler) GetAllEvents(c *gin.Context) {
-	categoryStr := c.Query("category")
-	if categoryStr != "" {
-		events, err := h.eventService.GetEventsByCategory(domain.EventCategory(categoryStr))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, events)
-		return
-	}
-
 	events, err := h.eventService.GetAllEvents()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -193,7 +182,7 @@ func (h *EventHandler) JoinEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "You are now going", "event": event})
 }
 
-func (h *EventHandler) CancelEvent(c *gin.Context) {
+func (h *EventHandler) LeaveEvent(c *gin.Context) {
 	profileID, ok := getProfileID(c)
 	if !ok {
 		return
@@ -205,7 +194,7 @@ func (h *EventHandler) CancelEvent(c *gin.Context) {
 		return
 	}
 
-	if err := h.eventService.CancelEvent(eventID, profileID); err != nil {
+	if err := h.eventService.LeaveEvent(eventID, profileID); err != nil {
 		var unauthorized *domain.UnauthorizedError
 		if errors.As(err, &unauthorized) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})

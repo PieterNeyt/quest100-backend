@@ -10,24 +10,12 @@ type EventRepository interface {
 	SaveEvent(event *Event) error
 	GetEventByID(id uuid.UUID) (*Event, error)
 	GetAllEvents() ([]*Event, error)
-	GetEventsByCategory(category EventCategory) ([]*Event, error)
 	UpdateEvent(event *Event) error
 	DeleteEvent(id uuid.UUID) error
 	RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID) error
 }
 
 type EventCategory string
-
-const (
-	CategorySports  EventCategory = "SPORTS"
-	CategoryGaming  EventCategory = "GAMING"
-	CategoryStudy   EventCategory = "STUDY"
-	CategoryFood    EventCategory = "FOOD"
-	CategoryMusic   EventCategory = "MUSIC"
-	CategoryOutdoor EventCategory = "OUTDOOR"
-	CategorySocial  EventCategory = "SOCIAL"
-	CategoryOther   EventCategory = "OTHER"
-)
 
 type Event struct {
 	ID           uuid.UUID     `gorm:"type:uuid;primaryKey" json:"id"`
@@ -83,9 +71,5 @@ func (e *Event) IsFull() bool {
 	if e.MaxAttendees == nil {
 		return false
 	}
-	return e.GoingCount() >= *e.MaxAttendees
-}
-
-func (e *Event) GoingCount() int {
-	return len(e.Attendees)
+	return len(e.Attendees) >= *e.MaxAttendees
 }

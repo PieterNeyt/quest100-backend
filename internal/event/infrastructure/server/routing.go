@@ -22,7 +22,7 @@ func SetupEventRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		eventGroup.PUT("/:eventId", eventHandler.UpdateEvent)
 		eventGroup.DELETE("/:eventId", eventHandler.DeleteEvent)
 		eventGroup.POST("/:eventId/attendance", eventHandler.JoinEvent)
-		eventGroup.DELETE("/:eventId/attendance", eventHandler.CancelEvent)
+		eventGroup.DELETE("/:eventId/attendance", eventHandler.LeaveEvent)
 
 	}
 }

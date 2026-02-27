@@ -32,11 +32,10 @@ type EventService interface {
 	CreateEvent(input CreateEventInput) (*domain.Event, error)
 	GetEventByID(id uuid.UUID) (*domain.Event, error)
 	GetAllEvents() ([]*domain.Event, error)
-	GetEventsByCategory(category domain.EventCategory) ([]*domain.Event, error)
 	UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.Event, error)
 	DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.UUID) error
 	JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domain.Event, error)
-	CancelEvent(eventID uuid.UUID, profileID uuid.UUID) error
+	LeaveEvent(eventID uuid.UUID, profileID uuid.UUID) error
 }
 
 type eventService struct {
@@ -71,10 +70,6 @@ func (s *eventService) GetAllEvents() ([]*domain.Event, error) {
 	return s.eventRepo.GetAllEvents()
 }
 
-func (s *eventService) GetEventsByCategory(category domain.EventCategory) ([]*domain.Event, error) {
-	return s.eventRepo.GetEventsByCategory(category)
-}
-
 func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.Event, error) {
 	event, err := s.eventRepo.GetEventByID(eventID)
 	if err != nil {
@@ -89,7 +84,19 @@ func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.U
 	event.Photo = input.Photo
 	event.Category = input.Category
 	event.EventDate = input.EventDate
-	event.MaxAttendees = input.MaxAttendees
+
+	if input.MaxAttendees != nil {
+		currentAttendees := len(event.Attendees)
+
+		if currentAttendees > *input.MaxAttendees {
+			return nil, fmt.Errorf(
+				"cannot reduce max attendees to %d because %d users are already attending",
+				*input.MaxAttendees,
+				currentAttendees,
+			)
+		}
+		event.MaxAttendees = input.MaxAttendees
+	}
 
 	if input.NewOrganizerID != nil {
 		if !event.IsAttendee(*input.NewOrganizerID) {
@@ -132,7 +139,7 @@ func (s *eventService) JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domai
 	return event, nil
 }
 
-func (s *eventService) CancelEvent(eventID uuid.UUID, profileID uuid.UUID) error {
+func (s *eventService) LeaveEvent(eventID uuid.UUID, profileID uuid.UUID) error {
 	event, err := s.eventRepo.GetEventByID(eventID)
 	if err != nil {
 		return fmt.Errorf("event not found: %w", err)
