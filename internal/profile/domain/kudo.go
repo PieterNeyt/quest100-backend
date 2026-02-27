@@ -27,6 +27,11 @@ type KudosEntry struct {
 
 type AwardHistoryEntry struct {
 	RecieverID uuid.UUID `gorm:"type:uuid;primaryKey"`
-	ProfileID  uuid.UUID `gorm:"type:uuid;primaryKey"`
+	SenderID   uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Timestamp  time.Time `gorm:"autoCreateTime"`
+}
+
+type ProfileAward struct {
+	Profile      Profile `json:"profile"`
+	HasSentAward bool    `json:"hasSentAward"`
 }

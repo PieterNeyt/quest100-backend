@@ -11,6 +11,7 @@ type AwardTransaction struct {
 	Receiver uuid.UUID       `json:"receiver"`
 	Message  string          `json:"message"`
 }
+
 type SyncProfileResponse struct {
 	Profile                 *domain.Profile `json:"profile"`
 	MicrosoftProfilePicture string          `json:"microsoftProfilePicture"`

@@ -352,7 +352,7 @@ func (p *Profile) AddKudos(kudos int, reason string) error {
     p.Kudos += kudos
     p.KudosHistory = append(p.KudosHistory, KudosEntry{
         ID:        uuid.New(),
-        ProfileID: p.ID,
+        SenderID: p.ID,
         Amount:    kudos,
         Reason:    reason,
     })
@@ -497,10 +497,10 @@ db.AutoMigrate(&domain.Profile{})
 
 // Indexes
 Email string `gorm:"uniqueIndex"`  // Auto index
-ProfileID uuid.UUID `gorm:"index"` // Auto index
+SenderID uuid.UUID `gorm:"index"` // Auto index
 
 // Foreign Keys
-KudosHistory []KudosEntry `gorm:"foreignKey:ProfileID;references:ID"`
+KudosHistory []KudosEntry `gorm:"foreignKey:SenderID;references:ID"`
 ```
 
 ---

@@ -13,6 +13,7 @@ type ProfileRepository interface {
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
+	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 }
 
 type Language string

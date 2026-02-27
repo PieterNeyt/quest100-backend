@@ -25,6 +25,7 @@ type ProfileService interface {
 	DeleteProfilePicture(profileId uuid.UUID) (*domain.Profile, error)
 	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) error
 	GetProfiles() (*[]domain.Profile, error)
+	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 }
 
 type profileService struct {
@@ -192,4 +193,31 @@ func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, k
 	}
 
 	return nil
+}
+
+func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error) {
+	profiles, err := s.GetProfiles()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profiles: %w", err)
+	}
+
+	var profileAwards []domain.ProfileAward
+
+	for _, profile := range *profiles {
+		if profile.ID == profileId {
+			continue
+		}
+
+		hasSent, err := s.profileRepo.HasSentAward(profileId, profile.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check award history: %w", err)
+		}
+
+		profileAwards = append(profileAwards, domain.ProfileAward{
+			Profile:      profile,
+			HasSentAward: hasSent,
+		})
+	}
+
+	return &profileAwards, nil
 }

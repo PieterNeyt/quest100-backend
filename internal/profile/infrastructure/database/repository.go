@@ -63,9 +63,16 @@ func (r *profileRepository) SaveProfile(profile *domain.Profile) error {
 	return nil
 }
 func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
+	var existing domain.AwardHistoryEntry
+	ex := r.db.Where("reciever_id = ? AND sender_id = ?", receiverId, senderId).First(&existing)
+
+	if ex.Error == nil {
+		return fmt.Errorf("award history entry already exists")
+	}
+
 	entry := domain.AwardHistoryEntry{
 		RecieverID: receiverId,
-		ProfileID:  senderId,
+		SenderID:   senderId,
 	}
 
 	result := r.db.Create(&entry)
@@ -73,4 +80,16 @@ func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId 
 		return fmt.Errorf("failed to save award history entry: %w", result.Error)
 	}
 	return nil
+}
+
+func (r *profileRepository) HasSentAward(senderId uuid.UUID, receiverId uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Table("award_history_entries").
+		Where("sender_id = ? AND reciever_id = ?", senderId, receiverId).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
