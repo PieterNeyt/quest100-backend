@@ -5,7 +5,6 @@ import (
 	"Quest100Backend/internal/event/domain"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -54,6 +53,7 @@ func (h *EventHandler) GetEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
+
 	event, err := h.eventService.GetEventByID(eventID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
@@ -68,14 +68,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 		return
 	}
 
-	var body struct {
-		Title        string               `json:"title" binding:"required"`
-		Description  string               `json:"description"`
-		Photo        *string              `json:"photo"`
-		Category     domain.EventCategory `json:"category" binding:"required"`
-		EventDate    time.Time            `json:"eventDate" binding:"required"`
-		MaxAttendees *int                 `json:"maxAttendees"`
-	}
+	var body CreateEventRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -102,33 +95,38 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 	if !ok {
 		return
 	}
+
 	eventID, err := uuid.Parse(c.Param("eventId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
 
-	var body struct {
-		Title        string               `json:"title" binding:"required"`
-		Description  string               `json:"description"`
-		Photo        *string              `json:"photo"`
-		Category     domain.EventCategory `json:"category" binding:"required"`
-		EventDate    time.Time            `json:"eventDate" binding:"required"`
-		MaxAttendees *int                 `json:"maxAttendees"`
-	}
+	var body UpdateEventRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	event, err := h.eventService.UpdateEvent(eventID, profileID, application.UpdateEventInput{
+	input := application.UpdateEventInput{
 		Title:        body.Title,
 		Description:  body.Description,
 		Photo:        body.Photo,
 		Category:     body.Category,
 		EventDate:    body.EventDate,
 		MaxAttendees: body.MaxAttendees,
-	})
+	}
+
+	if body.NewOrganizerID != nil {
+		parsed, err := uuid.Parse(*body.NewOrganizerID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid newOrganizerID"})
+			return
+		}
+		input.NewOrganizerID = &parsed
+	}
+
+	event, err := h.eventService.UpdateEvent(eventID, profileID, input)
 	if err != nil {
 		var unauthorized *domain.UnauthorizedError
 		if errors.As(err, &unauthorized) {
@@ -146,6 +144,7 @@ func (h *EventHandler) DeleteEvent(c *gin.Context) {
 	if !ok {
 		return
 	}
+
 	eventID, err := uuid.Parse(c.Param("eventId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
@@ -169,6 +168,7 @@ func (h *EventHandler) JoinEvent(c *gin.Context) {
 	if !ok {
 		return
 	}
+
 	eventID, err := uuid.Parse(c.Param("eventId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
@@ -179,6 +179,11 @@ func (h *EventHandler) JoinEvent(c *gin.Context) {
 	if err != nil {
 		var fullErr *domain.EventFullError
 		if errors.As(err, &fullErr) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		var alreadyErr *domain.AlreadyAttendingError
+		if errors.As(err, &alreadyErr) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -193,6 +198,7 @@ func (h *EventHandler) CancelEvent(c *gin.Context) {
 	if !ok {
 		return
 	}
+
 	eventID, err := uuid.Parse(c.Param("eventId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
@@ -200,6 +206,16 @@ func (h *EventHandler) CancelEvent(c *gin.Context) {
 	}
 
 	if err := h.eventService.CancelEvent(eventID, profileID); err != nil {
+		var unauthorized *domain.UnauthorizedError
+		if errors.As(err, &unauthorized) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		var notAttending *domain.NotAttendingError
+		if errors.As(err, &notAttending) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

@@ -24,7 +24,7 @@ func (e *Event) IsAttendee(profileID uuid.UUID) bool {
 
 func (e *Event) Join(profileID uuid.UUID) error {
 	if e.IsAttendee(profileID) {
-		return nil
+		return &AlreadyAttendingError{ProfileID: profileID, EventID: e.ID}
 	}
 	if e.IsFull() {
 		return &EventFullError{EventID: e.ID, Message: "Event is full"}

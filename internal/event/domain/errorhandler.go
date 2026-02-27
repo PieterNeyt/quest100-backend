@@ -25,6 +25,15 @@ func (e *NotAttendingError) Error() string {
 	return fmt.Sprintf("%s (profileId: %s, eventId: %s)", e.Message, e.ProfileID, e.EventID)
 }
 
+type AlreadyAttendingError struct {
+	ProfileID uuid.UUID
+	EventID   uuid.UUID
+}
+
+func (e *AlreadyAttendingError) Error() string {
+	return fmt.Sprintf("already attending this event (profileId: %s, eventId: %s)", e.ProfileID, e.EventID)
+}
+
 type UnauthorizedError struct {
 	Message string
 }

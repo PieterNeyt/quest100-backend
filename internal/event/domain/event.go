@@ -15,6 +15,7 @@ type EventRepository interface {
 	DeleteEvent(id uuid.UUID) error
 	RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID) error
 }
+
 type EventCategory string
 
 const (
@@ -51,8 +52,9 @@ func CreateEvent(
 	eventDate time.Time,
 	maxAttendees *int,
 ) *Event {
+	eventID := uuid.New()
 	return &Event{
-		ID:           uuid.New(),
+		ID:           eventID,
 		Title:        title,
 		Description:  description,
 		Photo:        photo,
@@ -62,7 +64,14 @@ func CreateEvent(
 		MaxAttendees: maxAttendees,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
-		Attendees:    []EventAttendee{},
+		Attendees: []EventAttendee{
+			{
+				ID:        uuid.New(),
+				EventID:   eventID,
+				ProfileID: organizerID,
+				JoinedAt:  time.Now(),
+			},
+		},
 	}
 }
 

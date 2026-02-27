@@ -19,12 +19,13 @@ type CreateEventInput struct {
 }
 
 type UpdateEventInput struct {
-	Title        string
-	Description  string
-	Photo        *string
-	Category     domain.EventCategory
-	EventDate    time.Time
-	MaxAttendees *int
+	Title          string
+	Description    string
+	Photo          *string
+	Category       domain.EventCategory
+	EventDate      time.Time
+	MaxAttendees   *int
+	NewOrganizerID *uuid.UUID
 }
 
 type EventService interface {
@@ -90,6 +91,13 @@ func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.U
 	event.EventDate = input.EventDate
 	event.MaxAttendees = input.MaxAttendees
 
+	if input.NewOrganizerID != nil {
+		if !event.IsAttendee(*input.NewOrganizerID) {
+			return nil, fmt.Errorf("new organizer must be an existing attendee")
+		}
+		event.OrganizerID = *input.NewOrganizerID
+	}
+
 	if err := s.eventRepo.UpdateEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
@@ -112,6 +120,9 @@ func (s *eventService) JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domai
 	if err != nil {
 		return nil, fmt.Errorf("event not found: %w", err)
 	}
+	if event.IsAttendee(profileID) {
+		return nil, &domain.AlreadyAttendingError{ProfileID: profileID, EventID: eventID}
+	}
 	if err := event.Join(profileID); err != nil {
 		return nil, err
 	}
@@ -122,6 +133,16 @@ func (s *eventService) JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domai
 }
 
 func (s *eventService) CancelEvent(eventID uuid.UUID, profileID uuid.UUID) error {
+	event, err := s.eventRepo.GetEventByID(eventID)
+	if err != nil {
+		return fmt.Errorf("event not found: %w", err)
+	}
+	if event.IsOrganizer(profileID) {
+		return &domain.UnauthorizedError{Message: "organizer cannot cancel attendance without transferring ownership or deleting the event"}
+	}
+	if !event.IsAttendee(profileID) {
+		return &domain.NotAttendingError{ProfileID: profileID, EventID: eventID, Message: "not attending this event"}
+	}
 	if err := s.eventRepo.RemoveAttendee(eventID, profileID); err != nil {
 		return fmt.Errorf("failed to cancel attendance: %w", err)
 	}
