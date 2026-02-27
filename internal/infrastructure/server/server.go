@@ -16,6 +16,8 @@ type Server struct {
 	db   database.Service
 }
 
+var hub = NewHub()
+
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	NewServer := &Server{
@@ -31,6 +33,8 @@ func NewServer() *http.Server {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
+
+	go hub.Run() // Start the hub in a background routine
 
 	return server
 }
