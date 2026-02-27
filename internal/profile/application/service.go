@@ -24,6 +24,7 @@ type ProfileService interface {
 	UpdateProfilePicture(profileId uuid.UUID, base64Img string) (*domain.Profile, error)
 	DeleteProfilePicture(profileId uuid.UUID) (*domain.Profile, error)
 	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) error
+	GetProfiles() (*[]domain.Profile, error)
 }
 
 type profileService struct {
@@ -67,6 +68,10 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 }
 func (s *profileService) GetProfileById(id uuid.UUID) (*domain.Profile, error) {
 	return s.profileRepo.GetProfileById(id)
+}
+
+func (s *profileService) GetProfiles() (*[]domain.Profile, error) {
+	return s.profileRepo.GetProfiles()
 }
 
 func (s *profileService) UpdateProfile(profile *domain.Profile) error {

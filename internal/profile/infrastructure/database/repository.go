@@ -17,6 +17,18 @@ func NewProfileRepository(db *gorm.DB) domain.ProfileRepository {
 	return &profileRepository{db: db}
 }
 
+func (r *profileRepository) GetProfiles() (*[]domain.Profile, error) {
+	var profiles []domain.Profile
+
+	result := r.db.Find(&profiles)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+
+	return &profiles, nil
+}
+
 func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile, error) {
 	var profile domain.Profile
 

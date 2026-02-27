@@ -2,8 +2,8 @@ package api
 
 import (
 	"Quest100Backend/internal/profile/application"
+	"Quest100Backend/internal/profile/domain"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -166,7 +166,7 @@ func (h *ProfileHandler) DeleteProfilePicture(c *gin.Context) {
 }
 
 func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
-	var transaction AwardsTransaction
+	var transaction AwardTransaction
 
 	if err := c.ShouldBindJSON(&transaction); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -179,8 +179,8 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 		return
 	}
 
-	senderUUID, err := uuid.Parse(senderID.(string))
-	if err != nil {
+	senderUUID, ok := senderID.(uuid.UUID)
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
 		return
 	}
@@ -190,4 +190,12 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Kudos succesfully given to"})
+}
+func (h *ProfileHandler) GetProfiles(c *gin.Context) {
+	profiles, err := h.profileService.GetProfiles()
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, profiles)
 }

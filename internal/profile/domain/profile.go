@@ -12,6 +12,7 @@ type ProfileRepository interface {
 	UpdateProfile(profile *Profile) error
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
+	GetProfiles() (*[]Profile, error)
 }
 
 type Language string

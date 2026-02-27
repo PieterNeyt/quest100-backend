@@ -6,14 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
-type KudoType int
+type KudoType string
 
 const (
-	KudoKnowledge KudoType = iota
-	KudoAttendance
-	KudoTeamwork
-	KudoAtmosphere
-	KudoEngagement
+	KudoKnowledge  KudoType = "KudoKnowledge"
+	KudoAttendance KudoType = "KudoAttendance"
+	KudoTeamwork   KudoType = "KudoTeamwork"
+	KudoAtmosphere KudoType = "KudoAtmosphere"
+	KudoEngagement KudoType = "KudoEngagement"
 )
 
 type KudosEntry struct {
