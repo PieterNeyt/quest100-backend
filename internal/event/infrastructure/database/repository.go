@@ -18,8 +18,9 @@ func NewEventRepository(db *gorm.DB) domain.EventRepository {
 }
 
 func (r *eventRepository) SaveEvent(event *domain.Event) error {
-	if err := r.db.Create(event).Error; err != nil {
-		return fmt.Errorf("failed to create event: %w", err)
+	if err := r.db.Session(&gorm.Session{FullSaveAssociations: true}).
+		Save(event).Error; err != nil {
+		return fmt.Errorf("failed to save event: %w", err)
 	}
 	return nil
 }
@@ -47,18 +48,7 @@ func (r *eventRepository) GetAllEvents() ([]*domain.Event, error) {
 	return events, nil
 }
 
-func (r *eventRepository) UpdateEvent(event *domain.Event) error {
-	if err := r.db.Session(&gorm.Session{FullSaveAssociations: true}).
-		Save(event).Error; err != nil {
-		return fmt.Errorf("failed to update event: %w", err)
-	}
-	return nil
-}
-
 func (r *eventRepository) DeleteEvent(id uuid.UUID) error {
-	if err := r.db.Where("event_id = ?", id).Delete(&domain.EventAttendee{}).Error; err != nil {
-		return fmt.Errorf("failed to delete attendees: %w", err)
-	}
 	if err := r.db.Delete(&domain.Event{}, "id = ?", id).Error; err != nil {
 		return fmt.Errorf("failed to delete event: %w", err)
 	}
@@ -99,7 +89,6 @@ func (r *eventRepository) GetEventByIDWithProfiles(id uuid.UUID) (*domain.EventW
 			Scan(&p)
 
 		enriched.Attendees = append(enriched.Attendees, domain.AttendeeResponse{
-			ID:        a.ID,
 			EventID:   a.EventID,
 			ProfileID: a.ProfileID,
 			JoinedAt:  a.JoinedAt,

@@ -106,14 +106,12 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 		MaxAttendees: body.MaxAttendees,
 	}
 
-	if body.NewOrganizerID != nil {
-		parsed, err := uuid.Parse(*body.NewOrganizerID)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid newOrganizerID"})
-			return
-		}
-		input.NewOrganizerID = &parsed
+	newOrganizerID, err := parseOptionalUUID(body.NewOrganizerID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid newOrganizerID"})
+		return
 	}
+	input.NewOrganizerID = newOrganizerID
 
 	event, err := h.eventService.UpdateEvent(eventID, profileID, input)
 	if err != nil {

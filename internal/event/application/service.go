@@ -46,7 +46,6 @@ type eventService struct {
 func NewEventService(eventRepo domain.EventRepository) EventService {
 	return &eventService{eventRepo: eventRepo}
 }
-
 func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error) {
 	event := domain.CreateEvent(
 		input.Title,
@@ -57,10 +56,12 @@ func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error
 		input.EventDate,
 		input.MaxAttendees,
 	)
+
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to save event: %w", err)
 	}
-	return event, nil
+
+	return s.JoinEvent(event.ID, input.OrganizerID)
 }
 
 func (s *eventService) GetEventByID(id uuid.UUID) (*domain.Event, error) {
@@ -83,33 +84,18 @@ func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.U
 	if !event.IsOrganizer(requestingProfileID) {
 		return nil, &domain.UnauthorizedError{Message: "only the organizer can update this event"}
 	}
-
-	event.Title = input.Title
-	event.Description = input.Description
-	event.Photo = input.Photo
-	event.Category = input.Category
-	event.EventDate = input.EventDate
-
-	if input.MaxAttendees != nil {
-		currentAttendees := len(event.Attendees)
-		if currentAttendees > *input.MaxAttendees {
-			return nil, fmt.Errorf(
-				"cannot reduce max attendees to %d because %d users are already attending",
-				*input.MaxAttendees,
-				currentAttendees,
-			)
-		}
-		event.MaxAttendees = input.MaxAttendees
+	if err := event.Update(
+		input.Title,
+		input.Description,
+		input.Photo,
+		input.Category,
+		input.EventDate,
+		input.MaxAttendees,
+		input.NewOrganizerID,
+	); err != nil {
+		return nil, err
 	}
-
-	if input.NewOrganizerID != nil {
-		if !event.IsAttendee(*input.NewOrganizerID) {
-			return nil, fmt.Errorf("new organizer must be an existing attendee")
-		}
-		event.OrganizerID = *input.NewOrganizerID
-	}
-
-	if err := s.eventRepo.UpdateEvent(event); err != nil {
+	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
 	return event, nil
@@ -131,13 +117,10 @@ func (s *eventService) JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domai
 	if err != nil {
 		return nil, fmt.Errorf("event not found: %w", err)
 	}
-	if event.IsAttendee(profileID) {
-		return nil, &domain.AlreadyAttendingError{ProfileID: profileID, EventID: eventID}
-	}
 	if err := event.Join(profileID); err != nil {
 		return nil, err
 	}
-	if err := s.eventRepo.UpdateEvent(event); err != nil {
+	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
 	return event, nil

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,7 +11,6 @@ type EventRepository interface {
 	SaveEvent(event *Event) error
 	GetEventByID(id uuid.UUID) (*Event, error)
 	GetAllEvents() ([]*Event, error)
-	UpdateEvent(event *Event) error
 	DeleteEvent(id uuid.UUID) error
 	RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID) error
 	GetEventByIDWithProfiles(id uuid.UUID) (*EventWithProfiles, error)
@@ -22,6 +22,7 @@ type EventWithProfiles struct {
 	Event
 	Attendees []AttendeeResponse
 }
+
 type Event struct {
 	ID           uuid.UUID     `gorm:"type:uuid;primaryKey" json:"id"`
 	Title        string        `gorm:"not null" json:"title"`
@@ -34,7 +35,7 @@ type Event struct {
 	CreatedAt    time.Time     `json:"createdAt"`
 	UpdatedAt    time.Time     `json:"updatedAt"`
 
-	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID" json:"attendees"`
+	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID;constraint:OnDelete:CASCADE" json:"attendees"`
 }
 
 func CreateEvent(
@@ -45,9 +46,8 @@ func CreateEvent(
 	eventDate time.Time,
 	maxAttendees *int,
 ) *Event {
-	eventID := uuid.New()
 	return &Event{
-		ID:           eventID,
+		ID:           uuid.New(),
 		Title:        title,
 		Description:  description,
 		Photo:        photo,
@@ -57,15 +57,44 @@ func CreateEvent(
 		MaxAttendees: maxAttendees,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
-		Attendees: []EventAttendee{
-			{
-				ID:        uuid.New(),
-				EventID:   eventID,
-				ProfileID: organizerID,
-				JoinedAt:  time.Now(),
-			},
-		},
+		Attendees:    []EventAttendee{},
 	}
+}
+
+func (e *Event) Update(
+	title, description string,
+	photo *string,
+	category EventCategory,
+	eventDate time.Time,
+	maxAttendees *int,
+	newOrganizerID *uuid.UUID,
+) error {
+	e.Title = title
+	e.Description = description
+	e.Photo = photo
+	e.Category = category
+	e.EventDate = eventDate
+	e.UpdatedAt = time.Now()
+
+	if maxAttendees != nil {
+		if len(e.Attendees) > *maxAttendees {
+			return fmt.Errorf(
+				"cannot reduce max attendees to %d because %d users are already attending",
+				*maxAttendees,
+				len(e.Attendees),
+			)
+		}
+		e.MaxAttendees = maxAttendees
+	}
+
+	if newOrganizerID != nil {
+		if !e.IsAttendee(*newOrganizerID) {
+			return fmt.Errorf("new organizer must be an existing attendee")
+		}
+		e.OrganizerID = *newOrganizerID
+	}
+
+	return nil
 }
 
 func (e *Event) IsOrganizer(profileID uuid.UUID) bool {
@@ -77,4 +106,28 @@ func (e *Event) IsFull() bool {
 		return false
 	}
 	return len(e.Attendees) >= *e.MaxAttendees
+}
+
+func (e *Event) IsAttendee(profileID uuid.UUID) bool {
+	for _, a := range e.Attendees {
+		if a.ProfileID == profileID {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Event) Join(profileID uuid.UUID) error {
+	if e.IsAttendee(profileID) {
+		return &AlreadyAttendingError{ProfileID: profileID, EventID: e.ID}
+	}
+	if e.IsFull() {
+		return &EventFullError{EventID: e.ID, Message: "Event is full"}
+	}
+	e.Attendees = append(e.Attendees, EventAttendee{
+		EventID:   e.ID,
+		ProfileID: profileID,
+		JoinedAt:  time.Now(),
+	})
+	return nil
 }
