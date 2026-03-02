@@ -13,10 +13,15 @@ type EventRepository interface {
 	UpdateEvent(event *Event) error
 	DeleteEvent(id uuid.UUID) error
 	RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID) error
+	GetEventByIDWithProfiles(id uuid.UUID) (*EventWithProfiles, error)
 }
 
 type EventCategory string
 
+type EventWithProfiles struct {
+	Event
+	Attendees []AttendeeResponse
+}
 type Event struct {
 	ID           uuid.UUID     `gorm:"type:uuid;primaryKey" json:"id"`
 	Title        string        `gorm:"not null" json:"title"`

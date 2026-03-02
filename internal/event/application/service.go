@@ -31,6 +31,7 @@ type UpdateEventInput struct {
 type EventService interface {
 	CreateEvent(input CreateEventInput) (*domain.Event, error)
 	GetEventByID(id uuid.UUID) (*domain.Event, error)
+	GetEventByIDWithProfiles(id uuid.UUID) (*domain.EventWithProfiles, error)
 	GetAllEvents() ([]*domain.Event, error)
 	UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.Event, error)
 	DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.UUID) error
@@ -66,6 +67,10 @@ func (s *eventService) GetEventByID(id uuid.UUID) (*domain.Event, error) {
 	return s.eventRepo.GetEventByID(id)
 }
 
+func (s *eventService) GetEventByIDWithProfiles(id uuid.UUID) (*domain.EventWithProfiles, error) {
+	return s.eventRepo.GetEventByIDWithProfiles(id)
+}
+
 func (s *eventService) GetAllEvents() ([]*domain.Event, error) {
 	return s.eventRepo.GetAllEvents()
 }
@@ -87,7 +92,6 @@ func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.U
 
 	if input.MaxAttendees != nil {
 		currentAttendees := len(event.Attendees)
-
 		if currentAttendees > *input.MaxAttendees {
 			return nil, fmt.Errorf(
 				"cannot reduce max attendees to %d because %d users are already attending",

@@ -74,3 +74,39 @@ func (r *eventRepository) RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID)
 	}
 	return nil
 }
+
+func (r *eventRepository) GetEventByIDWithProfiles(id uuid.UUID) (*domain.EventWithProfiles, error) {
+	var event domain.Event
+	result := r.db.Preload("Attendees").First(&event, "id = ?", id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("event with id %s not found", id)
+		}
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+
+	enriched := &domain.EventWithProfiles{Event: event, Attendees: []domain.AttendeeResponse{}}
+
+	for _, a := range event.Attendees {
+		var p struct {
+			FirstName            string  `gorm:"column:first_name"`
+			LastName             string  `gorm:"column:last_name"`
+			CustomProfilePicture *string `gorm:"column:custom_profile_picture"`
+		}
+		r.db.Table("profiles").
+			Select("first_name, last_name, custom_profile_picture").
+			Where("id = ?", a.ProfileID).
+			Scan(&p)
+
+		enriched.Attendees = append(enriched.Attendees, domain.AttendeeResponse{
+			ID:        a.ID,
+			EventID:   a.EventID,
+			ProfileID: a.ProfileID,
+			JoinedAt:  a.JoinedAt,
+			FirstName: p.FirstName,
+			LastName:  p.LastName,
+			Photo:     p.CustomProfilePicture,
+		})
+	}
+	return enriched, nil
+}

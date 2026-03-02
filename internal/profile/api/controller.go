@@ -18,6 +18,7 @@ func NewProfileHandler(profileService application.ProfileService) *ProfileHandle
 		profileService: profileService,
 	}
 }
+
 func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 	profileID, exists := c.Get("profileID")
 	if !exists {
@@ -108,10 +109,16 @@ func (h *ProfileHandler) Sync(c *gin.Context) {
 	}
 
 	microsoftPicture := ""
-
 	base64Img, err := h.profileService.GetGraphProfilePicture(token)
 	if err == nil {
 		microsoftPicture = base64Img
+
+		if profile.CustomProfilePicture == nil {
+			updatedProfile, updateErr := h.profileService.UpdateProfilePicture(profile.ID, base64Img)
+			if updateErr == nil {
+				profile = updatedProfile
+			}
+		}
 	}
 
 	response := SyncProfileResponse{

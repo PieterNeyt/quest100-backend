@@ -43,7 +43,7 @@ func (h *EventHandler) GetEvent(c *gin.Context) {
 		return
 	}
 
-	event, err := h.eventService.GetEventByID(eventID)
+	event, err := h.eventService.GetEventByIDWithProfiles(eventID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
 		return

@@ -13,6 +13,16 @@ type EventAttendee struct {
 	JoinedAt  time.Time `json:"joinedAt"`
 }
 
+type AttendeeResponse struct {
+	ID        uuid.UUID `json:"id"`
+	EventID   uuid.UUID `json:"eventId"`
+	ProfileID uuid.UUID `json:"profileId"`
+	JoinedAt  time.Time `json:"joinedAt"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+	Photo     *string   `json:"customProfilePicture"`
+}
+
 func (e *Event) IsAttendee(profileID uuid.UUID) bool {
 	for _, a := range e.Attendees {
 		if a.ProfileID == profileID {
