@@ -1,0 +1,37 @@
+package schedular
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/go-co-op/gocron"
+	"gorm.io/gorm"
+)
+
+func StartDailyTableCleanup(db *gorm.DB, tables []string, atTime string) {
+
+	loc, _ := time.LoadLocation("Europe/Brussels")
+	scheduler := gocron.NewScheduler(loc)
+
+	_, err := scheduler.Every(1).Day().At(atTime).Do(func() {
+		fmt.Println("Starting table cleanup:", time.Now())
+		emptyTables(db, tables)
+	})
+	if err != nil {
+		log.Fatalf("Failed to add scheduler job: %v", err)
+	}
+
+	scheduler.StartAsync()
+}
+
+func emptyTables(db *gorm.DB, tables []string) {
+	for _, table := range tables {
+		err := db.Exec(fmt.Sprintf("TRUNCATE TABLE %s;", table)).Error
+		if err != nil {
+			log.Printf("Error truncating %s: %v", table, err)
+		} else {
+			log.Printf("Table %s successfully truncated", table)
+		}
+	}
+}

@@ -2,6 +2,7 @@ package server
 
 import (
 	"Quest100Backend/internal/infrastructure/database"
+	"Quest100Backend/internal/infrastructure/schedular"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,6 +24,7 @@ func NewServer() *http.Server {
 		db:   database.New(),
 	}
 
+	schedular.StartGotchaScheduler(NewServer.db.GetDB())
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", NewServer.port),

@@ -27,6 +27,7 @@ type Profile struct {
 	Email                string    `gorm:"uniqueIndex" json:"email"`
 	Kudos                int       `json:"kudos"`
 	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
+	Campus               string    `gorm:"type:varchar(100)" json:"campus"`
 	ArchetypeID          int
 	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
 	PlayerStats          PlayerStats        `gorm:"foreignKey:ProfileID;references:ID"`
@@ -124,6 +125,7 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	p.FirstName = graph.Name
 	p.LastName = graph.Surname
 	p.Email = graph.Mail
+	p.Campus = graph.OfficeLocation
 	return nil
 }
 
@@ -133,6 +135,7 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		FirstName:         graph.Name,
 		LastName:          graph.Surname,
 		Email:             graph.Mail,
+		Campus:            graph.OfficeLocation,
 		Kudos:             0,
 		ArchetypeID:       1,
 		PlayerStats:       PlayerStats{},

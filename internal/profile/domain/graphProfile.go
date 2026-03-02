@@ -12,6 +12,7 @@ type GraphProfile struct {
 	Surname           string    `json:"surname"`
 	Mail              string    `json:"mail"`
 	PreferredLanguage Language  `json:"preferredLanguage"`
+	OfficeLocation    string    `json:"officeLocation"`
 }
 
 func (g *GraphProfile) UnmarshalJSON(data []byte) error {
