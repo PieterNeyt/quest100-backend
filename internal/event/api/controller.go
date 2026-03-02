@@ -30,7 +30,7 @@ func getProfileID(c *gin.Context) (uuid.UUID, bool) {
 func (h *EventHandler) GetAllEvents(c *gin.Context) {
 	events, err := h.eventService.GetAllEvents()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, events)
@@ -73,7 +73,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 		MaxAttendees: body.MaxAttendees,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, event)
@@ -122,7 +122,7 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, event)
@@ -146,10 +146,10 @@ func (h *EventHandler) DeleteEvent(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 func (h *EventHandler) JoinEvent(c *gin.Context) {
@@ -179,7 +179,7 @@ func (h *EventHandler) JoinEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "You are now going", "event": event})
+	c.JSON(http.StatusOK, event)
 }
 
 func (h *EventHandler) LeaveEvent(c *gin.Context) {
@@ -208,5 +208,5 @@ func (h *EventHandler) LeaveEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Attendance cancelled"})
+	c.Status(http.StatusNoContent)
 }
