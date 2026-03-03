@@ -2,6 +2,7 @@ package server
 
 import (
 	"Quest100Backend/internal/infrastructure/database"
+	"Quest100Backend/internal/infrastructure/schedular"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,6 +25,12 @@ func NewServer() *http.Server {
 		port: port,
 		db:   database.New(),
 	}
+
+	schedular.StartDailyTableCleanup(
+		NewServer.db.GetDB(),
+		[]string{"award_history_entries"},
+		"02:00",
+	)
 
 	// Declare Server config
 	server := &http.Server{

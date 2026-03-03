@@ -4,23 +4,22 @@ import (
 	"Quest100Backend/internal/profile/domain"
 	"log"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 func AutoMigration(db *gorm.DB) {
-	errProfile := db.AutoMigrate(&domain.Profile{})
-	if errProfile != nil {
-		log.Printf("Failed to migrate database: %v", errProfile)
+	if err := db.AutoMigrate(&domain.Profile{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
 	}
-
-	errKudosEntry := db.AutoMigrate(&domain.KudosEntry{})
-	if errKudosEntry != nil {
-		log.Printf("Failed to migrate database: %v", errKudosEntry)
+	if err := db.AutoMigrate(&domain.KudosEntry{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
 	}
-
-	errPlayerStats := db.AutoMigrate(&domain.PlayerStats{})
-	if errPlayerStats != nil {
-		log.Printf("Failed to migrate database: %v", errKudosEntry)
+	if err := db.AutoMigrate(&domain.PlayerStats{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
+	}
+	if err := db.AutoMigrate(&domain.AwardHistoryEntry{}); err != nil {
+		log.Printf("Failed to migrate database: %v", err)
 	}
 
 	errAttendance := db.AutoMigrate(&domain.AttendanceRecord{})
@@ -28,20 +27,20 @@ func AutoMigration(db *gorm.DB) {
 		log.Printf("Failed to migrate AttendanceRecord: %v", errAttendance)
 	}
 
-	// seedDatabase(db)
+	seedDatabase(db)
 }
 
-/*func seedDatabase(db *gorm.DB) {
+func seedDatabase(db *gorm.DB) {
 	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
 
 	hugo := domain.Profile{
 		ID:                hardcodedID,
-		FirstName:         "Hugo",
-		LastName:          "Dor",
-		Email:             "dorhugo@student.kdg.be",
+		FirstName:         "Jon",
+		LastName:          "Beton",
+		Email:             "jon.beton@student.kdg.be",
 		Kudos:             0,
 		ArchetypeID:       1,
-		PrefferedLanguage: domain.NL,
+		PreferredLanguage: domain.NL,
 	}
 
 	err := db.Where(domain.Profile{ID: hardcodedID}).FirstOrCreate(&hugo).Error
@@ -49,4 +48,3 @@ func AutoMigration(db *gorm.DB) {
 		log.Printf("Could not seed database: %v", err)
 	}
 }
-*/

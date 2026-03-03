@@ -1,4 +1,4 @@
-package server
+package auth
 
 import (
 	"fmt"
@@ -11,6 +11,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+)
+
+type EntraClaims struct {
+	Oid   string `json:"oid"`
+	Roles []Role `json:"roles"`
+	jwt.RegisteredClaims
+}
+
+type Role string
+
+const (
+	Student Role = "student"
+	Lector       = "lector"
 )
 
 var jwks *keyfunc.JWKS
@@ -41,7 +54,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// Token validation
-		claims := &jwt.RegisteredClaims{}
+		claims := &EntraClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, jwks.Keyfunc)
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
@@ -69,16 +82,32 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Extract oid claim
-		mapClaims := jwt.MapClaims{}
-		_, _ = jwt.ParseWithClaims(tokenString, mapClaims, jwks.Keyfunc)
-
-		if oidClaim, ok := mapClaims["oid"].(string); ok {
-			if profileID, err := uuid.Parse(oidClaim); err == nil {
+		if claims.Oid != "" {
+			if profileID, err := uuid.Parse(claims.Oid); err == nil {
 				c.Set("profileID", profileID)
 			}
 		}
+		c.Set("roles", claims.Roles)
 
 		c.Next()
+	}
+}
+
+func RequireRole(role Role) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roles, exists := c.Get("roles")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "No roles"})
+			return
+		}
+
+		for _, r := range roles.([]Role) {
+			if r == role {
+				c.Next()
+				return
+			}
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 	}
 }

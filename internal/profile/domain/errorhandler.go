@@ -33,6 +33,15 @@ func (e *ProfileIdError) Error() string {
 	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
 }
 
+type ProfileError struct {
+	Arg     int
+	Message string
+}
+
+func (e *ProfileError) Error() string {
+	return fmt.Sprintf("%d - %s", e.Arg, e.Message)
+}
+
 type DuplicateAttendanceError struct {
 	ProfileID uuid.UUID
 	ClassID   uuid.UUID

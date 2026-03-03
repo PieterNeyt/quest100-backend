@@ -1,6 +1,7 @@
 package server
 
 import (
+	"Quest100Backend/internal/infrastructure/auth"
 	"Quest100Backend/internal/util/qrcode/api"
 	"Quest100Backend/internal/util/qrcode/application"
 	"Quest100Backend/internal/util/qrcode/domain"
@@ -16,6 +17,6 @@ func SetupQRCodeRoutes(r *gin.RouterGroup) {
 
 	qrGroup := r.Group("/qrcode")
 	{
-		qrGroup.POST("/generate", qrHandler.GenerateQRCode)
+		qrGroup.POST("/generate", auth.RequireRole(auth.Lector), qrHandler.GenerateQRCode)
 	}
 }
