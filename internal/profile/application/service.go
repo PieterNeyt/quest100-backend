@@ -111,7 +111,6 @@ func (s *profileService) GetGraphProfile(token string) (*domain.GraphProfile, er
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
 
 	var user domain.GraphProfile
 	if err := json.Unmarshal(body, &user); err != nil {
