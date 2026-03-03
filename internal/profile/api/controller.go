@@ -185,12 +185,18 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 		return
 	}
 
-	if err := h.profileService.GiveAwardTo(senderUUID, transaction.Receiver, transaction.Type, transaction.Message); err != nil {
+	profile, err := h.profileService.GiveAwardTo(
+		senderUUID,
+		transaction.Receiver,
+		transaction.Type,
+		transaction.Message,
+	)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Kudos succesfully given to"})
+	c.JSON(http.StatusCreated, profile)
 }
 func (h *ProfileHandler) GetProfiles(c *gin.Context) {
 	profiles, err := h.profileService.GetProfiles()

@@ -23,7 +23,7 @@ type ProfileService interface {
 	GetGraphProfilePicture(token string) (string, error)
 	UpdateProfilePicture(profileId uuid.UUID, base64Img string) (*domain.Profile, error)
 	DeleteProfilePicture(profileId uuid.UUID) (*domain.Profile, error)
-	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) error
+	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) (*domain.Profile, error)
 	GetProfiles() (*[]domain.Profile, error)
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 }
@@ -172,27 +172,27 @@ func (s *profileService) DeleteProfilePicture(profileId uuid.UUID) (*domain.Prof
 	return profile, nil
 }
 
-func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, kudoType domain.KudoType, message string) error {
+func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, kudoType domain.KudoType, message string) (*domain.Profile, error) {
 	profile, err := s.profileRepo.GetProfileById(receiverId)
 	if err != nil {
-		return fmt.Errorf("failed to get profile: %w", err)
+		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	if err := s.profileRepo.AddAwardHistoryEntry(senderId, receiverId); err != nil {
-		return fmt.Errorf("failed to add award history entry: %w", err)
+		return nil, fmt.Errorf("failed to add award history entry: %w", err)
 	}
 
 	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {
 		if err := profile.AddKudos(kudos, message, kudoType); err != nil {
-			return fmt.Errorf("failed to add kudos: %w", err)
+			return nil, fmt.Errorf("failed to add kudos: %w", err)
 		}
 	}
 
 	if err := s.profileRepo.UpdateProfile(profile); err != nil {
-		return fmt.Errorf("failed to update profile: %w", err)
+		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	return nil
+	return profile, nil
 }
 
 func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error) {
