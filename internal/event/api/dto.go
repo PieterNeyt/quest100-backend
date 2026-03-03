@@ -23,5 +23,5 @@ type UpdateEventRequest struct {
 	Category       domain.EventCategory `json:"category" binding:"required"`
 	EventDate      time.Time            `json:"eventDate" binding:"required"`
 	MaxAttendees   *int                 `json:"maxAttendees"`
-	NewOrganizerID *uuid.UUID           `json:"newOrganizerID"`
+	NewOrganizerID *uuid.UUID           `json:"organizerID"`
 }
