@@ -169,7 +169,7 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 	var transaction AwardTransaction
 
 	if err := c.ShouldBindJSON(&transaction); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -186,7 +186,7 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 	}
 
 	if err := h.profileService.GiveAwardTo(senderUUID, transaction.Receiver, transaction.Type, transaction.Message); err != nil {
-		c.JSON(404, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 

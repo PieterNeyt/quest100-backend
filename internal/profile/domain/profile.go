@@ -14,6 +14,7 @@ type ProfileRepository interface {
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
+	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 }
 
 type Language string

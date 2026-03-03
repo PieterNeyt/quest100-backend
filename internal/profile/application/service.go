@@ -201,6 +201,16 @@ func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.Pr
 		return nil, fmt.Errorf("failed to get profiles: %w", err)
 	}
 
+	receivers, err := s.profileRepo.GetSentAwardReceivers(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sent award receivers: %w", err)
+	}
+
+	receiverMap := make(map[uuid.UUID]struct{}, len(receivers))
+	for _, id := range receivers {
+		receiverMap[id] = struct{}{}
+	}
+
 	var profileAwards []domain.ProfileAward
 
 	for _, profile := range *profiles {
@@ -208,10 +218,7 @@ func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.Pr
 			continue
 		}
 
-		hasSent, err := s.profileRepo.HasSentAward(profileId, profile.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check award history: %w", err)
-		}
+		_, hasSent := receiverMap[profile.ID]
 
 		profileAwards = append(profileAwards, domain.ProfileAward{
 			Profile:      profile,

@@ -13,7 +13,7 @@ type profileRepository struct {
 	db *gorm.DB
 }
 
-func NewProfileRepository(db *gorm.DB) domain.ProfileRepository {
+func NewProfileRepository(db *gorm.DB) *profileRepository {
 	return &profileRepository{db: db}
 }
 
@@ -62,14 +62,8 @@ func (r *profileRepository) SaveProfile(profile *domain.Profile) error {
 	}
 	return nil
 }
+
 func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
-	var existing domain.AwardHistoryEntry
-	ex := r.db.Where("reciever_id = ? AND sender_id = ?", receiverId, senderId).First(&existing)
-
-	if ex.Error == nil {
-		return fmt.Errorf("award history entry already exists")
-	}
-
 	entry := domain.AwardHistoryEntry{
 		RecieverID: receiverId,
 		SenderID:   senderId,
@@ -79,6 +73,7 @@ func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId 
 	if result.Error != nil {
 		return fmt.Errorf("failed to save award history entry: %w", result.Error)
 	}
+
 	return nil
 }
 
@@ -91,5 +86,21 @@ func (r *profileRepository) HasSentAward(senderId uuid.UUID, receiverId uuid.UUI
 	if err != nil {
 		return false, err
 	}
+
 	return count > 0, nil
+}
+
+func (r *profileRepository) GetSentAwardReceivers(senderId uuid.UUID) ([]uuid.UUID, error) {
+	var receiverIds []uuid.UUID
+
+	err := r.db.
+		Table("award_history_entries").
+		Where("sender_id = ?", senderId).
+		Pluck("reciever_id", &receiverIds).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch sent award receivers: %w", err)
+	}
+
+	return receiverIds, nil
 }
