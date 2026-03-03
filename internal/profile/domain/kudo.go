@@ -6,14 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
-type KudoType int
+type KudoType string
 
 const (
-	KudoKnowledge KudoType = iota
-	KudoAttendance
-	KudoTeamwork
-	KudoAtmosphere
-	KudoEngagement
+	KudoKnowledge  KudoType = "KudoKnowledge"
+	KudoAttendance KudoType = "KudoAttendance"
+	KudoTeamwork   KudoType = "KudoTeamwork"
+	KudoAtmosphere KudoType = "KudoAtmosphere"
+	KudoEngagement KudoType = "KudoEngagement"
 )
 
 type KudosEntry struct {
@@ -23,4 +23,15 @@ type KudosEntry struct {
 	Reason    string
 	Type      KudoType
 	Date      time.Time `gorm:"autoCreateTime"`
+}
+
+type AwardHistoryEntry struct {
+	RecieverID uuid.UUID `gorm:"type:uuid;primaryKey"`
+	SenderID   uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Timestamp  time.Time `gorm:"autoCreateTime"`
+}
+
+type ProfileAward struct {
+	Profile      Profile `json:"profile"`
+	HasSentAward bool    `json:"hasSentAward"`
 }

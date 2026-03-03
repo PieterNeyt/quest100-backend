@@ -23,6 +23,9 @@ type ProfileService interface {
 	GetGraphProfilePicture(token string) (string, error)
 	UpdateProfilePicture(profileId uuid.UUID, base64Img string) (*domain.Profile, error)
 	DeleteProfilePicture(profileId uuid.UUID) (*domain.Profile, error)
+	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) (*domain.Profile, error)
+	GetProfiles() (*[]domain.Profile, error)
+	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 }
 
 type profileService struct {
@@ -66,6 +69,10 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 }
 func (s *profileService) GetProfileById(id uuid.UUID) (*domain.Profile, error) {
 	return s.profileRepo.GetProfileById(id)
+}
+
+func (s *profileService) GetProfiles() (*[]domain.Profile, error) {
+	return s.profileRepo.GetProfiles()
 }
 
 func (s *profileService) UpdateProfile(profile *domain.Profile) error {
@@ -162,4 +169,61 @@ func (s *profileService) DeleteProfilePicture(profileId uuid.UUID) (*domain.Prof
 		return nil, fmt.Errorf("failed to delete picture: %w", err)
 	}
 	return profile, nil
+}
+
+func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, kudoType domain.KudoType, message string) (*domain.Profile, error) {
+	profile, err := s.profileRepo.GetProfileById(receiverId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	if err := s.profileRepo.AddAwardHistoryEntry(senderId, receiverId); err != nil {
+		return nil, fmt.Errorf("failed to add award history entry: %w", err)
+	}
+
+	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {
+		if err := profile.AddKudos(kudos, message, kudoType); err != nil {
+			return nil, fmt.Errorf("failed to add kudos: %w", err)
+		}
+	}
+
+	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+		return nil, fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return profile, nil
+}
+
+func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error) {
+	profiles, err := s.GetProfiles()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profiles: %w", err)
+	}
+
+	receivers, err := s.profileRepo.GetSentAwardReceivers(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sent award receivers: %w", err)
+	}
+
+	receiverMap := make(map[uuid.UUID]struct{}, len(receivers))
+	for _, id := range receivers {
+		receiverMap[id] = struct{}{}
+	}
+
+	var profileAwards []domain.ProfileAward
+
+	for _, profile := range *profiles {
+		if profile.ID == profileId {
+			continue
+		}
+
+		_, hasSent := receiverMap[profile.ID]
+
+		profileAwards = append(profileAwards, domain.ProfileAward{
+			Profile:      profile,
+			HasSentAward: hasSent,
+		})
+	}
+
+	return &profileAwards, nil
 }
