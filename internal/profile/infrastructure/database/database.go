@@ -15,7 +15,7 @@ func AutoMigration(db *gorm.DB) {
 	if err := db.AutoMigrate(&domain.KudosEntry{}); err != nil {
 		log.Printf("Failed to migrate database: %v", err)
 	}
-	if err := db.AutoMigrate(&domain.PlayerStats{}); err != nil {
+	if err := db.AutoMigrate(&domain.ProfileStats{}); err != nil {
 		log.Printf("Failed to migrate database: %v", err)
 	}
 	if err := db.AutoMigrate(&domain.AwardHistoryEntry{}); err != nil {
