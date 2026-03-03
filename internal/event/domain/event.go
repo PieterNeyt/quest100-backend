@@ -35,7 +35,7 @@ type Event struct {
 	CreatedAt    time.Time     `json:"createdAt"`
 	UpdatedAt    time.Time     `json:"updatedAt"`
 
-	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
+	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID;constraint:OnDelete:CASCADE" json:"attendees"`
 }
 
 func CreateEvent(
