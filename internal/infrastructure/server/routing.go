@@ -41,41 +41,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Handler integrated into Gin
-//func (s *Server) handleWebSocket(c *gin.Context) {
-//	// Upgrade HTTP connection to WebSocket
-//	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-//	if err != nil {
-//		log.Printf("Failed to upgrade connection: %v", err)
-//		return
-//	}
-//
-//	// Handle the connection in a new goroutine
-//	go handleConnection(conn)
-//}
-
-func handleConnection(conn *websocket.Conn) {
-	defer conn.Close()
-	log.Println("Client connected via Gorilla/Gin")
-
-	for {
-		// Read message from client
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Read error:", err)
-			break
-		}
-
-		log.Printf("Received: %s\n", string(p))
-
-		// Echo message back to client
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println("Write error:", err)
-			break
-		}
-	}
-}
-
 // Client represents a single chat user
 type Client struct {
 	hub    *Hub
@@ -185,13 +150,18 @@ func (h *Hub) Run() {
 }
 
 func (s *Server) handleWebSocket(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		log.Printf("Profile ID not found")
+		return
+	}
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("Failed to upgrade: %v", err)
 		return
 	}
 
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), userID: token}
 	client.hub.register <- client
 
 	// Start read/write routines for this specific client
@@ -214,6 +184,7 @@ func (c *Client) readPump() {
 			log.Printf("error: %v", err)
 			break
 		}
+		log.Printf("recv: %s", message)
 		// Send raw message to hub for parsing and routing
 		c.hub.routeMessage <- message
 	}
@@ -237,7 +208,7 @@ func (c *Client) writePump() {
 				return
 			}
 			w.Write(message)
-
+			log.Printf("wrote: %s", message)
 			// Simple check to see if there are more messages to send
 			n := len(c.send)
 			for i := 0; i < n; i++ {
