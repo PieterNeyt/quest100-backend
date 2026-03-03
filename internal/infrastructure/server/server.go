@@ -24,6 +24,12 @@ func NewServer() *http.Server {
 		db:   database.New(),
 	}
 
+	schedular.StartDailyTableCleanup(
+		NewServer.db.GetDB(),
+		[]string{"award_history_entries"},
+		"02:00",
+	)
+
 	schedular.StartGotchaScheduler(NewServer.db.GetDB())
 	// Declare Server config
 	server := &http.Server{

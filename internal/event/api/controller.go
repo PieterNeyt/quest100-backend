@@ -98,20 +98,14 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 	}
 
 	input := application.UpdateEventInput{
-		Title:        body.Title,
-		Description:  body.Description,
-		Photo:        body.Photo,
-		Category:     body.Category,
-		EventDate:    body.EventDate,
-		MaxAttendees: body.MaxAttendees,
+		Title:          body.Title,
+		Description:    body.Description,
+		Photo:          body.Photo,
+		Category:       body.Category,
+		EventDate:      body.EventDate,
+		MaxAttendees:   body.MaxAttendees,
+		NewOrganizerID: body.NewOrganizerID,
 	}
-
-	newOrganizerID, err := parseOptionalUUID(body.NewOrganizerID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid newOrganizerID"})
-		return
-	}
-	input.NewOrganizerID = newOrganizerID
 
 	event, err := h.eventService.UpdateEvent(eventID, profileID, input)
 	if err != nil {

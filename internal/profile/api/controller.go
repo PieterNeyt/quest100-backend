@@ -56,6 +56,7 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 }
 
 func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
+
 	classId, err := uuid.Parse(c.Param("classId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class ID format"})
@@ -169,4 +170,67 @@ func (h *ProfileHandler) DeleteProfilePicture(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profile)
+}
+
+func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
+	var transaction AwardTransaction
+
+	if err := c.ShouldBindJSON(&transaction); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	senderID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	senderUUID, ok := senderID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	profile, err := h.profileService.GiveAwardTo(
+		senderUUID,
+		transaction.Receiver,
+		transaction.Type,
+		transaction.Message,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, profile)
+}
+func (h *ProfileHandler) GetProfiles(c *gin.Context) {
+	profiles, err := h.profileService.GetProfiles()
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, profiles)
+}
+
+func (h *ProfileHandler) GetProfilesForAwards(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	ProfileAwards, err := h.profileService.GetProfilesWithAward(profileUUID)
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, ProfileAwards)
 }

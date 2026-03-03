@@ -33,7 +33,7 @@ type EventService interface {
 	GetEventByID(id uuid.UUID) (*domain.Event, error)
 	GetEventByIDWithProfiles(id uuid.UUID) (*domain.EventWithProfiles, error)
 	GetAllEvents() ([]*domain.Event, error)
-	UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.Event, error)
+	UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.EventWithProfiles, error)
 	DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.UUID) error
 	JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domain.Event, error)
 	LeaveEvent(eventID uuid.UUID, profileID uuid.UUID) error
@@ -76,7 +76,7 @@ func (s *eventService) GetAllEvents() ([]*domain.Event, error) {
 	return s.eventRepo.GetAllEvents()
 }
 
-func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.Event, error) {
+func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.UUID, input UpdateEventInput) (*domain.EventWithProfiles, error) {
 	event, err := s.eventRepo.GetEventByID(eventID)
 	if err != nil {
 		return nil, fmt.Errorf("event not found: %w", err)
@@ -98,7 +98,8 @@ func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.U
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
-	return event, nil
+	// Geef enriched versie terug
+	return s.eventRepo.GetEventByIDWithProfiles(eventID)
 }
 
 func (s *eventService) DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.UUID) error {
