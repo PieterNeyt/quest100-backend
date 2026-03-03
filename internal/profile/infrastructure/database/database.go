@@ -41,7 +41,6 @@ func seedDatabase(db *gorm.DB) {
 		Kudos:             0,
 		ArchetypeID:       1,
 		PreferredLanguage: domain.NL,
-		Role:              domain.Student,
 	}
 
 	err := db.Where(domain.Profile{ID: hardcodedID}).FirstOrCreate(&hugo).Error
@@ -49,4 +48,3 @@ func seedDatabase(db *gorm.DB) {
 		log.Printf("Could not seed database: %v", err)
 	}
 }
-
