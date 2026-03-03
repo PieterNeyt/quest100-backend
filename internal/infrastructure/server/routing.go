@@ -1,6 +1,7 @@
 package server
 
 import (
+	server2 "Quest100Backend/internal/communication/infrastructure/server"
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
@@ -22,11 +23,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	api := r.Group("/api", auth.AuthMiddleware())
-	profileRouting.SetupProfileRoutes(api, s.db.GetDB())
-	eventRouting.SetupEventRoutes(api, s.db.GetDB())
-	qrcodeRouting.SetupQRCodeRoutes(api)
+	profileRouting.SetupProfileRoutes(api, s.profileServ)
+	eventRouting.SetupEventRoutes(api, s.eventServ)
+	qrcodeRouting.SetupQRCodeRoutes(api, s.qrCodeServ)
 
-	r.GET("/ws", s.handleWebSocket)
+	server2.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
+	r.GET("/debug/ws", func(c *gin.Context) {
+		// Calling the method we just created
+		snapshot := s.hub.GetSnapshot()
+
+		c.JSON(200, snapshot)
+	})
 	return r
 }
