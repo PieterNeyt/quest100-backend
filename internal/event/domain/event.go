@@ -20,7 +20,7 @@ type EventCategory string
 
 type EventWithProfiles struct {
 	Event
-	Attendees []AttendeeResponse
+	Attendees []AttendeeResponse `json:"attendees"`
 }
 
 type Event struct {
@@ -35,7 +35,7 @@ type Event struct {
 	CreatedAt    time.Time     `json:"createdAt"`
 	UpdatedAt    time.Time     `json:"updatedAt"`
 
-	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID;constraint:OnDelete:CASCADE" json:"attendees"`
+	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func CreateEvent(
