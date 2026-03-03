@@ -3,6 +3,8 @@ package api
 import (
 	"Quest100Backend/internal/event/domain"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type CreateEventRequest struct {
@@ -21,5 +23,5 @@ type UpdateEventRequest struct {
 	Category       domain.EventCategory `json:"category" binding:"required"`
 	EventDate      time.Time            `json:"eventDate" binding:"required"`
 	MaxAttendees   *int                 `json:"maxAttendees"`
-	NewOrganizerID *string              `json:"newOrganizerID"`
+	NewOrganizerID *uuid.UUID           `json:"newOrganizerID"`
 }

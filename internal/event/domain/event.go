@@ -76,16 +76,14 @@ func (e *Event) Update(
 	e.EventDate = eventDate
 	e.UpdatedAt = time.Now()
 
-	if maxAttendees != nil {
-		if len(e.Attendees) > *maxAttendees {
-			return fmt.Errorf(
-				"cannot reduce max attendees to %d because %d users are already attending",
-				*maxAttendees,
-				len(e.Attendees),
-			)
-		}
-		e.MaxAttendees = maxAttendees
+	if maxAttendees != nil && len(e.Attendees) > *maxAttendees {
+		return fmt.Errorf(
+			"cannot reduce max attendees to %d because %d users are already attending",
+			*maxAttendees,
+			len(e.Attendees),
+		)
 	}
+	e.MaxAttendees = maxAttendees
 
 	if newOrganizerID != nil {
 		if !e.IsAttendee(*newOrganizerID) {

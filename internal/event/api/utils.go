@@ -1,15 +1,32 @@
 package api
 
-import "github.com/google/uuid"
+import (
+	"encoding/json"
+	"fmt"
 
-// kwni ofda dees de beste plek is omda te zetten ma zag het nie echt ergens anders passen...
-func parseOptionalUUID(s *string) (*uuid.UUID, error) {
-	if s == nil {
-		return nil, nil
+	"github.com/google/uuid"
+)
+
+func (r *UpdateEventRequest) UnmarshalJSON(data []byte) error {
+	type Alias UpdateEventRequest
+	aux := &struct {
+		NewOrganizerID *string `json:"newOrganizerID"`
+		*Alias
+	}{
+		Alias: (*Alias)(r),
 	}
-	parsed, err := uuid.Parse(*s)
-	if err != nil {
-		return nil, err
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
 	}
-	return &parsed, nil
+
+	if aux.NewOrganizerID != nil {
+		parsed, err := uuid.Parse(*aux.NewOrganizerID)
+		if err != nil {
+			return fmt.Errorf("invalid newOrganizerID: %w", err)
+		}
+		r.NewOrganizerID = &parsed
+	}
+
+	return nil
 }
