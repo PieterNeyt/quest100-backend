@@ -56,10 +56,16 @@ func (r *ProfileRepository) UpdateProfile(profile *domain.Profile) error {
 }
 
 func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
-	result := r.db.Save(profile)
+	result := r.db.Omit("PlayerStats").Create(profile)
 	if result.Error != nil {
-		return fmt.Errorf("failed to save profile: %w", result.Error)
+		return result.Error
 	}
+
+	result = r.db.Create(&profile.PlayerStats)
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 

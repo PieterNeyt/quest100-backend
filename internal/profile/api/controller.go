@@ -220,7 +220,7 @@ func (h *ProfileHandler) GetProfilesForAwards(c *gin.Context) {
 		return
 	}
 
-	ProfileAwards, err := h.profileService.GetProfilesWithAward(profileUUID)
+	var ProfileAwards, err = h.profileService.GetProfilesWithAward(profileUUID)
 	if err != nil {
 		c.JSON(404, gin.H{"error": err.Error()})
 	}
@@ -243,7 +243,7 @@ func (h *ProfileHandler) GetProfilesStatistics(c *gin.Context) {
 
 	ProfileStats, err := h.profileService.GetProfilesStatistics(profileUUID)
 	if err != nil {
-		c.JSON(404, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	}
 
 	c.JSON(http.StatusOK, ProfileStats)

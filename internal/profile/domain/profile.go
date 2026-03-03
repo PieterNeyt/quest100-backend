@@ -134,13 +134,20 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 
 func CreateProfile(graph *GraphProfile) *Profile {
 	return &Profile{
-		ID:                graph.Id,
-		FirstName:         graph.Name,
-		LastName:          graph.Surname,
-		Email:             graph.Mail,
-		Kudos:             0,
-		ArchetypeID:       1,
-		PlayerStats:       ProfileStats{},
+		ID:          graph.Id,
+		FirstName:   graph.Name,
+		LastName:    graph.Surname,
+		Email:       graph.Mail,
+		Kudos:       0,
+		ArchetypeID: 1,
+		PlayerStats: ProfileStats{
+			ProfileID:      graph.Id,
+			KudoKnowledge:  0,
+			KudoAttendance: 0,
+			KudoTeamwork:   0,
+			KudoAtmosphere: 0,
+			KudoEngagement: 0,
+		},
 		KudosHistory:      []KudosEntry{},
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
