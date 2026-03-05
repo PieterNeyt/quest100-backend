@@ -49,12 +49,13 @@ func (c *Chat) JoinChat(profileId uuid.UUID) error {
 }
 
 func (c *Chat) LeaveChat(profileId uuid.UUID) error {
-	inChat := slices.Contains(c.Members, Member{ProfileId: profileId})
-	if !inChat {
+	oldLen := len(c.Members)
+
+	c.Members = slices.DeleteFunc(c.Members, func(member Member) bool {
+		return member.ProfileId == profileId
+	})
+	if oldLen == len(c.Members) {
 		return fmt.Errorf("not in chat %s", c.ID)
 	}
-	c.Members = slices.DeleteFunc(c.Members, func(i Member) bool {
-		return i.ProfileId == profileId
-	})
 	return nil
 }
