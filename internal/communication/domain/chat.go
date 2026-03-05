@@ -31,11 +31,11 @@ type Message struct {
 	Message string    `gorm:"type:text;" json:"message"`
 }
 
-func CreateChat(eventId uuid.UUID, profileId uuid.UUID) *Chat {
+func CreateChat(eventId uuid.UUID) *Chat {
 	return &Chat{
 		ID:       eventId,
 		Messages: []Message{},
-		Members:  []Member{{ProfileId: profileId, ChatId: eventId}},
+		Members:  []Member{},
 	}
 }
 

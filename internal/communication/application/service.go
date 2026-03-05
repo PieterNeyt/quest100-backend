@@ -11,7 +11,7 @@ import (
 
 type ChatService interface {
 	IsUserInChat(userId uuid.UUID, chatId uuid.UUID) error
-	CreateChatRoom(userId uuid.UUID, roomId uuid.UUID) error
+	CreateChatRoom(roomId uuid.UUID) error
 	JoinChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error
@@ -49,18 +49,13 @@ func (s *chatService) IsUserInChat(userId uuid.UUID, chatId uuid.UUID) error {
 	return &chatDom.NotInChatError{ChatID: chatId, UserID: userId}
 }
 
-func (s *chatService) CreateChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
-	profile, err := s.profileServ.GetProfileById(userId)
-	if err != nil {
-		return fmt.Errorf("profile not found: %w", err)
-	}
-
+func (s *chatService) CreateChatRoom(eventId uuid.UUID) error {
 	event, err := s.eventRepo.GetEventByID(eventId)
 	if err != nil {
 		return fmt.Errorf("event not found: %w", err)
 	}
 
-	chat := chatDom.CreateChat(event.ID, profile.ID)
+	chat := chatDom.CreateChat(event.ID)
 	if err := s.chatRepo.SaveChat(chat); err != nil {
 		return fmt.Errorf("chat save failed: %w", err)
 	}

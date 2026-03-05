@@ -137,3 +137,28 @@ func (h *Hub) handleUnregister(client *Client) {
 		log.Printf("User %s disconnected", client.userID)
 	}
 }
+
+type HubSnapshot struct {
+	TotalConnected int                 `json:"total_connected"`
+	Rooms          map[string][]string `json:"rooms"`
+}
+
+func (h *Hub) GetSnapshot() HubSnapshot {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	snapshot := HubSnapshot{
+		TotalConnected: len(h.users),
+		Rooms:          make(map[string][]string),
+	}
+
+	for roomID, clients := range h.rooms {
+		var clientList []string
+		for client := range clients {
+			clientList = append(clientList, client.userID.String())
+		}
+		snapshot.Rooms[roomID.String()] = clientList
+	}
+
+	return snapshot
+}

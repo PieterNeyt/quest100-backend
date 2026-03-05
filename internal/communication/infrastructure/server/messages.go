@@ -59,7 +59,6 @@ func (h *Hub) handleJoinRoom(msg WsMessage) {
 func (h *Hub) handleGroupMessage(msg WsMessage, message []byte) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	// TODO make sure everyone in group gets message also save message in database
 	if clients, ok := h.rooms[msg.RoomID]; ok {
 		for client := range clients {
 			select {

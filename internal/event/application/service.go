@@ -62,11 +62,10 @@ func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to save event: %w", err)
 	}
-	err := s.chatServ.CreateChatRoom(input.OrganizerID, event.ID)
+	err := s.chatServ.CreateChatRoom(event.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create chat room: %w", err)
 	}
-	// TODO when creating event successfully create chat room
 	return s.JoinEvent(event.ID, input.OrganizerID)
 }
 
@@ -133,7 +132,6 @@ func (s *eventService) JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domai
 	if err := s.chatServ.JoinChatRoom(profileID, event.ID); err != nil {
 		return nil, fmt.Errorf("failed to join chat room: %w", err)
 	}
-	// TODO when joining event successfully join event
 	return event, nil
 }
 
