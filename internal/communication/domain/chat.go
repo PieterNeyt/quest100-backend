@@ -59,3 +59,13 @@ func (c *Chat) LeaveChat(profileId uuid.UUID) error {
 	}
 	return nil
 }
+
+func (c *Chat) AddMessage(senderId uuid.UUID, message string) error {
+	c.Messages = append(c.Messages, Message{
+		ID:      uuid.New(),
+		ChatId:  c.ID,
+		Sender:  senderId,
+		Message: message,
+	})
+	return nil
+}

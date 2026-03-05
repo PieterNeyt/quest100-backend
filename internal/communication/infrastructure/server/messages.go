@@ -57,6 +57,9 @@ func (h *Hub) handleJoinRoom(msg WsMessage) {
 }
 
 func (h *Hub) handleGroupMessage(msg WsMessage, message []byte) {
+	if err := h.chatService.CreateMessage(msg.RoomID, msg.SenderID, msg.Content); err != nil {
+		return
+	}
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 	if clients, ok := h.rooms[msg.RoomID]; ok {

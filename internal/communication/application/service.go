@@ -15,6 +15,7 @@ type ChatService interface {
 	JoinChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error
+	CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) error
 }
 
 type chatService struct {
@@ -130,6 +131,26 @@ func (s *chatService) DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error 
 	}
 	if err := s.chatRepo.DeleteChat(chat.ID); err != nil {
 		return fmt.Errorf("chat delete failed: %w", err)
+	}
+	return nil
+}
+
+func (s *chatService) CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) error {
+	chat, err := s.chatRepo.GetChatById(chatId)
+	if err != nil {
+		return fmt.Errorf("chat not found: %w", err)
+	}
+
+	profile, err := s.profileServ.GetProfileById(userId)
+	if err != nil {
+		return fmt.Errorf("profile not found: %w", err)
+	}
+	if err := chat.AddMessage(profile.ID, message); err != nil {
+		return fmt.Errorf("add message failed: %w", err)
+	}
+
+	if err := s.chatRepo.SaveChat(chat); err != nil {
+		return fmt.Errorf("chat save failed: %w", err)
 	}
 	return nil
 }
