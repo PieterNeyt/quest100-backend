@@ -43,6 +43,12 @@ func init() {
 	}
 }
 
+// devProfiles maps a static test token to a fixed profile UUID.
+// Only active when APP_ENV=development.
+var devProfiles = map[string]uuid.UUID{
+	"dev-jon": uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+}
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -52,6 +58,17 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// ── Dev bypass ────────────────────────────────────────────────────────
+
+		if profileID, ok := devProfiles[tokenString]; ok {
+			c.Set("profileID", profileID)
+			c.Set("roles", []Role{Student})
+			c.Next()
+			return
+		}
+
+		// ─────────────────────────────────────────────────────────────────────
 
 		// Token validation
 		claims := &EntraClaims{}

@@ -14,7 +14,7 @@ const (
 	KillDenied   KillStatus = "DENIED"
 )
 
-type Kill struct {
+type GotchaKill struct {
 	ID         uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	GameID     uuid.UUID  `gorm:"type:uuid;not null;index" json:"gameId"`
 	HunterID   uuid.UUID  `gorm:"type:uuid;not null" json:"hunterId"`
@@ -26,16 +26,16 @@ type Kill struct {
 	ReviewedAt *time.Time `json:"reviewedAt,omitempty"`
 	CreatedAt  time.Time  `json:"createdAt"`
 
-	Likes []KillLike `gorm:"foreignKey:KillID" json:"likes,omitempty"`
+	Likes []GotchaKillLike `gorm:"foreignKey:KillID" json:"likes,omitempty"`
 }
 
-type KillLike struct {
+type GotchaKillLike struct {
 	KillID    uuid.UUID `gorm:"type:uuid;primaryKey" json:"killId"`
 	ProfileID uuid.UUID `gorm:"type:uuid;primaryKey" json:"profileId"`
 	LikedAt   time.Time `json:"likedAt"`
 }
 
-type Prop struct {
+type GotchaProp struct {
 	ID   uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Name string    `gorm:"type:varchar(100);not null" json:"name"`
 }

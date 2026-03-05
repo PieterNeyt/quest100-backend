@@ -16,7 +16,7 @@ const (
 	StatusFinished GameStatus = "FINISHED"
 )
 
-type Game struct {
+type GotchaGame struct {
 	ID                uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	Campus            string     `gorm:"type:varchar(100);uniqueIndex" json:"campus"`
 	Status            GameStatus `gorm:"type:varchar(20)" json:"status"`
@@ -29,7 +29,7 @@ type Game struct {
 	Participants []Participant `gorm:"foreignKey:GameID" json:"participants,omitempty"`
 }
 
-func (g *Game) AssignTargets() error {
+func (g *GotchaGame) AssignTargets() error {
 	active := g.activePlayers()
 	if len(active) < 2 {
 		return fmt.Errorf("need at least 2 participants to start")
@@ -52,7 +52,7 @@ func (g *Game) AssignTargets() error {
 	return nil
 }
 
-func (g *Game) ProcessKill(hunterID, victimID uuid.UUID) error {
+func (g *GotchaGame) ProcessKill(hunterID, victimID uuid.UUID) error {
 	hunter := g.findParticipant(hunterID)
 	victim := g.findParticipant(victimID)
 
@@ -77,7 +77,7 @@ func (g *Game) ProcessKill(hunterID, victimID uuid.UUID) error {
 	return nil
 }
 
-func (g *Game) ProcessTimeout(victimID uuid.UUID) error {
+func (g *GotchaGame) ProcessTimeout(victimID uuid.UUID) error {
 	victim := g.findParticipant(victimID)
 	if victim == nil || !victim.IsAlive {
 		return nil
@@ -99,7 +99,7 @@ func (g *Game) ProcessTimeout(victimID uuid.UUID) error {
 	return nil
 }
 
-func (g *Game) checkWinner() {
+func (g *GotchaGame) checkWinner() {
 	alive := g.activePlayers()
 	if len(alive) == 1 {
 		g.Status = StatusFinished
@@ -107,7 +107,7 @@ func (g *Game) checkWinner() {
 	}
 }
 
-func (g *Game) activePlayers() []*Participant {
+func (g *GotchaGame) activePlayers() []*Participant {
 	var result []*Participant
 	for i := range g.Participants {
 		if g.Participants[i].IsAlive {
@@ -117,7 +117,7 @@ func (g *Game) activePlayers() []*Participant {
 	return result
 }
 
-func (g *Game) findParticipant(id uuid.UUID) *Participant {
+func (g *GotchaGame) findParticipant(id uuid.UUID) *Participant {
 	for i := range g.Participants {
 		if g.Participants[i].ProfileID == id {
 			return &g.Participants[i]
@@ -126,7 +126,7 @@ func (g *Game) findParticipant(id uuid.UUID) *Participant {
 	return nil
 }
 
-func (g *Game) findHunterOf(targetID uuid.UUID) *Participant {
+func (g *GotchaGame) findHunterOf(targetID uuid.UUID) *Participant {
 	for i := range g.Participants {
 		p := &g.Participants[i]
 		if p.IsAlive && p.TargetID != nil && *p.TargetID == targetID {

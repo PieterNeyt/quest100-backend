@@ -1,0 +1,78 @@
+### ─── Gotcha – Jon Beton (dev bypass) ──────────────────────────────────────
+### Vereist: APP_ENV=development in je .env / run config
+
+@baseUrl = http://localhost:8080/api
+
+### 1. Controleer het huidige spel voor Campus Stad
+GET {{baseUrl}}/gotcha/game
+Authorization: Bearer dev-jon
+
+###
+
+### 2. Schrijf Jon Beton in voor Gotcha (opt-in)
+###    Als er nog geen spel is voor Campus Stad wordt er automatisch een aangemaakt.
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-jon
+Content-Type: application/json
+X-Profile-ID: {{jonId}}
+X-Campus: Campus Stad
+
+{}
+
+###
+
+### 3. Controleer of Jon correct is ingeschreven
+GET {{baseUrl}}/gotcha/me
+Authorization: Bearer dev-jon
+X-Profile-ID: {{jonId}}
+X-Campus: Campus Stad
+
+###
+
+### 4. (Optioneel) Stel een startdatum in zodat het spel automatisch start
+###    Pas de datum aan naar een moment in het verleden om direct te starten,
+###    of een moment in de toekomst voor de countdown.
+@jonId = "00000000-0000-0000-0000-000000000001"
+PUT {{baseUrl}}/gotcha/games/startdate
+Authorization: Bearer dev-jon
+Content-Type: application/json
+X-Profile-ID: {{jonId}}
+X-Campus: Campus Stad
+
+{
+  "startDate": "2026-03-05T12:00:00Z",
+  "killDeadlineHours": 72
+}
+
+###
+
+### 5. Bekijk de leaderboard voor Campus Stad
+GET {{baseUrl}}/gotcha/leaderboard
+Authorization: Bearer dev-jon
+X-Profile-ID: {{jonId}}
+X-Campus: Campus Stad
+
+###
+
+### 6. Dien een kill in (enkel mogelijk als het spel ACTIVE is)
+###    Geen victimId nodig — backend gebruikt automatisch jouw huidige target.
+###    Vervang de photoUrl door een echte URL.
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-jon
+Content-Type: application/json
+X-Profile-ID: {{jonId}}
+X-Campus: Campus Stad
+
+{
+  "photoUrl": "https://example.com/bewijs-foto-jon.jpg"
+}
+
+###
+
+### 7. Bekijk de kill feed
+GET {{baseUrl}}/gotcha/feed?limit=20&offset=0
+Authorization: Bearer dev-jon
+X-Profile-ID: {{jonId}}
+X-Campus: Campus Stad
+
+###

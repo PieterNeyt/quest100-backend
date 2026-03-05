@@ -10,18 +10,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// ─── GotchaGame ─────────────────────────────────────────────────────────────────────
+
 type gameRepository struct{ db *gorm.DB }
 
 func NewGameRepository(db *gorm.DB) domain.GameRepository {
 	return &gameRepository{db}
 }
 
-func (r *gameRepository) SaveGame(game *domain.Game) error {
+func (r *gameRepository) SaveGame(game *domain.GotchaGame) error {
 	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(game).Error
 }
 
-func (r *gameRepository) GetGameByCampus(campus string) (*domain.Game, error) {
-	var game domain.Game
+func (r *gameRepository) GetGameByCampus(campus string) (*domain.GotchaGame, error) {
+	var game domain.GotchaGame
 	err := r.db.Where("campus = ? AND status != ?", campus, domain.StatusFinished).
 		Order("created_at DESC").First(&game).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -30,17 +32,25 @@ func (r *gameRepository) GetGameByCampus(campus string) (*domain.Game, error) {
 	return &game, err
 }
 
-func (r *gameRepository) GetGameByID(id uuid.UUID) (*domain.Game, error) {
-	var game domain.Game
+func (r *gameRepository) GetGameByID(id uuid.UUID) (*domain.GotchaGame, error) {
+	var game domain.GotchaGame
 	err := r.db.First(&game, "id = ?", id).Error
 	return &game, err
 }
 
-func (r *gameRepository) GetAllActiveGames() ([]*domain.Game, error) {
-	var games []*domain.Game
+func (r *gameRepository) GetAllActiveGames() ([]*domain.GotchaGame, error) {
+	var games []*domain.GotchaGame
 	err := r.db.Where("status = ?", domain.StatusActive).Find(&games).Error
 	return games, err
 }
+
+func (r *gameRepository) GetAllOptInGames() ([]*domain.GotchaGame, error) {
+	var games []*domain.GotchaGame
+	err := r.db.Where("status = ?", domain.StatusOptIn).Find(&games).Error
+	return games, err
+}
+
+// ─── Participant ──────────────────────────────────────────────────────────────
 
 type participantRepository struct{ db *gorm.DB }
 
@@ -67,14 +77,31 @@ func (r *participantRepository) GetParticipant(gameID, profileID uuid.UUID) (*do
 	return &p, err
 }
 
+// GetExpiredParticipants gebruikt een subquery in plaats van een JOIN
+// om het GORM-tabel-aliasing probleem te omzeilen.
 func (r *participantRepository) GetExpiredParticipants(before time.Time) ([]*domain.Participant, error) {
 	var list []*domain.Participant
+
+	activeGameIDs := r.db.Model(&domain.GotchaGame{}).
+		Select("id").
+		Where("status = ?", domain.StatusActive)
+
 	err := r.db.
-		Joins("JOIN gotcha_games ON gotcha_games.id = gotcha_participants.game_id").
-		Where("gotcha_participants.is_alive = true AND gotcha_participants.target_id IS NOT NULL AND gotcha_participants.kill_deadline < ? AND gotcha_games.status = ?", before, domain.StatusActive).
+		Where("is_alive = true").
+		Where("target_id IS NOT NULL").
+		Where("kill_deadline < ?", before).
+		Where("game_id IN (?)", activeGameIDs).
 		Find(&list).Error
+
 	return list, err
 }
+
+func (r *participantRepository) DeleteParticipant(gameID, profileID uuid.UUID) error {
+	return r.db.Where("game_id = ? AND profile_id = ?", gameID, profileID).
+		Delete(&domain.Participant{}).Error
+}
+
+// ─── GotchaKill ──────────────────────────────────────────────────────────────────────
 
 type killRepository struct{ db *gorm.DB }
 
@@ -82,39 +109,48 @@ func NewKillRepository(db *gorm.DB) domain.KillRepository {
 	return &killRepository{db}
 }
 
-func (r *killRepository) SaveKill(kill *domain.Kill) error {
+func (r *killRepository) SaveKill(kill *domain.GotchaKill) error {
 	return r.db.Save(kill).Error
 }
 
-func (r *killRepository) GetKillByID(id uuid.UUID) (*domain.Kill, error) {
-	var kill domain.Kill
-	err := r.db.First(&kill, "id = ?", id).Error
+func (r *killRepository) GetKillByID(id uuid.UUID) (*domain.GotchaKill, error) {
+	var kill domain.GotchaKill
+	err := r.db.Preload("Likes").First(&kill, "id = ?", id).Error
 	return &kill, err
 }
 
-func (r *killRepository) GetKillFeed(gameID uuid.UUID, limit, offset int) ([]*domain.Kill, error) {
-	var kills []*domain.Kill
+func (r *killRepository) GetKillFeed(gameID uuid.UUID, limit, offset int) ([]*domain.GotchaKill, error) {
+	var kills []*domain.GotchaKill
 	err := r.db.
 		Preload("Likes").
-		Where("game_id = ? AND status = ?", gameID, domain.KillApproved).
+		Where("game_id = ?", gameID).
 		Order("created_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&kills).Error
 	return kills, err
 }
 
-func (r *killRepository) GetPendingKills(gameID uuid.UUID) ([]*domain.Kill, error) {
-	var kills []*domain.Kill
+func (r *killRepository) GetPendingKills(gameID uuid.UUID) ([]*domain.GotchaKill, error) {
+	var kills []*domain.GotchaKill
 	err := r.db.Where("game_id = ? AND status = ?", gameID, domain.KillPending).Find(&kills).Error
 	return kills, err
 }
 
-func (r *killRepository) SaveKillLike(like *domain.KillLike) error {
+func (r *killRepository) SaveKillLike(like *domain.GotchaKillLike) error {
 	return r.db.Save(like).Error
 }
 
 func (r *killRepository) DeleteKillLike(killID, profileID uuid.UUID) error {
-	return r.db.Where("kill_id = ? AND profile_id = ?", killID, profileID).Delete(&domain.KillLike{}).Error
+	return r.db.Where("kill_id = ? AND profile_id = ?", killID, profileID).
+		Delete(&domain.GotchaKillLike{}).Error
+}
+
+func (r *killRepository) HasLiked(killID, profileID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.GotchaKillLike{}).
+		Where("kill_id = ? AND profile_id = ?", killID, profileID).
+		Count(&count).Error
+	return count > 0, err
 }
 
 type propRepository struct{ db *gorm.DB }
@@ -123,18 +159,24 @@ func NewPropRepository(db *gorm.DB) domain.PropRepository {
 	return &propRepository{db}
 }
 
-func (r *propRepository) GetRandomProp() (*domain.Prop, error) {
-	var prop domain.Prop
+func (r *propRepository) GetRandomProp() (*domain.GotchaProp, error) {
+	var prop domain.GotchaProp
 	err := r.db.Order("RANDOM()").First(&prop).Error
 	return &prop, err
 }
 
-func (r *propRepository) SaveProp(prop *domain.Prop) error {
+func (r *propRepository) GetPropByID(id uuid.UUID) (*domain.GotchaProp, error) {
+	var prop domain.GotchaProp
+	err := r.db.First(&prop, "id = ?", id).Error
+	return &prop, err
+}
+
+func (r *propRepository) SaveProp(prop *domain.GotchaProp) error {
 	return r.db.Save(prop).Error
 }
 
-func (r *propRepository) GetAllProps() ([]*domain.Prop, error) {
-	var props []*domain.Prop
+func (r *propRepository) GetAllProps() ([]*domain.GotchaProp, error) {
+	var props []*domain.GotchaProp
 	err := r.db.Find(&props).Error
 	return props, err
 }

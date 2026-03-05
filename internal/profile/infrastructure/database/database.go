@@ -40,6 +40,7 @@ func seedDatabase(db *gorm.DB) {
 		Email:             "jon.beton@student.kdg.be",
 		Kudos:             0,
 		ArchetypeID:       1,
+		Campus:            "Campus Stad",
 		PreferredLanguage: domain.NL,
 	}
 
