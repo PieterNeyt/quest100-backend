@@ -16,7 +16,7 @@ func AutoMigration(db *gorm.DB) {
 		log.Printf("Failed to migrate Message: %v", err)
 	}
 
-	if err := db.AutoMigrate(&domain.Member{}); err != nil {
-		log.Printf("Failed to migrate Member: %v", err)
+	if err := db.AutoMigrate(&domain.ChatMember{}); err != nil {
+		log.Printf("Failed to migrate ChatMember: %v", err)
 	}
 }

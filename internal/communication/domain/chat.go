@@ -14,12 +14,12 @@ type ChatRepository interface {
 }
 
 type Chat struct {
-	ID       uuid.UUID `gorm:"type:uuid;primary_key;" json:"id"`
-	Members  []Member  `gorm:"foreignKey:ChatId;reference:ID;constraint:OnDelete:CASCADE;" json:"members"`
-	Messages []Message `gorm:"foreignKey:ChatId;reference:ID;constraint:OnDelete:CASCADE;" json:"messages"`
+	ID       uuid.UUID    `gorm:"type:uuid;primary_key;" json:"id"`
+	Members  []ChatMember `gorm:"foreignKey:ChatId;reference:ID;constraint:OnDelete:CASCADE;" json:"members"`
+	Messages []Message    `gorm:"foreignKey:ChatId;reference:ID;constraint:OnDelete:CASCADE;" json:"messages"`
 }
 
-type Member struct {
+type ChatMember struct {
 	ProfileId uuid.UUID `gorm:"type:uuid;primary_key;" json:"profileId"`
 	ChatId    uuid.UUID `gorm:"type:uuid;primary_key;" json:"chatId"`
 }
@@ -35,23 +35,23 @@ func CreateChat(eventId uuid.UUID) *Chat {
 	return &Chat{
 		ID:       eventId,
 		Messages: []Message{},
-		Members:  []Member{},
+		Members:  []ChatMember{},
 	}
 }
 
 func (c *Chat) JoinChat(profileId uuid.UUID) error {
-	inChat := slices.Contains(c.Members, Member{ProfileId: profileId, ChatId: c.ID})
+	inChat := slices.Contains(c.Members, ChatMember{ProfileId: profileId, ChatId: c.ID})
 	if inChat {
 		return fmt.Errorf("already in chat %s", c.ID)
 	}
-	c.Members = append(c.Members, Member{ProfileId: profileId, ChatId: c.ID})
+	c.Members = append(c.Members, ChatMember{ProfileId: profileId, ChatId: c.ID})
 	return nil
 }
 
 func (c *Chat) LeaveChat(profileId uuid.UUID) error {
 	oldLen := len(c.Members)
 
-	c.Members = slices.DeleteFunc(c.Members, func(member Member) bool {
+	c.Members = slices.DeleteFunc(c.Members, func(member ChatMember) bool {
 		return member.ProfileId == profileId
 	})
 	if oldLen == len(c.Members) {
