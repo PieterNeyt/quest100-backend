@@ -20,7 +20,7 @@ func NewChatRepository(db *gorm.DB) domain.ChatRepository {
 func (r *chatRepository) GetChatById(chatId uuid.UUID) (*domain.Chat, error) {
 	var chat domain.Chat
 
-	result := r.db.Preload("Members").Preload("Messages").First(&chat, "id = ?", chatId)
+	result := r.db.Preload("Members").First(&chat, "id = ?", chatId)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("chat %v not found", chatId)
@@ -52,4 +52,17 @@ func (r *chatRepository) DeleteChat(chatId uuid.UUID) error {
 		return fmt.Errorf("failed to delete chat %v: %w", chatId, err)
 	}
 	return nil
+}
+
+func (r *chatRepository) GetAllMessagesOfChatRoom(chatId uuid.UUID) ([]*domain.Message, error) {
+	var messages []*domain.Message
+
+	result := r.db.Find(&messages, "chat_id = ?", chatId)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("chat %v not found", chatId)
+		}
+		return nil, fmt.Errorf("failed to fetch all messages of chat %v: %w", chatId, result.Error)
+	}
+	return messages, nil
 }

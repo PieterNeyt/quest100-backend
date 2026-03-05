@@ -11,6 +11,7 @@ type ChatRepository interface {
 	GetChatById(chatId uuid.UUID) (*Chat, error)
 	SaveChat(chat *Chat) error
 	DeleteChat(chatId uuid.UUID) error
+	GetAllMessagesOfChatRoom(chatId uuid.UUID) ([]*Message, error)
 }
 
 type Chat struct {

@@ -16,6 +16,7 @@ type ChatService interface {
 	LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) error
+	GetAllMessagesOfChatRoom(chatId uuid.UUID, profileId uuid.UUID) ([]*chatDom.Message, error)
 }
 
 type chatService struct {
@@ -115,6 +116,7 @@ func (s *chatService) LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
 }
 
 func (s *chatService) DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
+	// TODO vragen wat we gaan doen bij het verwijderen van een chat als een event bv wordt gedelete gaan we dan ook direct de hele chat verwijderen of controlere we bv of dat er een message is geflagd ofzo
 	_, err := s.profileServ.GetProfileById(userId)
 	if err != nil {
 		return fmt.Errorf("profile not found: %w", err)
@@ -153,4 +155,16 @@ func (s *chatService) CreateMessage(chatId uuid.UUID, userId uuid.UUID, message 
 		return fmt.Errorf("chat save failed: %w", err)
 	}
 	return nil
+}
+
+func (s *chatService) GetAllMessagesOfChatRoom(chatId uuid.UUID, profileId uuid.UUID) ([]*chatDom.Message, error) {
+	if err := s.IsUserInChat(profileId, chatId); err != nil {
+		return nil, err
+	}
+
+	messages, err := s.chatRepo.GetAllMessagesOfChatRoom(chatId)
+	if err != nil {
+		return nil, fmt.Errorf("messages not found: %w", err)
+	}
+	return messages, nil
 }
