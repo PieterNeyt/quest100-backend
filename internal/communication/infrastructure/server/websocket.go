@@ -2,6 +2,7 @@ package server
 
 import (
 	"Quest100Backend/internal/communication/application"
+	"Quest100Backend/internal/communication/domain"
 	"log"
 	"net/http"
 
@@ -40,7 +41,7 @@ func handleWebSocket(c *gin.Context, hub *Hub) {
 	client := &Client{
 		hub:         hub,
 		conn:        conn,
-		send:        make(chan []byte, 256),
+		send:        make(chan *domain.Message, 256),
 		userID:      id,
 		activeRooms: make(map[uuid.UUID]bool),
 	}

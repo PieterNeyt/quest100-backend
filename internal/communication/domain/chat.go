@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"Quest100Backend/internal/profile/domain"
 	"fmt"
 	"slices"
 
@@ -10,6 +11,7 @@ import (
 type ChatRepository interface {
 	GetChatById(chatId uuid.UUID) (*Chat, error)
 	SaveChat(chat *Chat) error
+	SaveMessage(message *Message) (*Message, error)
 	DeleteChat(chatId uuid.UUID) error
 	GetAllMessagesOfChatRoom(chatId uuid.UUID) ([]*Message, error)
 }
@@ -26,10 +28,11 @@ type ChatMember struct {
 }
 
 type Message struct {
-	ID      uuid.UUID `gorm:"type:uuid;primary_key;" json:"id"`
-	ChatId  uuid.UUID `gorm:"type:uuid;;" json:"chatId"`
-	Sender  uuid.UUID `gorm:"type:uuid;" json:"sender"`
-	Message string    `gorm:"type:text;" json:"message"`
+	ID       uuid.UUID      `gorm:"type:uuid;primary_key;" json:"id"`
+	ChatId   uuid.UUID      `gorm:"type:uuid;" json:"chatId"`
+	SenderId uuid.UUID      `gorm:"type:uuid;" json:"senderId"`
+	Sender   domain.Profile `gorm:"foreignKey:SenderId;references:ID;" json:"sender"`
+	Message  string         `gorm:"type:text;" json:"message"`
 }
 
 func CreateChat(eventId uuid.UUID) *Chat {
@@ -63,10 +66,19 @@ func (c *Chat) LeaveChat(profileId uuid.UUID) error {
 
 func (c *Chat) AddMessage(senderId uuid.UUID, message string) error {
 	c.Messages = append(c.Messages, Message{
-		ID:      uuid.New(),
-		ChatId:  c.ID,
-		Sender:  senderId,
-		Message: message,
+		ID:       uuid.New(),
+		ChatId:   c.ID,
+		SenderId: senderId,
+		Message:  message,
 	})
 	return nil
+}
+
+func CreateMessage(senderId uuid.UUID, chatId uuid.UUID, message string) *Message {
+	return &Message{
+		ID:       uuid.New(),
+		ChatId:   chatId,
+		SenderId: senderId,
+		Message:  message,
+	}
 }

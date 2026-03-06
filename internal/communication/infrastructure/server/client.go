@@ -1,6 +1,8 @@
 package server
 
 import (
+	"Quest100Backend/internal/communication/domain"
+	"encoding/json"
 	"log"
 
 	"github.com/google/uuid"
@@ -10,7 +12,7 @@ import (
 type Client struct {
 	hub         *Hub
 	conn        *websocket.Conn
-	send        chan []byte
+	send        chan *domain.Message
 	userID      uuid.UUID
 	activeRooms map[uuid.UUID]bool
 }
@@ -50,12 +52,18 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
+			encoder := json.NewEncoder(w)
+			if err := encoder.Encode(message); err != nil {
+				return
+			}
+
 			log.Printf("wrote: %s", message)
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.send)
+				extraMsg := <-c.send
+				if err := encoder.Encode(extraMsg); err != nil {
+					break
+				}
 			}
 
 			if err := w.Close(); err != nil {

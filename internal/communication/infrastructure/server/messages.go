@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/google/uuid"
@@ -25,11 +24,8 @@ func (h *Hub) handleMessage(rawMessage []byte) {
 
 	log.Printf("Received message: %s", msg.Type)
 	switch msg.Type {
-	case "private":
-		//h.handlePrivateMessage(msg, rawMessage)
-		fmt.Println("private message")
 	case "group":
-		h.handleGroupMessage(msg, rawMessage)
+		h.handleGroupMessage(msg)
 	case "join":
 		h.handleJoinRoom(msg)
 		//case "leave":
@@ -56,8 +52,9 @@ func (h *Hub) handleJoinRoom(msg WsMessage) {
 	log.Printf("Joined room: User %s -> Room %s", msg.SenderID, msg.RoomID)
 }
 
-func (h *Hub) handleGroupMessage(msg WsMessage, message []byte) {
-	if err := h.chatService.CreateMessage(msg.RoomID, msg.SenderID, msg.Content); err != nil {
+func (h *Hub) handleGroupMessage(msg WsMessage) {
+	newMsg, err := h.chatService.CreateMessage(msg.RoomID, msg.SenderID, msg.Content)
+	if err != nil {
 		return
 	}
 	h.mutex.RLock()
@@ -65,7 +62,7 @@ func (h *Hub) handleGroupMessage(msg WsMessage, message []byte) {
 	if clients, ok := h.rooms[msg.RoomID]; ok {
 		for client := range clients {
 			select {
-			case client.send <- message:
+			case client.send <- newMsg:
 			default:
 				h.unregister <- client
 			}

@@ -15,7 +15,7 @@ type ChatService interface {
 	JoinChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error
 	DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error
-	CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) error
+	CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) (*chatDom.Message, error)
 	GetAllMessagesOfChatRoom(chatId uuid.UUID, profileId uuid.UUID) ([]*chatDom.Message, error)
 }
 
@@ -137,24 +137,18 @@ func (s *chatService) DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error 
 	return nil
 }
 
-func (s *chatService) CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) error {
-	chat, err := s.chatRepo.GetChatById(chatId)
+func (s *chatService) CreateMessage(chatId uuid.UUID, userId uuid.UUID, message string) (*chatDom.Message, error) {
+	if err := s.IsUserInChat(userId, chatId); err != nil {
+		return nil, err
+	}
+	msg := chatDom.CreateMessage(userId, chatId, message)
+
+	msg, err := s.chatRepo.SaveMessage(msg)
 	if err != nil {
-		return fmt.Errorf("chat not found: %w", err)
+		return nil, fmt.Errorf("chat save failed: %w", err)
 	}
 
-	profile, err := s.profileServ.GetProfileById(userId)
-	if err != nil {
-		return fmt.Errorf("profile not found: %w", err)
-	}
-	if err := chat.AddMessage(profile.ID, message); err != nil {
-		return fmt.Errorf("add message failed: %w", err)
-	}
-
-	if err := s.chatRepo.SaveChat(chat); err != nil {
-		return fmt.Errorf("chat save failed: %w", err)
-	}
-	return nil
+	return msg, nil
 }
 
 func (s *chatService) GetAllMessagesOfChatRoom(chatId uuid.UUID, profileId uuid.UUID) ([]*chatDom.Message, error) {

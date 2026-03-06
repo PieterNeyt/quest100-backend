@@ -32,12 +32,10 @@ func (r *chatRepository) GetChatById(chatId uuid.UUID) (*domain.Chat, error) {
 
 func (r *chatRepository) SaveChat(chat *domain.Chat) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 1. Save the Chat itself first
 		if err := tx.Omit("Members").Save(chat).Error; err != nil {
 			return err
 		}
 
-		// 2. Now save the associations
 		if len(chat.Members) > 0 {
 			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(chat).Error; err != nil {
 				return err
@@ -45,6 +43,18 @@ func (r *chatRepository) SaveChat(chat *domain.Chat) error {
 		}
 		return nil
 	})
+}
+
+func (r *chatRepository) SaveMessage(message *domain.Message) (*domain.Message, error) {
+	if err := r.db.Create(message).Error; err != nil {
+		return nil, fmt.Errorf("failed to save message: %w", err)
+	}
+	if err := r.db.Preload("Sender", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "first_name", "last_name")
+	}).First(&message, "id = ?", message.ID).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch message: %w", err)
+	}
+	return message, nil
 }
 
 func (r *chatRepository) DeleteChat(chatId uuid.UUID) error {
@@ -57,7 +67,9 @@ func (r *chatRepository) DeleteChat(chatId uuid.UUID) error {
 func (r *chatRepository) GetAllMessagesOfChatRoom(chatId uuid.UUID) ([]*domain.Message, error) {
 	var messages []*domain.Message
 
-	result := r.db.Find(&messages, "chat_id = ?", chatId)
+	result := r.db.Preload("Sender", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "first_name", "last_name")
+	}).Find(&messages, "chat_id = ?", chatId)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("chat %v not found", chatId)
