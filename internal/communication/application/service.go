@@ -64,23 +64,31 @@ func (s *chatService) CreateChatRoom(eventId uuid.UUID) error {
 	return nil
 }
 
-func (s *chatService) JoinChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
-	profile, err := s.profileServ.GetProfileById(userId)
+func (s *chatService) getChatRoom(userId uuid.UUID, eventId uuid.UUID) (*chatDom.Chat, error) {
+	_, err := s.profileServ.GetProfileById(userId)
 	if err != nil {
-		return fmt.Errorf("profile not found: %w", err)
+		return nil, fmt.Errorf("profile not found: %w", err)
 	}
 
 	event, err := s.eventRepo.GetEventByID(eventId)
 	if err != nil {
-		return fmt.Errorf("event not found: %w", err)
+		return nil, fmt.Errorf("event not found: %w", err)
 	}
 
 	chat, err := s.chatRepo.GetChatById(event.ID)
 	if err != nil {
-		return fmt.Errorf("chat not found: %w", err)
+		return nil, fmt.Errorf("chat not found: %w", err)
+	}
+	return chat, nil
+}
+
+func (s *chatService) JoinChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
+	chat, err := s.getChatRoom(userId, eventId)
+	if err != nil {
+		return err
 	}
 
-	if err := chat.JoinChat(profile.ID); err != nil {
+	if err := chat.JoinChat(userId); err != nil {
 		return fmt.Errorf("join chat failed: %w", err)
 	}
 	if err := s.chatRepo.SaveChat(chat); err != nil {
@@ -90,19 +98,9 @@ func (s *chatService) JoinChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
 }
 
 func (s *chatService) LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
-	_, err := s.profileServ.GetProfileById(userId)
+	chat, err := s.getChatRoom(userId, eventId)
 	if err != nil {
-		return fmt.Errorf("profile not found: %w", err)
-	}
-
-	event, err := s.eventRepo.GetEventByID(eventId)
-	if err != nil {
-		return fmt.Errorf("event not found: %w", err)
-	}
-
-	chat, err := s.chatRepo.GetChatById(event.ID)
-	if err != nil {
-		return fmt.Errorf("chat not found: %w", err)
+		return err
 	}
 
 	if err := chat.LeaveChat(userId); err != nil {
@@ -117,19 +115,9 @@ func (s *chatService) LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
 
 func (s *chatService) DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
 	// TODO vragen wat we gaan doen bij het verwijderen van een chat als een event bv wordt gedelete gaan we dan ook direct de hele chat verwijderen of controlere we bv of dat er een message is geflagd ofzo
-	_, err := s.profileServ.GetProfileById(userId)
+	chat, err := s.getChatRoom(userId, eventId)
 	if err != nil {
-		return fmt.Errorf("profile not found: %w", err)
-	}
-
-	event, err := s.eventRepo.GetEventByID(eventId)
-	if err != nil {
-		return fmt.Errorf("event not found: %w", err)
-	}
-
-	chat, err := s.chatRepo.GetChatById(event.ID)
-	if err != nil {
-		return fmt.Errorf("chat not found: %w", err)
+		return err
 	}
 	if err := s.chatRepo.DeleteChat(chat.ID); err != nil {
 		return fmt.Errorf("chat delete failed: %w", err)
