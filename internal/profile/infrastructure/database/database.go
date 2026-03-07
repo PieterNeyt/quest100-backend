@@ -49,4 +49,124 @@ func seedDatabase(db *gorm.DB) {
 	if err != nil {
 		log.Printf("Could not seed database: %v", err)
 	}
+
+	extraProfiles := []domain.Profile{
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+			FirstName:            "Wout",
+			LastName:             "Hout",
+			Email:                "wout.hout@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          2,
+			Campus:               "Campus Stad",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000003"),
+			FirstName:            "Bart",
+			LastName:             "Asfalt",
+			Email:                "bart.asfalt@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          3,
+			Campus:               "Campus Stad",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000004"),
+			FirstName:            "Miezel",
+			LastName:             "De Kiezel",
+			Email:                "steen.koolsteen@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          1,
+			Campus:               "Campus Stad",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000005"),
+			FirstName:            "Tim",
+			LastName:             "Morteltim",
+			Email:                "tim.morteltim@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          2,
+			Campus:               "Campus Hoboken",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+			FirstName:            "Lien",
+			LastName:             "Porsellien",
+			Email:                "lien.porsellien@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          3,
+			Campus:               "Campus Stad",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000007"),
+			FirstName:            "Luis",
+			LastName:             "Steengruis",
+			Email:                "kris.graniet@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          1,
+			Campus:               "Campus Hoboken",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000008"),
+			FirstName:            "Ann",
+			LastName:             "De Mortelman",
+			Email:                "ann.tegann@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          2,
+			Campus:               "Campus Stad",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000009"),
+			FirstName:            "Rein",
+			LastName:             "Kalkstein",
+			Email:                "rein.kalkstein@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          3,
+			Campus:               "Campus Hoboken",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000010"),
+			FirstName:            "Noel",
+			LastName:             "Pannoel",
+			Email:                "noel.pannoel@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          1,
+			Campus:               "Campus Stad",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+		{
+			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000011"),
+			FirstName:            "Mark",
+			LastName:             "Remark",
+			Email:                "mark.remark@student.kdg.be",
+			Kudos:                0,
+			ArchetypeID:          2,
+			Campus:               "Campus Hoboken",
+			PreferredLanguage:    domain.NL,
+			CustomProfilePicture: nil,
+		},
+	}
+
+	for _, profile := range extraProfiles {
+		p := profile
+		if err := db.Where(domain.Profile{ID: p.ID}).FirstOrCreate(&p).Error; err != nil {
+			log.Printf("Could not seed profile %s %s: %v", p.FirstName, p.LastName, err)
+		}
+	}
 }

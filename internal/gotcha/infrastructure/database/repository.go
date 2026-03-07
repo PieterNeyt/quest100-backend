@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// ─── GotchaGame ─────────────────────────────────────────────────────────────────────
+// ─── GotchaGame ──────────────────────────────────────────────────────────────
 
 type gameRepository struct{ db *gorm.DB }
 
@@ -19,7 +19,7 @@ func NewGameRepository(db *gorm.DB) domain.GameRepository {
 }
 
 func (r *gameRepository) SaveGame(game *domain.GotchaGame) error {
-	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(game).Error
+	return r.db.Omit("Participants").Save(game).Error
 }
 
 func (r *gameRepository) GetGameByCampus(campus string) (*domain.GotchaGame, error) {
@@ -28,6 +28,16 @@ func (r *gameRepository) GetGameByCampus(campus string) (*domain.GotchaGame, err
 		Order("created_at DESC").First(&game).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("no active game for campus %s", campus)
+	}
+	return &game, err
+}
+
+func (r *gameRepository) GetGameByFinishedCampus(campus string) (*domain.GotchaGame, error) {
+	var game domain.GotchaGame
+	err := r.db.Where("campus = ? AND status = ?", campus, domain.StatusFinished).
+		Order("updated_at DESC").First(&game).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("no finished game for campus %s", campus)
 	}
 	return &game, err
 }
@@ -77,22 +87,17 @@ func (r *participantRepository) GetParticipant(gameID, profileID uuid.UUID) (*do
 	return &p, err
 }
 
-// GetExpiredParticipants gebruikt een subquery in plaats van een JOIN
-// om het GORM-tabel-aliasing probleem te omzeilen.
-func (r *participantRepository) GetExpiredParticipants(before time.Time) ([]*domain.Participant, error) {
+func (r *participantRepository) GetExpiredParticipants(before interface{}) ([]*domain.Participant, error) {
 	var list []*domain.Participant
-
 	activeGameIDs := r.db.Model(&domain.GotchaGame{}).
 		Select("id").
 		Where("status = ?", domain.StatusActive)
-
 	err := r.db.
 		Where("is_alive = true").
 		Where("target_id IS NOT NULL").
 		Where("kill_deadline < ?", before).
 		Where("game_id IN (?)", activeGameIDs).
 		Find(&list).Error
-
 	return list, err
 }
 
@@ -101,7 +106,7 @@ func (r *participantRepository) DeleteParticipant(gameID, profileID uuid.UUID) e
 		Delete(&domain.Participant{}).Error
 }
 
-// ─── GotchaKill ──────────────────────────────────────────────────────────────────────
+// ─── GotchaKill ──────────────────────────────────────────────────────────────
 
 type killRepository struct{ db *gorm.DB }
 
@@ -121,19 +126,60 @@ func (r *killRepository) GetKillByID(id uuid.UUID) (*domain.GotchaKill, error) {
 
 func (r *killRepository) GetKillFeed(gameID uuid.UUID, limit, offset int) ([]*domain.GotchaKill, error) {
 	var kills []*domain.GotchaKill
-	err := r.db.
-		Preload("Likes").
-		Where("game_id = ?", gameID).
-		Order("created_at DESC").
-		Limit(limit).Offset(offset).
-		Find(&kills).Error
+	err := r.db.Preload("Likes").Where("game_id = ?", gameID).
+		Order("created_at DESC").Limit(limit).Offset(offset).Find(&kills).Error
+	return kills, err
+}
+
+func (r *killRepository) GetApprovedKillFeed(gameID uuid.UUID, limit, offset int) ([]*domain.GotchaKill, error) {
+	var kills []*domain.GotchaKill
+	err := r.db.Preload("Likes").
+		Where("game_id = ? AND status = ?", gameID, domain.KillApproved).
+		Order("created_at DESC").Limit(limit).Offset(offset).Find(&kills).Error
+	return kills, err
+}
+
+func (r *killRepository) GetApprovedKillsByGame(gameID uuid.UUID) ([]*domain.GotchaKill, error) {
+	var kills []*domain.GotchaKill
+	err := r.db.Where("game_id = ? AND status = ?", gameID, domain.KillApproved).
+		Order("created_at ASC").Find(&kills).Error
 	return kills, err
 }
 
 func (r *killRepository) GetPendingKills(gameID uuid.UUID) ([]*domain.GotchaKill, error) {
 	var kills []*domain.GotchaKill
-	err := r.db.Where("game_id = ? AND status = ?", gameID, domain.KillPending).Find(&kills).Error
+	err := r.db.Preload("Likes").
+		Where("game_id = ? AND status = ?", gameID, domain.KillPending).
+		Order("created_at ASC").Find(&kills).Error
 	return kills, err
+}
+
+func (r *killRepository) GetOldestPendingKill(gameID uuid.UUID) (*domain.GotchaKill, error) {
+	var kill domain.GotchaKill
+	err := r.db.Preload("Likes").
+		Where("game_id = ? AND status = ?", gameID, domain.KillPending).
+		Order("created_at ASC").
+		First(&kill).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("no pending kills for game %s", gameID)
+	}
+	return &kill, err
+}
+
+func (r *killRepository) HasPendingKill(gameID, hunterID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.GotchaKill{}).
+		Where("game_id = ? AND hunter_id = ? AND status = ?", gameID, hunterID, domain.KillPending).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *killRepository) CountPendingKills(gameID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.Model(&domain.GotchaKill{}).
+		Where("game_id = ? AND status = ?", gameID, domain.KillPending).
+		Count(&count).Error
+	return int(count), err
 }
 
 func (r *killRepository) SaveKillLike(like *domain.GotchaKillLike) error {
@@ -152,6 +198,8 @@ func (r *killRepository) HasLiked(killID, profileID uuid.UUID) (bool, error) {
 		Count(&count).Error
 	return count > 0, err
 }
+
+// ─── Prop ────────────────────────────────────────────────────────────────────
 
 type propRepository struct{ db *gorm.DB }
 
@@ -180,3 +228,5 @@ func (r *propRepository) GetAllProps() ([]*domain.GotchaProp, error) {
 	err := r.db.Find(&props).Error
 	return props, err
 }
+
+var _ = time.Now

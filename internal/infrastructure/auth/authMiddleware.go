@@ -46,7 +46,17 @@ func init() {
 // devProfiles maps a static test token to a fixed profile UUID.
 // Only active when APP_ENV=development.
 var devProfiles = map[string]uuid.UUID{
-	"dev-jon": uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+	"dev-jon":   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+	"dev-wout":  uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+	"dev-bart":  uuid.MustParse("00000000-0000-0000-0000-000000000003"),
+	"dev-steen": uuid.MustParse("00000000-0000-0000-0000-000000000004"),
+	"dev-tim":   uuid.MustParse("00000000-0000-0000-0000-000000000005"),
+	"dev-lien":  uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+	"dev-kris":  uuid.MustParse("00000000-0000-0000-0000-000000000007"),
+	"dev-ann":   uuid.MustParse("00000000-0000-0000-0000-000000000008"),
+	"dev-rein":  uuid.MustParse("00000000-0000-0000-0000-000000000009"),
+	"dev-noel":  uuid.MustParse("00000000-0000-0000-0000-000000000010"),
+	"dev-mark":  uuid.MustParse("00000000-0000-0000-0000-000000000011"),
 }
 
 func AuthMiddleware() gin.HandlerFunc {

@@ -77,7 +77,7 @@ func (h *GotchaHandler) CreateGame(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	game, err := h.service.CreateGame(body.Campus, body.StartDate, body.KillDeadlineHours)
+	game, err := h.service.CreateGame(body.Campus, body.StartDate, body.KillDeadlineHours, body.PrizePhotoBase64, body.PrizeDescriptionEN, body.PrizeDescriptionNL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -100,7 +100,7 @@ func (h *GotchaHandler) UpdateStartDate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	game, err := h.service.UpdateStartDate(cam, body.StartDate, body.KillDeadlineHours)
+	game, err := h.service.UpdateStartDate(cam, body.StartDate, body.KillDeadlineHours, body.PrizePhotoBase64, body.PrizeDescriptionEN, body.PrizeDescriptionNL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -157,13 +157,11 @@ func (h *GotchaHandler) SubmitKill(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	var body SubmitKillRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	kill, err := h.service.SubmitKill(cam, pid, body.PhotoURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -216,33 +214,17 @@ func (h *GotchaHandler) GetFeed(c *gin.Context) {
 	response := make([]KillFeedItem, 0, len(items))
 	for _, item := range items {
 		apiItem := KillFeedItem{
-			ID:         item.ID,
-			GameID:     item.GameID,
-			PhotoURL:   item.PhotoURL,
-			Status:     string(item.Status),
-			CreatedAt:  item.CreatedAt,
-			ReviewedAt: item.ReviewedAt,
-			Hunter: ProfileSummary{
-				ID:             item.Hunter.ID,
-				FirstName:      item.Hunter.FirstName,
-				LastName:       item.Hunter.LastName,
-				ProfilePicture: item.Hunter.ProfilePicture,
-			},
-			Victim: ProfileSummary{
-				ID:             item.Victim.ID,
-				FirstName:      item.Victim.FirstName,
-				LastName:       item.Victim.LastName,
-				ProfilePicture: item.Victim.ProfilePicture,
-			},
-			LikeCount: item.LikeCount,
-			LikedByMe: item.LikedByMe,
+			ID: item.ID, GameID: item.GameID, PhotoURL: item.PhotoURL,
+			Status: string(item.Status), CreatedAt: item.CreatedAt, ReviewedAt: item.ReviewedAt,
+			Hunter:    ProfileSummary{ID: item.Hunter.ID, FirstName: item.Hunter.FirstName, LastName: item.Hunter.LastName, ProfilePicture: item.Hunter.ProfilePicture},
+			Victim:    ProfileSummary{ID: item.Victim.ID, FirstName: item.Victim.FirstName, LastName: item.Victim.LastName, ProfilePicture: item.Victim.ProfilePicture},
+			LikeCount: item.LikeCount, LikedByMe: item.LikedByMe,
 		}
 		if item.Prop != nil {
 			apiItem.Prop = &PropSummary{ID: item.Prop.ID, Name: item.Prop.Name}
 		}
 		response = append(response, apiItem)
 	}
-
 	c.JSON(http.StatusOK, response)
 }
 
@@ -308,7 +290,6 @@ func (h *GotchaHandler) GetLeaderboard(c *gin.Context) {
 	c.JSON(http.StatusOK, board)
 }
 
-// GetPendingKills returns all kills with status PENDING for the current game on the caller's campus.
 func (h *GotchaHandler) GetPendingKills(c *gin.Context) {
 	pid, ok := profileID(c)
 	if !ok {
@@ -319,46 +300,27 @@ func (h *GotchaHandler) GetPendingKills(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	items, err := h.service.GetPendingKills(cam, pid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	response := make([]KillFeedItem, 0, len(items))
 	for _, item := range items {
 		apiItem := KillFeedItem{
-			ID:        item.ID,
-			GameID:    item.GameID,
-			PhotoURL:  item.PhotoURL,
-			Status:    string(item.Status),
-			CreatedAt: item.CreatedAt,
-			Hunter: ProfileSummary{
-				ID:             item.Hunter.ID,
-				FirstName:      item.Hunter.FirstName,
-				LastName:       item.Hunter.LastName,
-				ProfilePicture: item.Hunter.ProfilePicture,
-			},
-			Victim: ProfileSummary{
-				ID:             item.Victim.ID,
-				FirstName:      item.Victim.FirstName,
-				LastName:       item.Victim.LastName,
-				ProfilePicture: item.Victim.ProfilePicture,
-			},
-			LikeCount: item.LikeCount,
-			LikedByMe: false,
+			ID: item.ID, GameID: item.GameID, PhotoURL: item.PhotoURL,
+			Status: string(item.Status), CreatedAt: item.CreatedAt,
+			Hunter: ProfileSummary{ID: item.Hunter.ID, FirstName: item.Hunter.FirstName, LastName: item.Hunter.LastName, ProfilePicture: item.Hunter.ProfilePicture},
+			Victim: ProfileSummary{ID: item.Victim.ID, FirstName: item.Victim.FirstName, LastName: item.Victim.LastName, ProfilePicture: item.Victim.ProfilePicture},
 		}
 		if item.Prop != nil {
 			apiItem.Prop = &PropSummary{ID: item.Prop.ID, Name: item.Prop.Name}
 		}
 		response = append(response, apiItem)
 	}
-
 	c.JSON(http.StatusOK, response)
 }
 
-// GetTargetInfo returns the current player's assigned target profile and prop.
 func (h *GotchaHandler) GetTargetInfo(c *gin.Context) {
 	pid, ok := profileID(c)
 	if !ok {
@@ -369,28 +331,115 @@ func (h *GotchaHandler) GetTargetInfo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	info, err := h.service.GetTargetInfo(cam, pid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-
-	resp := TargetInfoResponse{}
+	resp := TargetInfoResponse{KillDeadline: info.KillDeadline}
 	if info.Target != nil {
-		resp.Target = &ProfileSummary{
-			ID:             info.Target.ID,
-			FirstName:      info.Target.FirstName,
-			LastName:       info.Target.LastName,
-			ProfilePicture: info.Target.ProfilePicture,
-		}
+		resp.Target = &ProfileSummary{ID: info.Target.ID, FirstName: info.Target.FirstName, LastName: info.Target.LastName, ProfilePicture: info.Target.ProfilePicture}
 	}
 	if info.AssignedProp != nil {
-		resp.AssignedProp = &PropSummary{
-			ID:   info.AssignedProp.ID,
-			Name: info.AssignedProp.Name,
-		}
+		resp.AssignedProp = &PropSummary{ID: info.AssignedProp.ID, Name: info.AssignedProp.Name}
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *GotchaHandler) GetEndScreen(c *gin.Context) {
+	pid, ok := profileID(c)
+	if !ok {
+		return
+	}
+	cam, err := h.getCampus(c, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	data, err := h.service.GetEndScreen(cam)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
 	}
 
+	resp := EndScreenResponse{
+		WinnerKillCount:    data.WinnerKillCount,
+		PrizePhotoBase64:   data.PrizePhotoBase64,
+		PrizeDescriptionEN: data.PrizeDescriptionEN,
+		PrizeDescriptionNL: data.PrizeDescriptionNL,
+		Stats: EndScreenStats{
+			TotalKills:        data.Stats.TotalKills,
+			TotalParticipants: data.Stats.TotalParticipants,
+			FastestKillSecs:   data.Stats.FastestKillSecs,
+			MostKillsName:     data.Stats.MostKillsName,
+			MostKillsCount:    data.Stats.MostKillsCount,
+		},
+	}
+	if data.Winner != nil {
+		resp.Winner = &ProfileSummary{ID: data.Winner.ID, FirstName: data.Winner.FirstName, LastName: data.Winner.LastName, ProfilePicture: data.Winner.ProfilePicture}
+	}
+	kills := make([]EndScreenKillNode, 0, len(data.Kills))
+	for _, k := range data.Kills {
+		node := EndScreenKillNode{
+			KillID:    k.KillID,
+			Hunter:    ProfileSummary{ID: k.Hunter.ID, FirstName: k.Hunter.FirstName, LastName: k.Hunter.LastName, ProfilePicture: k.Hunter.ProfilePicture},
+			Victim:    ProfileSummary{ID: k.Victim.ID, FirstName: k.Victim.FirstName, LastName: k.Victim.LastName, ProfilePicture: k.Victim.ProfilePicture},
+			PhotoURL:  k.PhotoURL,
+			CreatedAt: k.CreatedAt,
+		}
+		if k.Prop != nil {
+			node.Prop = &PropSummary{ID: k.Prop.ID, Name: k.Prop.Name}
+		}
+		kills = append(kills, node)
+	}
+	resp.Kills = kills
 	c.JSON(http.StatusOK, resp)
+}
+
+func (h *GotchaHandler) GetNextPendingKill(c *gin.Context) {
+	pid, ok := profileID(c)
+	if !ok {
+		return
+	}
+	cam, err := h.getCampus(c, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	item, err := h.service.GetNextPendingKill(cam, pid)
+	if err != nil {
+		// No pending kills is a normal state — return 204 No Content
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	apiItem := KillFeedItem{
+		ID: item.ID, GameID: item.GameID, PhotoURL: item.PhotoURL,
+		Status: string(item.Status), CreatedAt: item.CreatedAt, ReviewedAt: item.ReviewedAt,
+		Hunter:    ProfileSummary{ID: item.Hunter.ID, FirstName: item.Hunter.FirstName, LastName: item.Hunter.LastName, ProfilePicture: item.Hunter.ProfilePicture},
+		Victim:    ProfileSummary{ID: item.Victim.ID, FirstName: item.Victim.FirstName, LastName: item.Victim.LastName, ProfilePicture: item.Victim.ProfilePicture},
+		LikeCount: item.LikeCount, LikedByMe: item.LikedByMe,
+	}
+	if item.Prop != nil {
+		apiItem.Prop = &PropSummary{ID: item.Prop.ID, Name: item.Prop.Name}
+	}
+	c.JSON(http.StatusOK, apiItem)
+}
+
+func (h *GotchaHandler) GetPendingKillCount(c *gin.Context) {
+	pid, ok := profileID(c)
+	if !ok {
+		return
+	}
+	cam, err := h.getCampus(c, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	count, err := h.service.GetPendingKillCount(cam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"count": count})
 }

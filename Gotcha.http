@@ -1,78 +1,279 @@
-### ─── Gotcha – Jon Beton (dev bypass) ──────────────────────────────────────
+### ─── Gotcha – Alle Seed Profielen (dev bypass) ───────────────────────────
 ### Vereist: APP_ENV=development in je .env / run config
 
 @baseUrl = http://localhost:8080/api
+@killPhoto = https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJ1OC3UR5hXkELF-83HLcYsM2hR_sWxLBhvA&s
 
-### 1. Controleer het huidige spel voor Campus Stad
-GET {{baseUrl}}/gotcha/game
-Authorization: Bearer dev-jon
+# ═══════════════════════════════════════════════════════════════════
+#  STAP 1 – OPT-IN (iedereen inschrijven)
+# ═══════════════════════════════════════════════════════════════════
 
-###
-
-### 2. Schrijf Jon Beton in voor Gotcha (opt-in)
-###    Als er nog geen spel is voor Campus Stad wordt er automatisch een aangemaakt.
+### Jon Beton (00000000-0000-0000-0000-000000000001)
 POST {{baseUrl}}/gotcha/opt-in
 Authorization: Bearer dev-jon
 Content-Type: application/json
-X-Profile-ID: {{jonId}}
+X-Profile-ID: 00000000-0000-0000-0000-000000000001
 X-Campus: Campus Stad
 
 {}
 
 ###
 
-### 3. Controleer of Jon correct is ingeschreven
-GET {{baseUrl}}/gotcha/me
-Authorization: Bearer dev-jon
-X-Profile-ID: {{jonId}}
-X-Campus: Campus Stad
-
-###
-
-### 4. (Optioneel) Stel een startdatum in zodat het spel automatisch start
-###    Pas de datum aan naar een moment in het verleden om direct te starten,
-###    of een moment in de toekomst voor de countdown.
-@jonId = "00000000-0000-0000-0000-000000000001"
-PUT {{baseUrl}}/gotcha/games/startdate
-Authorization: Bearer dev-jon
+### Wout Hout (00000000-0000-0000-0000-000000000002)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-wout
 Content-Type: application/json
-X-Profile-ID: {{jonId}}
+X-Profile-ID: 00000000-0000-0000-0000-000000000002
 X-Campus: Campus Stad
 
-{
-  "startDate": "2026-03-05T12:00:00Z",
-  "killDeadlineHours": 72
-}
+{}
 
 ###
 
-### 5. Bekijk de leaderboard voor Campus Stad
-GET {{baseUrl}}/gotcha/leaderboard
-Authorization: Bearer dev-jon
-X-Profile-ID: {{jonId}}
+### Bart Asfalt (00000000-0000-0000-0000-000000000003)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-bart
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000003
 X-Campus: Campus Stad
+
+{}
 
 ###
 
-### 6. Dien een kill in (enkel mogelijk als het spel ACTIVE is)
-###    Geen victimId nodig — backend gebruikt automatisch jouw huidige target.
-###    Vervang de photoUrl door een echte URL.
+### Steen Koolsteen (00000000-0000-0000-0000-000000000004)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-steen
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000004
+X-Campus: Campus Stad
+
+{}
+
+###
+
+### Tim Morteltim (00000000-0000-0000-0000-000000000005)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-tim
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000005
+X-Campus: Campus Hoboken
+
+{}
+
+###
+
+### Lien Porsellien (00000000-0000-0000-0000-000000000006)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-lien
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000006
+X-Campus: Campus Stad
+
+{}
+
+###
+
+### Kris Graniet (00000000-0000-0000-0000-000000000007)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-kris
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000007
+X-Campus: Campus Hoboken
+
+{}
+
+###
+
+### Ann Tegann (00000000-0000-0000-0000-000000000008)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-ann
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000008
+X-Campus: Campus Stad
+
+{}
+
+###
+
+### Rein Kalkstein (00000000-0000-0000-0000-000000000009)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-rein
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000009
+X-Campus: Campus Hoboken
+
+{}
+
+###
+
+### Noel Pannoel (00000000-0000-0000-0000-000000000010)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-noel
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000010
+X-Campus: Campus Stad
+
+{}
+
+###
+
+### Mark Remark (00000000-0000-0000-0000-000000000011)
+POST {{baseUrl}}/gotcha/opt-in
+Authorization: Bearer dev-mark
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000011
+X-Campus: Campus Hoboken
+
+{}
+
+###
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  STAP 2 – SUBMIT KILL (iedereen dient een kill in)
+#  Elke speler "kill" de volgende in de lijst (circulair)
+# ═══════════════════════════════════════════════════════════════════
+
+### Jon Beton dient een kill in
 POST {{baseUrl}}/gotcha/kills
 Authorization: Bearer dev-jon
 Content-Type: application/json
-X-Profile-ID: {{jonId}}
+X-Profile-ID: 00000000-0000-0000-0000-000000000001
 X-Campus: Campus Stad
 
 {
-  "photoUrl": "https://example.com/bewijs-foto-jon.jpg"
+  "photoUrl": "{{killPhoto}}"
 }
 
 ###
 
-### 7. Bekijk de kill feed
-GET {{baseUrl}}/gotcha/feed?limit=20&offset=0
-Authorization: Bearer dev-jon
-X-Profile-ID: {{jonId}}
+### Wout Hout dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-wout
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000002
 X-Campus: Campus Stad
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Bart Asfalt dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-bart
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000003
+X-Campus: Campus Hoboken
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Steen Koolsteen dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-steen
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000004
+X-Campus: Campus Stad
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Tim Morteltim dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-tim
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000005
+X-Campus: Campus Hoboken
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Lien Porsellien dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-lien
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000006
+X-Campus: Campus Stad
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Kris Graniet dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-kris
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000007
+X-Campus: Campus Hoboken
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Ann Tegann dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-ann
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000008
+X-Campus: Campus Stad
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Rein Kalkstein dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-rein
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000009
+X-Campus: Campus Hoboken
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Noel Pannoel dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-noel
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000010
+X-Campus: Campus Stad
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
+
+###
+
+### Mark Remark dient een kill in
+POST {{baseUrl}}/gotcha/kills
+Authorization: Bearer dev-mark
+Content-Type: application/json
+X-Profile-ID: 00000000-0000-0000-0000-000000000011
+X-Campus: Campus Hoboken
+
+{
+  "photoUrl": "{{killPhoto}}"
+}
 
 ###

@@ -18,14 +18,12 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	participantRepo := gotchaDB.NewParticipantRepository(db)
 	killRepo := gotchaDB.NewKillRepository(db)
 	propRepo := gotchaDB.NewPropRepository(db)
-
 	profileRepo := profileDB.NewProfileRepository(db)
 	profileService := profileApp.NewProfileService(profileRepo)
 
 	service := application.NewGotchaService(gameRepo, participantRepo, killRepo, propRepo, profileRepo)
 	handler := gotchaAPI.NewGotchaHandler(service, profileService)
 
-	// Background ticker: every minute check for games to auto-start and kill timeouts
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
@@ -54,9 +52,14 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		g.PUT("/kills/:killId/review", handler.ReviewKill)
 		g.POST("/kills/:killId/like", handler.LikeKill)
 		g.DELETE("/kills/:killId/like", handler.UnlikeKill)
+
+		g.GET("/kills/pending/next", handler.GetNextPendingKill)
+		g.GET("/kills/pending/count", handler.GetPendingKillCount)
+
 		g.GET("/kills/pending", handler.GetPendingKills)
 
 		g.GET("/feed", handler.GetFeed)
 		g.GET("/leaderboard", handler.GetLeaderboard)
+		g.GET("/end-screen", handler.GetEndScreen)
 	}
 }

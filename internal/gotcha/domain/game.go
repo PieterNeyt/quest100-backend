@@ -26,6 +26,10 @@ type GotchaGame struct {
 	CreatedAt         time.Time  `json:"createdAt"`
 	UpdatedAt         time.Time  `json:"updatedAt"`
 
+	PrizePhotoBase64   string `gorm:"type:text" json:"prizePhotoBase64,omitempty"`
+	PrizeDescriptionEN string `gorm:"type:text" json:"prizeDescriptionEN,omitempty"`
+	PrizeDescriptionNL string `gorm:"type:text" json:"prizeDescriptionNL,omitempty"`
+
 	Participants []Participant `gorm:"foreignKey:GameID" json:"participants,omitempty"`
 }
 
@@ -34,30 +38,23 @@ func (g *GotchaGame) AssignTargets() error {
 	if len(active) < 2 {
 		return fmt.Errorf("need at least 2 participants to start")
 	}
-
-	rand.Shuffle(len(active), func(i, j int) {
-		active[i], active[j] = active[j], active[i]
-	})
-
+	rand.Shuffle(len(active), func(i, j int) { active[i], active[j] = active[j], active[i] })
 	for i := 0; i < len(active)-1; i++ {
 		targetID := active[i+1].ProfileID
 		active[i].TargetID = &targetID
 		active[i].KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
 	}
-
 	firstID := active[0].ProfileID
 	active[len(active)-1].TargetID = &firstID
 	active[len(active)-1].KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
-
 	g.Status = StatusActive
 	g.UpdatedAt = time.Now()
 	return nil
 }
 
 func (g *GotchaGame) ProcessKill(hunterID, victimID uuid.UUID) error {
-	hunter := g.findParticipant(hunterID)
-	victim := g.findParticipant(victimID)
-
+	hunter := g.FindParticipant(hunterID)
+	victim := g.FindParticipant(victimID)
 	if hunter == nil || victim == nil {
 		return fmt.Errorf("hunter or victim not found")
 	}
@@ -65,10 +62,12 @@ func (g *GotchaGame) ProcessKill(hunterID, victimID uuid.UUID) error {
 		return fmt.Errorf("victim is not hunter's current target")
 	}
 
+	// Mark victim dead
 	victim.IsAlive = false
 	victim.KilledAt = timePtr(time.Now())
 	victim.KilledBy = &hunterID
 
+	// Hunter inherits victim's target
 	hunter.TargetID = victim.TargetID
 	if hunter.TargetID != nil {
 		hunter.KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
@@ -80,11 +79,10 @@ func (g *GotchaGame) ProcessKill(hunterID, victimID uuid.UUID) error {
 }
 
 func (g *GotchaGame) ProcessTimeout(victimID uuid.UUID) error {
-	victim := g.findParticipant(victimID)
+	victim := g.FindParticipant(victimID)
 	if victim == nil || !victim.IsAlive {
 		return nil
 	}
-
 	victim.IsAlive = false
 	victim.KilledAt = timePtr(time.Now())
 
@@ -95,7 +93,6 @@ func (g *GotchaGame) ProcessTimeout(victimID uuid.UUID) error {
 			hunter.KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
 		}
 	}
-
 	g.UpdatedAt = time.Now()
 	g.checkWinner()
 	return nil
@@ -119,7 +116,7 @@ func (g *GotchaGame) activePlayers() []*Participant {
 	return result
 }
 
-func (g *GotchaGame) findParticipant(id uuid.UUID) *Participant {
+func (g *GotchaGame) FindParticipant(id uuid.UUID) *Participant {
 	for i := range g.Participants {
 		if g.Participants[i].ProfileID == id {
 			return &g.Participants[i]

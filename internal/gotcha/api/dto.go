@@ -7,14 +7,20 @@ import (
 )
 
 type CreateGameRequest struct {
-	Campus            string    `json:"campus" binding:"required"`
-	StartDate         time.Time `json:"startDate"`
-	KillDeadlineHours int       `json:"killDeadlineHours"`
+	Campus             string    `json:"campus" binding:"required"`
+	StartDate          time.Time `json:"startDate"`
+	KillDeadlineHours  int       `json:"killDeadlineHours"`
+	PrizePhotoBase64   string    `json:"prizePhotoBase64"`
+	PrizeDescriptionEN string    `json:"prizeDescriptionEN"`
+	PrizeDescriptionNL string    `json:"prizeDescriptionNL"`
 }
 
 type UpdateStartDateRequest struct {
-	StartDate         time.Time `json:"startDate" binding:"required"`
-	KillDeadlineHours int       `json:"killDeadlineHours"`
+	StartDate          time.Time `json:"startDate" binding:"required"`
+	KillDeadlineHours  int       `json:"killDeadlineHours"`
+	PrizePhotoBase64   string    `json:"prizePhotoBase64"`
+	PrizeDescriptionEN string    `json:"prizeDescriptionEN"`
+	PrizeDescriptionNL string    `json:"prizeDescriptionNL"`
 }
 
 type SubmitKillRequest struct {
@@ -52,8 +58,35 @@ type KillFeedItem struct {
 	LikedByMe  bool           `json:"likedByMe"`
 }
 
-// TargetInfoResponse holds the current player's target and assigned prop.
 type TargetInfoResponse struct {
 	Target       *ProfileSummary `json:"target"`
 	AssignedProp *PropSummary    `json:"assignedProp"`
+	KillDeadline *time.Time      `json:"killDeadline"`
+}
+
+type EndScreenKillNode struct {
+	KillID    uuid.UUID      `json:"killId"`
+	Hunter    ProfileSummary `json:"hunter"`
+	Victim    ProfileSummary `json:"victim"`
+	Prop      *PropSummary   `json:"prop,omitempty"`
+	PhotoURL  string         `json:"photoUrl"`
+	CreatedAt time.Time      `json:"createdAt"`
+}
+
+type EndScreenStats struct {
+	TotalKills        int    `json:"totalKills"`
+	TotalParticipants int    `json:"totalParticipants"`
+	FastestKillSecs   int    `json:"fastestKillSecs"`
+	MostKillsName     string `json:"mostKillsName"`
+	MostKillsCount    int    `json:"mostKillsCount"`
+}
+
+type EndScreenResponse struct {
+	Winner             *ProfileSummary     `json:"winner"`
+	WinnerKillCount    int                 `json:"winnerKillCount"`
+	PrizePhotoBase64   string              `json:"prizePhotoBase64,omitempty"`
+	PrizeDescriptionEN string              `json:"prizeDescriptionEN,omitempty"`
+	PrizeDescriptionNL string              `json:"prizeDescriptionNL,omitempty"`
+	Stats              EndScreenStats      `json:"stats"`
+	Kills              []EndScreenKillNode `json:"kills"`
 }
