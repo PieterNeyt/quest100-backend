@@ -308,6 +308,7 @@ func (h *GotchaHandler) GetLeaderboard(c *gin.Context) {
 	c.JSON(http.StatusOK, board)
 }
 
+// GetPendingKills returns all kills with status PENDING for the current game on the caller's campus.
 func (h *GotchaHandler) GetPendingKills(c *gin.Context) {
 	pid, ok := profileID(c)
 	if !ok {
@@ -318,6 +319,78 @@ func (h *GotchaHandler) GetPendingKills(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_ = cam
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "implement via service.GetPendingKills(campus)"})
+
+	items, err := h.service.GetPendingKills(cam, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := make([]KillFeedItem, 0, len(items))
+	for _, item := range items {
+		apiItem := KillFeedItem{
+			ID:        item.ID,
+			GameID:    item.GameID,
+			PhotoURL:  item.PhotoURL,
+			Status:    string(item.Status),
+			CreatedAt: item.CreatedAt,
+			Hunter: ProfileSummary{
+				ID:             item.Hunter.ID,
+				FirstName:      item.Hunter.FirstName,
+				LastName:       item.Hunter.LastName,
+				ProfilePicture: item.Hunter.ProfilePicture,
+			},
+			Victim: ProfileSummary{
+				ID:             item.Victim.ID,
+				FirstName:      item.Victim.FirstName,
+				LastName:       item.Victim.LastName,
+				ProfilePicture: item.Victim.ProfilePicture,
+			},
+			LikeCount: item.LikeCount,
+			LikedByMe: false,
+		}
+		if item.Prop != nil {
+			apiItem.Prop = &PropSummary{ID: item.Prop.ID, Name: item.Prop.Name}
+		}
+		response = append(response, apiItem)
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetTargetInfo returns the current player's assigned target profile and prop.
+func (h *GotchaHandler) GetTargetInfo(c *gin.Context) {
+	pid, ok := profileID(c)
+	if !ok {
+		return
+	}
+	cam, err := h.getCampus(c, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	info, err := h.service.GetTargetInfo(cam, pid)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp := TargetInfoResponse{}
+	if info.Target != nil {
+		resp.Target = &ProfileSummary{
+			ID:             info.Target.ID,
+			FirstName:      info.Target.FirstName,
+			LastName:       info.Target.LastName,
+			ProfilePicture: info.Target.ProfilePicture,
+		}
+	}
+	if info.AssignedProp != nil {
+		resp.AssignedProp = &PropSummary{
+			ID:   info.AssignedProp.ID,
+			Name: info.AssignedProp.Name,
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
 }

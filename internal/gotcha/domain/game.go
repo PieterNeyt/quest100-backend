@@ -45,7 +45,9 @@ func (g *GotchaGame) AssignTargets() error {
 		active[i].KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
 	}
 
-	active[len(active)-1].TargetID = nil
+	firstID := active[0].ProfileID
+	active[len(active)-1].TargetID = &firstID
+	active[len(active)-1].KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
 
 	g.Status = StatusActive
 	g.UpdatedAt = time.Now()

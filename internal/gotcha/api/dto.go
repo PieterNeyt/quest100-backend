@@ -22,7 +22,8 @@ type SubmitKillRequest struct {
 }
 
 type ReviewKillRequest struct {
-	Approve bool `json:"approve"`
+	Approve bool   `json:"approve"`
+	Reason  string `json:"reason,omitempty"`
 }
 
 type ProfileSummary struct {
@@ -49,4 +50,10 @@ type KillFeedItem struct {
 	Prop       *PropSummary   `json:"prop,omitempty"`
 	LikeCount  int            `json:"likeCount"`
 	LikedByMe  bool           `json:"likedByMe"`
+}
+
+// TargetInfoResponse holds the current player's target and assigned prop.
+type TargetInfoResponse struct {
+	Target       *ProfileSummary `json:"target"`
+	AssignedProp *PropSummary    `json:"assignedProp"`
 }

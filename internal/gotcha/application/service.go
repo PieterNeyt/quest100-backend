@@ -35,6 +35,12 @@ type KillFeedItem struct {
 	LikedByMe  bool
 }
 
+// TargetInfo holds the resolved target profile and assigned prop for a participant.
+type TargetInfo struct {
+	Target       *ProfileSummary
+	AssignedProp *PropSummary
+}
+
 type GotchaService interface {
 	CreateGame(campus string, startDate time.Time, killDeadlineHours int) (*domain.GotchaGame, error)
 	StartGame(campus string) error
@@ -45,14 +51,15 @@ type GotchaService interface {
 	OptOut(campus string, profileID uuid.UUID) error
 
 	SubmitKill(campus string, hunterID uuid.UUID, photoURL string) (*domain.GotchaKill, error)
-
 	ReviewKill(killID, reviewerID uuid.UUID, approve bool) error
 
 	GetKillFeed(campus string, requestingProfileID uuid.UUID, limit, offset int) ([]*KillFeedItem, error)
+	GetPendingKills(campus string, requestingProfileID uuid.UUID) ([]*KillFeedItem, error)
 	LikeKill(killID, profileID uuid.UUID) error
 	UnlikeKill(killID, profileID uuid.UUID) error
 
 	GetMyStatus(campus string, profileID uuid.UUID) (*domain.Participant, error)
+	GetTargetInfo(campus string, profileID uuid.UUID) (*TargetInfo, error)
 	GetLeaderboard(campus string) ([]*domain.Participant, error)
 
 	ProcessTimeouts() error
@@ -157,7 +164,6 @@ func (s *gotchaService) CheckAndStartGames() error {
 			continue
 		}
 		if err := s.StartGame(game.Campus); err != nil {
-			// Log but don't abort — other campuses should still be processed
 			fmt.Printf("auto-start failed for campus %s: %v\n", game.Campus, err)
 		}
 	}
@@ -308,6 +314,65 @@ func (s *gotchaService) GetKillFeed(campus string, requestingProfileID uuid.UUID
 		return nil, err
 	}
 
+	return s.hydrateKills(kills, requestingProfileID)
+}
+
+// GetPendingKills returns all PENDING kills for the campus game, enriched with profile data.
+func (s *gotchaService) GetPendingKills(campus string, requestingProfileID uuid.UUID) ([]*KillFeedItem, error) {
+	game, err := s.gameRepo.GetGameByCampus(campus)
+	if err != nil {
+		return nil, err
+	}
+
+	kills, err := s.killRepo.GetPendingKills(game.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.hydrateKills(kills, requestingProfileID)
+}
+
+// GetTargetInfo resolves the current participant's target profile and assigned prop.
+func (s *gotchaService) GetTargetInfo(campus string, profileID uuid.UUID) (*TargetInfo, error) {
+	game, err := s.gameRepo.GetGameByCampus(campus)
+	if err != nil {
+		return nil, err
+	}
+
+	participant, err := s.participantRepo.GetParticipant(game.ID, profileID)
+	if err != nil || participant == nil {
+		return nil, fmt.Errorf("not a participant")
+	}
+
+	info := &TargetInfo{}
+
+	if participant.TargetID != nil {
+		targetProfile, err := s.profileRepo.GetProfileById(*participant.TargetID)
+		if err == nil {
+			info.Target = &ProfileSummary{
+				ID:             targetProfile.ID,
+				FirstName:      targetProfile.FirstName,
+				LastName:       targetProfile.LastName,
+				ProfilePicture: targetProfile.CustomProfilePicture,
+			}
+		}
+	}
+
+	if participant.AssignedPropID != nil {
+		prop, err := s.propRepo.GetPropByID(*participant.AssignedPropID)
+		if err == nil {
+			info.AssignedProp = &PropSummary{
+				ID:   prop.ID,
+				Name: prop.Name,
+			}
+		}
+	}
+
+	return info, nil
+}
+
+// hydrateKills resolves hunter/victim profiles and prop details for a slice of kills.
+func (s *gotchaService) hydrateKills(kills []*domain.GotchaKill, requestingProfileID uuid.UUID) ([]*KillFeedItem, error) {
 	profileCache := map[uuid.UUID]*profileSummaryOrEmpty{}
 
 	getProfile := func(id uuid.UUID) ProfileSummary {

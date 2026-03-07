@@ -48,6 +48,7 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		g.POST("/opt-in", handler.OptIn)
 		g.DELETE("/opt-in", handler.OptOut)
 		g.GET("/me", handler.GetMyStatus)
+		g.GET("/me/target", handler.GetTargetInfo)
 
 		g.POST("/kills", handler.SubmitKill)
 		g.PUT("/kills/:killId/review", handler.ReviewKill)
