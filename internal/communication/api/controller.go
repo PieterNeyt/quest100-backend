@@ -31,7 +31,7 @@ func (h *CommunicationHandler) GetAllMessagesOfChatroom(c *gin.Context) {
 
 	messages, err := h.chatService.GetAllMessagesOfChatRoom(chatId, profileId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	}
 	c.JSON(http.StatusOK, messages)
 }
