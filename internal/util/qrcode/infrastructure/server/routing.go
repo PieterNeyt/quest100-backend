@@ -4,16 +4,12 @@ import (
 	"Quest100Backend/internal/infrastructure/auth"
 	"Quest100Backend/internal/util/qrcode/api"
 	"Quest100Backend/internal/util/qrcode/application"
-	"Quest100Backend/internal/util/qrcode/domain"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupQRCodeRoutes(r *gin.RouterGroup) {
-
-	qrGenerator := domain.NewQRCodeGenerator(256)
-	qrService := application.NewQRCodeService(qrGenerator)
-	qrHandler := api.NewQRCodeHandler(qrService)
+func SetupQRCodeRoutes(r *gin.RouterGroup, qrServ application.QRCodeService) {
+	qrHandler := api.NewQRCodeHandler(qrServ)
 
 	qrGroup := r.Group("/qrcode")
 	{
