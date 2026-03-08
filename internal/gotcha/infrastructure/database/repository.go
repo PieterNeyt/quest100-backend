@@ -24,7 +24,7 @@ func (r *gameRepository) SaveGame(game *domain.GotchaGame) error {
 
 func (r *gameRepository) GetGameByCampus(campus string) (*domain.GotchaGame, error) {
 	var game domain.GotchaGame
-	err := r.db.Where("campus = ? AND status != ?", campus, domain.StatusFinished).
+	err := r.db.Where("campus = ?", campus).
 		Order("created_at DESC").First(&game).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("no active game for campus %s", campus)
