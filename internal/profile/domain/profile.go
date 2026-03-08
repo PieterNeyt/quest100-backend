@@ -15,6 +15,7 @@ type ProfileRepository interface {
 	GetProfiles() (*[]Profile, error)
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
+	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
 }
 
 type Language string
@@ -33,12 +34,12 @@ type Profile struct {
 	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
 	ArchetypeID          int
 	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
-	PlayerStats          PlayerStats        `gorm:"foreignKey:ProfileID;references:ID"`
+	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
 }
 
-type PlayerStats struct {
+type ProfileStats struct {
 	ProfileID      uuid.UUID `gorm:"type:uuid;primaryKey;"`
 	KudoKnowledge  int
 	KudoAttendance int
@@ -133,13 +134,20 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 
 func CreateProfile(graph *GraphProfile) *Profile {
 	return &Profile{
-		ID:                graph.Id,
-		FirstName:         graph.Name,
-		LastName:          graph.Surname,
-		Email:             graph.Mail,
-		Kudos:             0,
-		ArchetypeID:       1,
-		PlayerStats:       PlayerStats{},
+		ID:          graph.Id,
+		FirstName:   graph.Name,
+		LastName:    graph.Surname,
+		Email:       graph.Mail,
+		Kudos:       0,
+		ArchetypeID: 1,
+		PlayerStats: ProfileStats{
+			ProfileID:      graph.Id,
+			KudoKnowledge:  0,
+			KudoAttendance: 0,
+			KudoTeamwork:   0,
+			KudoAtmosphere: 0,
+			KudoEngagement: 0,
+		},
 		KudosHistory:      []KudosEntry{},
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
