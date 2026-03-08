@@ -61,7 +61,7 @@ func NewServer() *http.Server {
 		"02:00",
 	)
 
-	schedular.StartGotchaScheduler(NewServer.db.GetDB())
+	schedular.StartGotchaScheduler(newServer.db.GetDB())
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", newServer.port),

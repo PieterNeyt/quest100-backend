@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// ─── Game requests ────────────────────────────────────────────────────────────
+
 type CreateGameRequest struct {
 	Campus             string    `json:"campus" binding:"required"`
 	StartDate          time.Time `json:"startDate"`
@@ -23,14 +25,30 @@ type UpdateStartDateRequest struct {
 	PrizeDescriptionNL string    `json:"prizeDescriptionNL"`
 }
 
+// ─── Kill requests ────────────────────────────────────────────────────────────
+
 type SubmitKillRequest struct {
-	PhotoURL string `json:"photoUrl" binding:"required"`
+	PhotoBase64 string `json:"photoBase64" binding:"required"`
 }
 
 type ReviewKillRequest struct {
 	Approve bool   `json:"approve"`
 	Reason  string `json:"reason,omitempty"`
 }
+
+// ─── Prop requests ────────────────────────────────────────────────────────────
+
+type CreatePropRequest struct {
+	NameEN string `json:"nameEN" binding:"required"`
+	NameNL string `json:"nameNL" binding:"required"`
+}
+
+type UpdatePropRequest struct {
+	NameEN string `json:"nameEN" binding:"required"`
+	NameNL string `json:"nameNL" binding:"required"`
+}
+
+// ─── Shared response types ────────────────────────────────────────────────────
 
 type ProfileSummary struct {
 	ID             uuid.UUID `json:"id"`
@@ -39,23 +57,25 @@ type ProfileSummary struct {
 	ProfilePicture *string   `json:"profilePicture"`
 }
 
+// PropSummary is returned inside kill feed / target info — contains both langs.
 type PropSummary struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID     uuid.UUID `json:"id"`
+	NameEN string    `json:"nameEN"`
+	NameNL string    `json:"nameNL"`
 }
 
 type KillFeedItem struct {
-	ID         uuid.UUID      `json:"id"`
-	GameID     uuid.UUID      `json:"gameId"`
-	PhotoURL   string         `json:"photoUrl"`
-	Status     string         `json:"status"`
-	CreatedAt  time.Time      `json:"createdAt"`
-	ReviewedAt *time.Time     `json:"reviewedAt,omitempty"`
-	Hunter     ProfileSummary `json:"hunter"`
-	Victim     ProfileSummary `json:"victim"`
-	Prop       *PropSummary   `json:"prop,omitempty"`
-	LikeCount  int            `json:"likeCount"`
-	LikedByMe  bool           `json:"likedByMe"`
+	ID          uuid.UUID      `json:"id"`
+	GameID      uuid.UUID      `json:"gameId"`
+	PhotoBase64 string         `json:"photoBase64"`
+	Status      string         `json:"status"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	ReviewedAt  *time.Time     `json:"reviewedAt,omitempty"`
+	Hunter      ProfileSummary `json:"hunter"`
+	Victim      ProfileSummary `json:"victim"`
+	Prop        *PropSummary   `json:"prop,omitempty"`
+	LikeCount   int            `json:"likeCount"`
+	LikedByMe   bool           `json:"likedByMe"`
 }
 
 type TargetInfoResponse struct {
@@ -65,12 +85,12 @@ type TargetInfoResponse struct {
 }
 
 type EndScreenKillNode struct {
-	KillID    uuid.UUID      `json:"killId"`
-	Hunter    ProfileSummary `json:"hunter"`
-	Victim    ProfileSummary `json:"victim"`
-	Prop      *PropSummary   `json:"prop,omitempty"`
-	PhotoURL  string         `json:"photoUrl"`
-	CreatedAt time.Time      `json:"createdAt"`
+	KillID      uuid.UUID      `json:"killId"`
+	Hunter      ProfileSummary `json:"hunter"`
+	Victim      ProfileSummary `json:"victim"`
+	Prop        *PropSummary   `json:"prop,omitempty"`
+	PhotoBase64 string         `json:"photoBase64"`
+	CreatedAt   time.Time      `json:"createdAt"`
 }
 
 type EndScreenStats struct {
@@ -89,4 +109,11 @@ type EndScreenResponse struct {
 	PrizeDescriptionNL string              `json:"prizeDescriptionNL,omitempty"`
 	Stats              EndScreenStats      `json:"stats"`
 	Kills              []EndScreenKillNode `json:"kills"`
+}
+
+// PropResponse is the full prop object returned by the props admin endpoints.
+type PropResponse struct {
+	ID     uuid.UUID `json:"id"`
+	NameEN string    `json:"nameEN"`
+	NameNL string    `json:"nameNL"`
 }

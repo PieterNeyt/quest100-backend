@@ -40,5 +40,6 @@ type PropRepository interface {
 	GetRandomProp() (*GotchaProp, error)
 	GetPropByID(id uuid.UUID) (*GotchaProp, error)
 	SaveProp(prop *GotchaProp) error
+	DeleteProp(id uuid.UUID) error
 	GetAllProps() ([]*GotchaProp, error)
 }

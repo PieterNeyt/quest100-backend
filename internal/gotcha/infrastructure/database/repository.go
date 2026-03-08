@@ -200,7 +200,6 @@ func (r *killRepository) HasLiked(killID, profileID uuid.UUID) (bool, error) {
 }
 
 // ─── Prop ────────────────────────────────────────────────────────────────────
-
 type propRepository struct{ db *gorm.DB }
 
 func NewPropRepository(db *gorm.DB) domain.PropRepository {
@@ -223,9 +222,13 @@ func (r *propRepository) SaveProp(prop *domain.GotchaProp) error {
 	return r.db.Save(prop).Error
 }
 
+func (r *propRepository) DeleteProp(id uuid.UUID) error {
+	return r.db.Delete(&domain.GotchaProp{}, "id = ?", id).Error
+}
+
 func (r *propRepository) GetAllProps() ([]*domain.GotchaProp, error) {
 	var props []*domain.GotchaProp
-	err := r.db.Find(&props).Error
+	err := r.db.Order("name_en ASC").Find(&props).Error
 	return props, err
 }
 

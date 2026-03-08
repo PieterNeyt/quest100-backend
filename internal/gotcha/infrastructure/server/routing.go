@@ -24,6 +24,7 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	service := application.NewGotchaService(gameRepo, participantRepo, killRepo, propRepo, profileRepo)
 	handler := gotchaAPI.NewGotchaHandler(service, profileService)
 
+	// Background tasks: auto-start games & process timeouts
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
@@ -39,27 +40,35 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 
 	g := r.Group("/gotcha")
 	{
+		// Game
 		g.GET("/game", handler.GetCurrentGame)
 		g.POST("/games", handler.CreateGame)
 		g.PUT("/games/startdate", handler.UpdateStartDate)
 
+		// Participation
 		g.POST("/opt-in", handler.OptIn)
 		g.DELETE("/opt-in", handler.OptOut)
 		g.GET("/me", handler.GetMyStatus)
 		g.GET("/me/target", handler.GetTargetInfo)
 
+		// Kills
 		g.POST("/kills", handler.SubmitKill)
 		g.PUT("/kills/:killId/review", handler.ReviewKill)
 		g.POST("/kills/:killId/like", handler.LikeKill)
 		g.DELETE("/kills/:killId/like", handler.UnlikeKill)
-
 		g.GET("/kills/pending/next", handler.GetNextPendingKill)
 		g.GET("/kills/pending/count", handler.GetPendingKillCount)
-
 		g.GET("/kills/pending", handler.GetPendingKills)
 
+		// Feed / leaderboard / end screen
 		g.GET("/feed", handler.GetFeed)
 		g.GET("/leaderboard", handler.GetLeaderboard)
 		g.GET("/end-screen", handler.GetEndScreen)
+
+		// Props (admin CRUD — protect with admin middleware in production)
+		g.GET("/props", handler.GetAllProps)
+		g.POST("/props", handler.CreateProp)
+		g.PUT("/props/:propId", handler.UpdateProp)
+		g.DELETE("/props/:propId", handler.DeleteProp)
 	}
 }
