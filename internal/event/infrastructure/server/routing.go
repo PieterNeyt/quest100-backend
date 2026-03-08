@@ -3,16 +3,12 @@ package server
 import (
 	"Quest100Backend/internal/event/api"
 	"Quest100Backend/internal/event/application"
-	"Quest100Backend/internal/event/infrastructure/database"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func SetupEventRoutes(r *gin.RouterGroup, db *gorm.DB) {
-	eventRepo := database.NewEventRepository(db)
-	eventService := application.NewEventService(eventRepo)
-	eventHandler := api.NewEventHandler(eventService)
+func SetupEventRoutes(r *gin.RouterGroup, eventServ application.EventService) {
+	eventHandler := api.NewEventHandler(eventServ)
 
 	eventGroup := r.Group("/events")
 	{
