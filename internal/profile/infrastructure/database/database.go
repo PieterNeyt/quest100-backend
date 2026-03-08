@@ -32,15 +32,16 @@ func AutoMigration(db *gorm.DB) {
 
 func seedDatabase(db *gorm.DB) {
 	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
-
+	picture := "https://media.licdn.com/dms/image/v2/D4D03AQFUJr-0NnhW_w/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1715145874530?e=2147483647&v=beta&t=9w9T7AsoZPaZ3q9AOIRALdaVxel2rcC8BH0ynPczQqQ"
 	hugo := domain.Profile{
-		ID:                hardcodedID,
-		FirstName:         "Jon",
-		LastName:          "Beton",
-		Email:             "jon.beton@student.kdg.be",
-		Kudos:             0,
-		ArchetypeID:       1,
-		PreferredLanguage: domain.NL,
+		ID:                   hardcodedID,
+		FirstName:            "Jon",
+		LastName:             "Beton",
+		Email:                "jon.beton@student.kdg.be",
+		Kudos:                0,
+		ArchetypeID:          1,
+		PreferredLanguage:    domain.NL,
+		CustomProfilePicture: &picture,
 	}
 
 	err := db.Where(domain.Profile{ID: hardcodedID}).FirstOrCreate(&hugo).Error
