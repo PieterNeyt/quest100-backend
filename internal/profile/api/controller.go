@@ -227,10 +227,31 @@ func (h *ProfileHandler) GetProfilesForAwards(c *gin.Context) {
 		return
 	}
 
-	ProfileAwards, err := h.profileService.GetProfilesWithAward(profileUUID)
+	var ProfileAwards, err = h.profileService.GetProfilesWithAward(profileUUID)
 	if err != nil {
 		c.JSON(404, gin.H{"error": err.Error()})
 	}
 
 	c.JSON(http.StatusOK, ProfileAwards)
+}
+
+func (h *ProfileHandler) GetProfilesStatistics(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	ProfileStats, err := h.profileService.GetProfilesStatistics(profileUUID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, ProfileStats)
 }

@@ -9,15 +9,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type profileRepository struct {
+type ProfileRepository struct {
 	db *gorm.DB
 }
 
-func NewProfileRepository(db *gorm.DB) *profileRepository {
-	return &profileRepository{db: db}
+func NewProfileRepository(db *gorm.DB) *ProfileRepository {
+	return &ProfileRepository{db: db}
 }
 
-func (r *profileRepository) GetProfiles() (*[]domain.Profile, error) {
+func (r *ProfileRepository) GetProfiles() (*[]domain.Profile, error) {
 	var profiles []domain.Profile
 
 	result := r.db.Find(&profiles)
@@ -29,7 +29,7 @@ func (r *profileRepository) GetProfiles() (*[]domain.Profile, error) {
 	return &profiles, nil
 }
 
-func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile, error) {
+func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile, error) {
 	var profile domain.Profile
 
 	result := r.db.Debug().
@@ -47,7 +47,7 @@ func (r *profileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 	return &profile, nil
 }
 
-func (r *profileRepository) UpdateProfile(profile *domain.Profile) error {
+func (r *ProfileRepository) UpdateProfile(profile *domain.Profile) error {
 	result := r.db.Where("id = ?", profile.ID).Save(profile)
 	if result.Error != nil {
 		return fmt.Errorf("failed to save profile: %w", result.Error)
@@ -55,15 +55,21 @@ func (r *profileRepository) UpdateProfile(profile *domain.Profile) error {
 	return nil
 }
 
-func (r *profileRepository) SaveProfile(profile *domain.Profile) error {
-	result := r.db.Save(profile)
+func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
+	result := r.db.Omit("PlayerStats").Create(profile)
 	if result.Error != nil {
-		return fmt.Errorf("failed to save profile: %w", result.Error)
+		return result.Error
 	}
+
+	result = r.db.Create(&profile.PlayerStats)
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 
-func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
+func (r *ProfileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
 	entry := domain.AwardHistoryEntry{
 		RecieverID: receiverId,
 		SenderID:   senderId,
@@ -77,7 +83,7 @@ func (r *profileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId 
 	return nil
 }
 
-func (r *profileRepository) HasSentAward(senderId uuid.UUID, receiverId uuid.UUID) (bool, error) {
+func (r *ProfileRepository) HasSentAward(senderId uuid.UUID, receiverId uuid.UUID) (bool, error) {
 	var count int64
 	err := r.db.Table("award_history_entries").
 		Where("sender_id = ? AND reciever_id = ?", senderId, receiverId).
@@ -90,7 +96,7 @@ func (r *profileRepository) HasSentAward(senderId uuid.UUID, receiverId uuid.UUI
 	return count > 0, nil
 }
 
-func (r *profileRepository) GetSentAwardReceivers(senderId uuid.UUID) ([]uuid.UUID, error) {
+func (r *ProfileRepository) GetSentAwardReceivers(senderId uuid.UUID) ([]uuid.UUID, error) {
 	var receiverIds []uuid.UUID
 
 	err := r.db.
@@ -103,4 +109,19 @@ func (r *profileRepository) GetSentAwardReceivers(senderId uuid.UUID) ([]uuid.UU
 	}
 
 	return receiverIds, nil
+}
+
+func (r *ProfileRepository) GetProfileStats(profileId uuid.UUID) (domain.ProfileStats, error) {
+	var stats domain.ProfileStats
+
+	result := r.db.
+		Table("profile_stats").
+		Where("profile_id = ?", profileId).
+		First(&stats)
+
+	if result.Error != nil {
+		return domain.ProfileStats{}, fmt.Errorf("failed to fetch profile statistics: %w", result.Error)
+	}
+
+	return stats, nil
 }

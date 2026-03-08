@@ -26,6 +26,7 @@ type ProfileService interface {
 	GiveAwardTo(senderId uuid.UUID, recieverId uuid.UUID, kudoType domain.KudoType, message string) (*domain.Profile, error)
 	GetProfiles() (*[]domain.Profile, error)
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
+	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
 }
 
 type profileService struct {
@@ -226,4 +227,12 @@ func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.Pr
 	}
 
 	return &profileAwards, nil
+}
+
+func (s *profileService) GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error) {
+	profileStats, err := s.profileRepo.GetProfileStats(profileUUID)
+	if err != nil {
+		return domain.ProfileStats{}, fmt.Errorf("failed to get profile stats: %w", err)
+	}
+	return profileStats, nil
 }

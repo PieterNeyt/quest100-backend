@@ -1,6 +1,7 @@
 package application
 
 import (
+	"Quest100Backend/internal/communication/application"
 	"Quest100Backend/internal/event/domain"
 	"fmt"
 	"time"
@@ -41,10 +42,11 @@ type EventService interface {
 
 type eventService struct {
 	eventRepo domain.EventRepository
+	chatServ  application.ChatService
 }
 
-func NewEventService(eventRepo domain.EventRepository) EventService {
-	return &eventService{eventRepo: eventRepo}
+func NewEventService(eventRepo domain.EventRepository, chatServ application.ChatService) EventService {
+	return &eventService{eventRepo: eventRepo, chatServ: chatServ}
 }
 func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error) {
 	event := domain.CreateEvent(
@@ -60,7 +62,10 @@ func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to save event: %w", err)
 	}
-
+	err := s.chatServ.CreateChatRoom(event.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create chat room: %w", err)
+	}
 	return s.JoinEvent(event.ID, input.OrganizerID)
 }
 
@@ -124,6 +129,9 @@ func (s *eventService) JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domai
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
+	if err := s.chatServ.JoinChatRoom(profileID, event.ID); err != nil {
+		return nil, fmt.Errorf("failed to join chat room: %w", err)
+	}
 	return event, nil
 }
 
@@ -140,6 +148,9 @@ func (s *eventService) LeaveEvent(eventID uuid.UUID, profileID uuid.UUID) error 
 	}
 	if err := s.eventRepo.RemoveAttendee(eventID, profileID); err != nil {
 		return fmt.Errorf("failed to cancel attendance: %w", err)
+	}
+	if err := s.chatServ.LeaveChatRoom(profileID, event.ID); err != nil {
+		return fmt.Errorf("failed to leave chatroom: %w", err)
 	}
 	return nil
 }

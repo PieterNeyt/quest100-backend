@@ -1,17 +1,14 @@
 package server
 
 import (
+	commRouting "Quest100Backend/internal/communication/infrastructure/server"
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
 	gotchaRouting "Quest100Backend/internal/gotcha/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
 	qrcodeRouting "Quest100Backend/internal/util/qrcode/infrastructure/server"
-	"fmt"
-	"log"
 	"net/http"
-	"time"
 
-	"github.com/coder/websocket"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -27,39 +24,20 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	api := r.Group("/api", auth.AuthMiddleware())
-	profileRouting.SetupProfileRoutes(api, s.db.GetDB())
+	profileRouting.SetupProfileRoutes(api, s.profileServ)
+	eventRouting.SetupEventRoutes(api, s.eventServ)
+	qrcodeRouting.SetupQRCodeRoutes(api, s.qrCodeServ)
+	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
 	gotchaRouting.SetupGotchaRoutes(api, s.db.GetDB())
-	eventRouting.SetupEventRoutes(api, s.db.GetDB())
-	qrcodeRouting.SetupQRCodeRoutes(api)
 
-	r.GET("/websocket", s.websocketHandler)
 
+	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
+
+	r.GET("/debug/ws", func(c *gin.Context) {
+		// Calling the method we just created
+		snapshot := s.hub.GetSnapshot()
+
+		c.JSON(200, snapshot)
+	})
 	return r
-}
-
-func (s *Server) websocketHandler(c *gin.Context) {
-	w := c.Writer
-	r := c.Request
-	socket, err := websocket.Accept(w, r, nil)
-
-	if err != nil {
-		log.Printf("could not open websocket: %v", err)
-		_, _ = w.Write([]byte("could not open websocket"))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	defer socket.Close(websocket.StatusGoingAway, "server closing websocket")
-
-	ctx := r.Context()
-	socketCtx := socket.CloseRead(ctx)
-
-	for {
-		payload := fmt.Sprintf("server timestamp: %d", time.Now().UnixNano())
-		err := socket.Write(socketCtx, websocket.MessageText, []byte(payload))
-		if err != nil {
-			break
-		}
-		time.Sleep(time.Second * 2)
-	}
 }
