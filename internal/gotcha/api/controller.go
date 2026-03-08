@@ -378,11 +378,13 @@ func (h *GotchaHandler) GetEndScreen(c *gin.Context) {
 	kills := make([]EndScreenKillNode, 0, len(data.Kills))
 	for _, k := range data.Kills {
 		node := EndScreenKillNode{
-			KillID:      k.KillID,
-			Hunter:      ProfileSummary{ID: k.Hunter.ID, FirstName: k.Hunter.FirstName, LastName: k.Hunter.LastName, ProfilePicture: k.Hunter.ProfilePicture},
-			Victim:      ProfileSummary{ID: k.Victim.ID, FirstName: k.Victim.FirstName, LastName: k.Victim.LastName, ProfilePicture: k.Victim.ProfilePicture},
-			PhotoBase64: k.PhotoBase64,
-			CreatedAt:   k.CreatedAt,
+			KillID:           k.KillID,
+			Hunter:           ProfileSummary{ID: k.Hunter.ID, FirstName: k.Hunter.FirstName, LastName: k.Hunter.LastName, ProfilePicture: k.Hunter.ProfilePicture},
+			Victim:           ProfileSummary{ID: k.Victim.ID, FirstName: k.Victim.FirstName, LastName: k.Victim.LastName, ProfilePicture: k.Victim.ProfilePicture},
+			PhotoBase64:      k.PhotoBase64,
+			CreatedAt:        k.CreatedAt,
+			LikeCount:        k.LikeCount,
+			TargetAssignedAt: k.TargetAssignedAt,
 		}
 		if k.Prop != nil {
 			node.Prop = &PropSummary{ID: k.Prop.ID, NameEN: k.Prop.NameEN, NameNL: k.Prop.NameNL}

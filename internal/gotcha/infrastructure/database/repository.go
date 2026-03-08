@@ -96,6 +96,7 @@ func (r *participantRepository) GetExpiredParticipants(before interface{}) ([]*d
 		Where("is_alive = true").
 		Where("target_id IS NOT NULL").
 		Where("kill_deadline < ?", before).
+		Where("pending_kill_at IS NULL").
 		Where("game_id IN (?)", activeGameIDs).
 		Find(&list).Error
 	return list, err

@@ -85,12 +85,14 @@ type TargetInfoResponse struct {
 }
 
 type EndScreenKillNode struct {
-	KillID      uuid.UUID      `json:"killId"`
-	Hunter      ProfileSummary `json:"hunter"`
-	Victim      ProfileSummary `json:"victim"`
-	Prop        *PropSummary   `json:"prop,omitempty"`
-	PhotoBase64 string         `json:"photoBase64"`
-	CreatedAt   time.Time      `json:"createdAt"`
+	KillID           uuid.UUID      `json:"killId"`
+	Hunter           ProfileSummary `json:"hunter"`
+	Victim           ProfileSummary `json:"victim"`
+	Prop             *PropSummary   `json:"prop,omitempty"`
+	PhotoBase64      string         `json:"photoBase64"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	LikeCount        int            `json:"likeCount"`
+	TargetAssignedAt *time.Time     `json:"targetAssignedAt,omitempty"`
 }
 
 type EndScreenStats struct {

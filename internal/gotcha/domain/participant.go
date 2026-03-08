@@ -20,4 +20,5 @@ type Participant struct {
 	OptedInAt    time.Time  `json:"optedInAt"`
 
 	AssignedPropID *uuid.UUID `gorm:"type:uuid" json:"assignedPropId,omitempty"`
+	PendingKillAt  *time.Time `json:"pendingKillAt,omitempty"`
 }

@@ -45,13 +45,17 @@ type TargetInfo struct {
 	KillDeadline *time.Time
 }
 
+// EndScreenKillNode includes LikeCount (for "Best Disguise" award) and
+// TargetAssignedAt (for "Patient Hunter" award).
 type EndScreenKillNode struct {
-	KillID      uuid.UUID
-	Hunter      ProfileSummary
-	Victim      ProfileSummary
-	Prop        *PropSummary
-	PhotoBase64 string
-	CreatedAt   time.Time
+	KillID           uuid.UUID
+	Hunter           ProfileSummary
+	Victim           ProfileSummary
+	Prop             *PropSummary
+	PhotoBase64      string
+	CreatedAt        time.Time
+	LikeCount        int
+	TargetAssignedAt *time.Time
 }
 
 type EndScreenStats struct {
@@ -313,9 +317,13 @@ func (s *gotchaService) SubmitKill(campus string, hunterID uuid.UUID, photoBase6
 	if err := s.killRepo.SaveKill(kill); err != nil {
 		return nil, fmt.Errorf("failed to submit kill: %w", err)
 	}
+	now := time.Now()
+	hunter.PendingKillAt = &now
+	if err := s.participantRepo.SaveParticipant(hunter); err != nil {
+		return nil, fmt.Errorf("failed to update hunter pending status: %w", err)
+	}
 	return kill, nil
 }
-
 func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) error {
 	kill, err := s.killRepo.GetKillByID(killID)
 	if err != nil {
@@ -331,13 +339,44 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 	if oldest.ID != killID {
 		return fmt.Errorf("another kill must be reviewed first (FIFO order)")
 	}
+
 	now := time.Now()
 	kill.ReviewedBy = &reviewerID
 	kill.ReviewedAt = &now
+
 	if !approve {
 		kill.Status = domain.KillDenied
+
+		// Wis pending markering en elimineer indien deadline verstreken
+		hunter, err := s.participantRepo.GetParticipant(kill.GameID, kill.HunterID)
+		if err == nil && hunter != nil {
+			hunter.PendingKillAt = nil
+
+			if hunter.IsAlive && !hunter.KillDeadline.IsZero() && hunter.KillDeadline.Before(now) {
+				// Deadline was verstreken terwijl kill pending was → elimineer alsnog
+				game, err := s.gameRepo.GetGameByID(kill.GameID)
+				if err == nil {
+					participants, _ := s.participantRepo.GetParticipantsByGame(game.ID)
+					for _, p := range participants {
+						game.Participants = append(game.Participants, *p)
+					}
+					_ = game.ProcessTimeout(kill.HunterID)
+					for i := range game.Participants {
+						_ = s.participantRepo.SaveParticipant(&game.Participants[i])
+					}
+					_ = s.gameRepo.SaveGame(game)
+				}
+			} else {
+				// Deadline nog niet verstreken → gewoon pending markering wissen
+				_ = s.participantRepo.SaveParticipant(hunter)
+			}
+		}
+
 		return s.killRepo.SaveKill(kill)
 	}
+
+	// ── Goedkeuring ──────────────────────────────────────────────────────────
+
 	game, err := s.gameRepo.GetGameByID(kill.GameID)
 	if err != nil {
 		return err
@@ -349,6 +388,7 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 	for _, p := range participants {
 		game.Participants = append(game.Participants, *p)
 	}
+
 	hunter := game.FindParticipant(kill.HunterID)
 	if hunter == nil || !hunter.IsAlive {
 		kill.Status = domain.KillDenied
@@ -358,6 +398,7 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 		kill.Status = domain.KillDenied
 		return s.killRepo.SaveKill(kill)
 	}
+
 	kill.Status = domain.KillApproved
 	if err := game.ProcessKill(kill.HunterID, kill.VictimID); err != nil {
 		return err
@@ -365,6 +406,14 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 	if err := s.assignNewProp(game, kill.HunterID); err != nil {
 		fmt.Printf("could not assign new prop to hunter %s: %v\n", kill.HunterID, err)
 	}
+
+	// Wis pending markering op de hunter
+	for i := range game.Participants {
+		if game.Participants[i].ProfileID == kill.HunterID {
+			game.Participants[i].PendingKillAt = nil
+		}
+	}
+
 	if err := s.killRepo.SaveKill(kill); err != nil {
 		return err
 	}
@@ -375,7 +424,6 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 	}
 	return s.gameRepo.SaveGame(game)
 }
-
 func (s *gotchaService) GetNextPendingKill(campus string, requestingProfileID uuid.UUID) (*KillFeedItem, error) {
 	game, err := s.gameRepo.GetGameByCampus(campus)
 	if err != nil {
@@ -438,7 +486,7 @@ func (s *gotchaService) GetPendingKills(campus string, requestingProfileID uuid.
 	return s.hydrateKills(kills, requestingProfileID)
 }
 
-// ─── Feed ─────────────────────────────────────────────────────────────────────
+// ─── Target info ──────────────────────────────────────────────────────────────
 
 func (s *gotchaService) GetTargetInfo(campus string, profileID uuid.UUID) (*TargetInfo, error) {
 	game, err := s.gameRepo.GetGameByCampus(campus)
@@ -473,6 +521,8 @@ func (s *gotchaService) GetTargetInfo(campus string, profileID uuid.UUID) (*Targ
 	return info, nil
 }
 
+// ─── End screen ───────────────────────────────────────────────────────────────
+
 func (s *gotchaService) GetEndScreen(campus string) (*EndScreen, error) {
 	game, err := s.gameRepo.GetGameByFinishedCampus(campus)
 	if err != nil {
@@ -481,6 +531,12 @@ func (s *gotchaService) GetEndScreen(campus string) (*EndScreen, error) {
 	participants, err := s.participantRepo.GetParticipantsByGame(game.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Build participant map for TargetAssignedAt calculation
+	participantMap := map[uuid.UUID]*domain.Participant{}
+	for _, p := range participants {
+		participantMap[p.ProfileID] = p
 	}
 
 	type cached struct{ summary ProfileSummary }
@@ -547,12 +603,30 @@ func (s *gotchaService) GetEndScreen(campus string) (*EndScreen, error) {
 
 	killNodes := make([]EndScreenKillNode, 0, len(allKills))
 	for _, k := range allKills {
+		// Fetch full kill with likes preloaded to get LikeCount
+		fullKill, err := s.killRepo.GetKillByID(k.ID)
+		likeCount := 0
+		if err == nil {
+			likeCount = len(fullKill.Likes)
+		}
+
+		// TargetAssignedAt: approximate as KillDeadline minus KillDeadlineHours.
+		// This is when the hunter's current deadline was set — i.e. when they
+		// received this target. Nil if participant record is unavailable.
+		var targetAssignedAt *time.Time
+		if p, ok := participantMap[k.HunterID]; ok && !p.KillDeadline.IsZero() {
+			assigned := p.KillDeadline.Add(-time.Duration(game.KillDeadlineHours) * time.Hour)
+			targetAssignedAt = &assigned
+		}
+
 		node := EndScreenKillNode{
-			KillID:      k.ID,
-			Hunter:      getProfile(k.HunterID),
-			Victim:      getProfile(k.VictimID),
-			PhotoBase64: k.PhotoBase64,
-			CreatedAt:   k.CreatedAt,
+			KillID:           k.ID,
+			Hunter:           getProfile(k.HunterID),
+			Victim:           getProfile(k.VictimID),
+			PhotoBase64:      k.PhotoBase64,
+			CreatedAt:        k.CreatedAt,
+			LikeCount:        likeCount,
+			TargetAssignedAt: targetAssignedAt,
 		}
 		if k.PropID != nil {
 			if prop, err := s.propRepo.GetPropByID(*k.PropID); err == nil {
@@ -578,6 +652,8 @@ func (s *gotchaService) GetEndScreen(campus string) (*EndScreen, error) {
 		Kills: killNodes,
 	}, nil
 }
+
+// ─── Hydrate kills ────────────────────────────────────────────────────────────
 
 func (s *gotchaService) hydrateKills(kills []*domain.GotchaKill, requestingProfileID uuid.UUID) ([]*KillFeedItem, error) {
 	type cached struct{ summary ProfileSummary }
@@ -624,6 +700,8 @@ func (s *gotchaService) hydrateKills(kills []*domain.GotchaKill, requestingProfi
 	return items, nil
 }
 
+// ─── Likes ────────────────────────────────────────────────────────────────────
+
 func (s *gotchaService) LikeKill(killID, profileID uuid.UUID) error {
 	return s.killRepo.SaveKillLike(&domain.GotchaKillLike{KillID: killID, ProfileID: profileID, LikedAt: time.Now()})
 }
@@ -631,6 +709,8 @@ func (s *gotchaService) LikeKill(killID, profileID uuid.UUID) error {
 func (s *gotchaService) UnlikeKill(killID, profileID uuid.UUID) error {
 	return s.killRepo.DeleteKillLike(killID, profileID)
 }
+
+// ─── Status / leaderboard ─────────────────────────────────────────────────────
 
 func (s *gotchaService) GetMyStatus(campus string, profileID uuid.UUID) (*domain.Participant, error) {
 	game, err := s.gameRepo.GetGameByCampus(campus)
@@ -647,6 +727,8 @@ func (s *gotchaService) GetLeaderboard(campus string) ([]*domain.Participant, er
 	}
 	return s.participantRepo.GetParticipantsByGame(game.ID)
 }
+
+// ─── Timeouts ─────────────────────────────────────────────────────────────────
 
 func (s *gotchaService) ProcessTimeouts() error {
 	expired, err := s.participantRepo.GetExpiredParticipants(time.Now())
