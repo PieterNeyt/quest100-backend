@@ -45,6 +45,10 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		g.POST("/games", handler.CreateGame)
 		g.PUT("/games/startdate", handler.UpdateStartDate)
 
+		// History
+		g.GET("/games/history", handler.GetGameHistory)
+		g.GET("/games/:gameId/end-screen", handler.GetEndScreenByID)
+
 		// Participation
 		g.POST("/opt-in", handler.OptIn)
 		g.DELETE("/opt-in", handler.OptOut)
@@ -64,7 +68,6 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		g.GET("/leaderboard", handler.GetLeaderboard)
 		g.GET("/end-screen", handler.GetEndScreen)
 
-		// Props
 		g.GET("/props", handler.GetAllProps)
 		g.POST("/props", handler.CreateProp)
 		g.PUT("/props/:propId", handler.UpdateProp)

@@ -18,7 +18,7 @@ const (
 
 type GotchaGame struct {
 	ID                uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
-	Campus            string     `gorm:"type:varchar(100);uniqueIndex" json:"campus"`
+	Campus            string     `gorm:"type:varchar(100);index" json:"campus"`
 	Status            GameStatus `gorm:"type:varchar(20)" json:"status"`
 	StartDate         time.Time  `json:"startDate"`
 	KillDeadlineHours int        `gorm:"default:72" json:"killDeadlineHours"`

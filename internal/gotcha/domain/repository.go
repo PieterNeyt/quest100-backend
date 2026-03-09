@@ -4,11 +4,13 @@ import "github.com/google/uuid"
 
 type GameRepository interface {
 	SaveGame(game *GotchaGame) error
+	GetActiveGameByCampus(campus string) (*GotchaGame, error)
 	GetGameByCampus(campus string) (*GotchaGame, error)
 	GetGameByFinishedCampus(campus string) (*GotchaGame, error)
 	GetGameByID(id uuid.UUID) (*GotchaGame, error)
 	GetAllActiveGames() ([]*GotchaGame, error)
 	GetAllOptInGames() ([]*GotchaGame, error)
+	GetGameHistoryByCampus(campus string) ([]*GotchaGame, error)
 }
 
 type ParticipantRepository interface {

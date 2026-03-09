@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-//  Game requests
+// Game requests
 
 type CreateGameRequest struct {
 	Campus             string    `json:"campus" binding:"required"`
@@ -36,7 +36,7 @@ type ReviewKillRequest struct {
 	Reason  string `json:"reason,omitempty"`
 }
 
-//  Prop requests
+// Prop requests
 
 type CreatePropRequest struct {
 	NameEN string `json:"nameEN" binding:"required"`
@@ -47,8 +47,6 @@ type UpdatePropRequest struct {
 	NameEN string `json:"nameEN" binding:"required"`
 	NameNL string `json:"nameNL" binding:"required"`
 }
-
-// Shared response types
 
 type ProfileSummary struct {
 	ID             uuid.UUID `json:"id"`
@@ -103,6 +101,7 @@ type EndScreenStats struct {
 }
 
 type EndScreenResponse struct {
+	GameID             uuid.UUID           `json:"gameId"`
 	Winner             *ProfileSummary     `json:"winner"`
 	WinnerKillCount    int                 `json:"winnerKillCount"`
 	PrizePhotoBase64   string              `json:"prizePhotoBase64,omitempty"`
@@ -116,4 +115,18 @@ type PropResponse struct {
 	ID     uuid.UUID `json:"id"`
 	NameEN string    `json:"nameEN"`
 	NameNL string    `json:"nameNL"`
+}
+
+type GameSummaryResponse struct {
+	ID                 uuid.UUID       `json:"id"`
+	Campus             string          `json:"campus"`
+	Status             string          `json:"status"`
+	StartDate          time.Time       `json:"startDate"`
+	FinishedAt         time.Time       `json:"finishedAt"`
+	Winner             *ProfileSummary `json:"winner,omitempty"`
+	WinnerKillCount    int             `json:"winnerKillCount"`
+	TotalParticipants  int             `json:"totalParticipants"`
+	TotalKills         int             `json:"totalKills"`
+	PrizeDescriptionEN string          `json:"prizeDescriptionEN,omitempty"`
+	PrizeDescriptionNL string          `json:"prizeDescriptionNL,omitempty"`
 }

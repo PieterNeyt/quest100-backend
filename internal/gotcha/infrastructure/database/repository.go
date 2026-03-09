@@ -19,12 +19,22 @@ func (r *gameRepository) SaveGame(game *domain.GotchaGame) error {
 	return r.db.Omit("Participants").Save(game).Error
 }
 
+func (r *gameRepository) GetActiveGameByCampus(campus string) (*domain.GotchaGame, error) {
+	var game domain.GotchaGame
+	err := r.db.Where("campus = ? AND status IN ?", campus, []domain.GameStatus{domain.StatusOptIn, domain.StatusActive}).
+		Order("created_at DESC").First(&game).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("no active game for campus %s", campus)
+	}
+	return &game, err
+}
+
 func (r *gameRepository) GetGameByCampus(campus string) (*domain.GotchaGame, error) {
 	var game domain.GotchaGame
 	err := r.db.Where("campus = ?", campus).
 		Order("created_at DESC").First(&game).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("no active game for campus %s", campus)
+		return nil, fmt.Errorf("no game found for campus %s", campus)
 	}
 	return &game, err
 }
@@ -57,7 +67,14 @@ func (r *gameRepository) GetAllOptInGames() ([]*domain.GotchaGame, error) {
 	return games, err
 }
 
-//  Participant
+func (r *gameRepository) GetGameHistoryByCampus(campus string) ([]*domain.GotchaGame, error) {
+	var games []*domain.GotchaGame
+	err := r.db.Where("campus = ? AND status = ?", campus, domain.StatusFinished).
+		Order("updated_at DESC").Find(&games).Error
+	return games, err
+}
+
+// Participant
 
 type participantRepository struct{ db *gorm.DB }
 
@@ -110,7 +127,7 @@ func (r *participantRepository) ClearPendingKill(gameID, profileID uuid.UUID) er
 		Update("pending_kill_at", nil).Error
 }
 
-// GotchaKill
+// Kill
 
 type killRepository struct{ db *gorm.DB }
 
@@ -127,12 +144,14 @@ func (r *killRepository) GetKillByID(id uuid.UUID) (*domain.GotchaKill, error) {
 	err := r.db.Preload("Likes").First(&kill, "id = ?", id).Error
 	return &kill, err
 }
+
 func (r *killRepository) GetPendingKillsByHunter(gameID, hunterID uuid.UUID) ([]*domain.GotchaKill, error) {
 	var kills []*domain.GotchaKill
 	err := r.db.Where("game_id = ? AND hunter_id = ? AND status = ?", gameID, hunterID, domain.KillPending).
 		Find(&kills).Error
 	return kills, err
 }
+
 func (r *killRepository) GetKillFeed(gameID uuid.UUID, limit, offset int) ([]*domain.GotchaKill, error) {
 	var kills []*domain.GotchaKill
 	err := r.db.Preload("Likes").Where("game_id = ?", gameID).
@@ -208,7 +227,8 @@ func (r *killRepository) HasLiked(killID, profileID uuid.UUID) (bool, error) {
 	return count > 0, err
 }
 
-// Prop
+//  Prop
+
 type propRepository struct{ db *gorm.DB }
 
 func NewPropRepository(db *gorm.DB) domain.PropRepository {
@@ -226,6 +246,7 @@ func (r *propRepository) GetPropsByGame(gameID uuid.UUID) ([]*domain.GotchaProp,
 	err := r.db.Where("game_id = ?", gameID).Order("name_en ASC").Find(&props).Error
 	return props, err
 }
+
 func (r *propRepository) GetPropByID(id uuid.UUID) (*domain.GotchaProp, error) {
 	var prop domain.GotchaProp
 	err := r.db.First(&prop, "id = ?", id).Error
