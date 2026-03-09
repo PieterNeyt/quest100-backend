@@ -5,7 +5,6 @@ import (
 	"Quest100Backend/internal/gotcha/domain"
 	profileApp "Quest100Backend/internal/profile/application"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -22,51 +21,7 @@ func NewGotchaHandler(service application.GotchaService, profileService profileA
 	return &GotchaHandler{service, profileService}
 }
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-func profileID(c *gin.Context) (uuid.UUID, bool) {
-	v, ok := c.Get("profileID")
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return uuid.Nil, false
-	}
-	return v.(uuid.UUID), true
-}
-
-func campus(c *gin.Context) string {
-	v, _ := c.Get("campus")
-	if s, ok := v.(string); ok {
-		return s
-	}
-	return ""
-}
-
-func (h *GotchaHandler) getCampus(c *gin.Context, pid uuid.UUID) (string, error) {
-	if cam := campus(c); cam != "" {
-		return cam, nil
-	}
-	profile, err := h.profileService.GetProfileById(pid)
-	if err != nil {
-		return "", err
-	}
-	if profile.Campus == "" {
-		return "", fmt.Errorf("campus not set on profile, sync first")
-	}
-	return profile.Campus, nil
-}
-
-func propToResponse(p *domain.GotchaProp) PropResponse {
-	return PropResponse{ID: p.ID, NameEN: p.NameEN, NameNL: p.NameNL}
-}
-
-func propSummaryFromDomain(p *domain.GotchaProp) *PropSummary {
-	if p == nil {
-		return nil
-	}
-	return &PropSummary{ID: p.ID, NameEN: p.NameEN, NameNL: p.NameNL}
-}
-
-// ─── Game ─────────────────────────────────────────────────────────────────────
+//  Game
 
 func (h *GotchaHandler) GetCurrentGame(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -123,7 +78,7 @@ func (h *GotchaHandler) UpdateStartDate(c *gin.Context) {
 	c.JSON(http.StatusOK, game)
 }
 
-// ─── Opt-in / out ─────────────────────────────────────────────────────────────
+//  Opt-in / out
 
 func (h *GotchaHandler) OptIn(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -164,7 +119,7 @@ func (h *GotchaHandler) OptOut(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// ─── Kills ────────────────────────────────────────────────────────────────────
+// Kills
 
 func (h *GotchaHandler) SubmitKill(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -211,7 +166,7 @@ func (h *GotchaHandler) ReviewKill(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// ─── Feed ─────────────────────────────────────────────────────────────────────
+// Feed
 
 func (h *GotchaHandler) GetFeed(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -279,7 +234,7 @@ func (h *GotchaHandler) UnlikeKill(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// ─── Me ───────────────────────────────────────────────────────────────────────
+// Me
 
 func (h *GotchaHandler) GetMyStatus(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -324,7 +279,7 @@ func (h *GotchaHandler) GetTargetInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// ─── Leaderboard / end screen ─────────────────────────────────────────────────
+// Leaderboard / end screen
 
 func (h *GotchaHandler) GetLeaderboard(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -395,7 +350,7 @@ func (h *GotchaHandler) GetEndScreen(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// ─── Pending kill review ──────────────────────────────────────────────────────
+// Pending kill review
 
 func (h *GotchaHandler) GetNextPendingKill(c *gin.Context) {
 	pid, ok := profileID(c)
@@ -482,12 +437,12 @@ func (h *GotchaHandler) GetPendingKillCount(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"count": count})
 }
 
-// ─── Props CRUD ───────────────────────────────────────────────────────────────
+// Props CRUD
 
 func (h *GotchaHandler) GetAllProps(c *gin.Context) {
 	props, err := h.service.GetAllProps()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	response := make([]PropResponse, 0, len(props))

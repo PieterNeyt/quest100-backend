@@ -4,13 +4,10 @@ import (
 	"Quest100Backend/internal/gotcha/domain"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-// ─── GotchaGame ──────────────────────────────────────────────────────────────
 
 type gameRepository struct{ db *gorm.DB }
 
@@ -60,7 +57,7 @@ func (r *gameRepository) GetAllOptInGames() ([]*domain.GotchaGame, error) {
 	return games, err
 }
 
-// ─── Participant ──────────────────────────────────────────────────────────────
+//  Participant
 
 type participantRepository struct{ db *gorm.DB }
 
@@ -107,7 +104,13 @@ func (r *participantRepository) DeleteParticipant(gameID, profileID uuid.UUID) e
 		Delete(&domain.Participant{}).Error
 }
 
-// ─── GotchaKill ──────────────────────────────────────────────────────────────
+func (r *participantRepository) ClearPendingKill(gameID, profileID uuid.UUID) error {
+	return r.db.Model(&domain.Participant{}).
+		Where("game_id = ? AND profile_id = ?", gameID, profileID).
+		Update("pending_kill_at", nil).Error
+}
+
+// GotchaKill
 
 type killRepository struct{ db *gorm.DB }
 
@@ -124,7 +127,12 @@ func (r *killRepository) GetKillByID(id uuid.UUID) (*domain.GotchaKill, error) {
 	err := r.db.Preload("Likes").First(&kill, "id = ?", id).Error
 	return &kill, err
 }
-
+func (r *killRepository) GetPendingKillsByHunter(gameID, hunterID uuid.UUID) ([]*domain.GotchaKill, error) {
+	var kills []*domain.GotchaKill
+	err := r.db.Where("game_id = ? AND hunter_id = ? AND status = ?", gameID, hunterID, domain.KillPending).
+		Find(&kills).Error
+	return kills, err
+}
 func (r *killRepository) GetKillFeed(gameID uuid.UUID, limit, offset int) ([]*domain.GotchaKill, error) {
 	var kills []*domain.GotchaKill
 	err := r.db.Preload("Likes").Where("game_id = ?", gameID).
@@ -200,7 +208,7 @@ func (r *killRepository) HasLiked(killID, profileID uuid.UUID) (bool, error) {
 	return count > 0, err
 }
 
-// ─── Prop ────────────────────────────────────────────────────────────────────
+// Prop
 type propRepository struct{ db *gorm.DB }
 
 func NewPropRepository(db *gorm.DB) domain.PropRepository {
@@ -232,5 +240,3 @@ func (r *propRepository) GetAllProps() ([]*domain.GotchaProp, error) {
 	err := r.db.Order("name_en ASC").Find(&props).Error
 	return props, err
 }
-
-var _ = time.Now

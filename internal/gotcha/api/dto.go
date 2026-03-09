@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// ─── Game requests ────────────────────────────────────────────────────────────
+//  Game requests
 
 type CreateGameRequest struct {
 	Campus             string    `json:"campus" binding:"required"`
@@ -25,7 +25,7 @@ type UpdateStartDateRequest struct {
 	PrizeDescriptionNL string    `json:"prizeDescriptionNL"`
 }
 
-// ─── Kill requests ────────────────────────────────────────────────────────────
+// Kill requests
 
 type SubmitKillRequest struct {
 	PhotoBase64 string `json:"photoBase64" binding:"required"`
@@ -36,7 +36,7 @@ type ReviewKillRequest struct {
 	Reason  string `json:"reason,omitempty"`
 }
 
-// ─── Prop requests ────────────────────────────────────────────────────────────
+//  Prop requests
 
 type CreatePropRequest struct {
 	NameEN string `json:"nameEN" binding:"required"`
@@ -48,7 +48,7 @@ type UpdatePropRequest struct {
 	NameNL string `json:"nameNL" binding:"required"`
 }
 
-// ─── Shared response types ────────────────────────────────────────────────────
+// Shared response types
 
 type ProfileSummary struct {
 	ID             uuid.UUID `json:"id"`
@@ -57,7 +57,6 @@ type ProfileSummary struct {
 	ProfilePicture *string   `json:"profilePicture"`
 }
 
-// PropSummary is returned inside kill feed / target info — contains both langs.
 type PropSummary struct {
 	ID     uuid.UUID `json:"id"`
 	NameEN string    `json:"nameEN"`
@@ -113,7 +112,6 @@ type EndScreenResponse struct {
 	Kills              []EndScreenKillNode `json:"kills"`
 }
 
-// PropResponse is the full prop object returned by the props admin endpoints.
 type PropResponse struct {
 	ID     uuid.UUID `json:"id"`
 	NameEN string    `json:"nameEN"`

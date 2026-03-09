@@ -44,7 +44,6 @@ func init() {
 }
 
 // devProfiles maps a static test token to a fixed profile UUID.
-// Only active when APP_ENV=development.
 var devProfiles = map[string]uuid.UUID{
 	"dev-jon":   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 	"dev-wout":  uuid.MustParse("00000000-0000-0000-0000-000000000002"),

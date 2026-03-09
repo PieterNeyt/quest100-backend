@@ -60,12 +60,11 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		g.GET("/kills/pending/count", handler.GetPendingKillCount)
 		g.GET("/kills/pending", handler.GetPendingKills)
 
-		// Feed / leaderboard / end screen
 		g.GET("/feed", handler.GetFeed)
 		g.GET("/leaderboard", handler.GetLeaderboard)
 		g.GET("/end-screen", handler.GetEndScreen)
 
-		// Props (admin CRUD — protect with admin middleware in production)
+		// Props
 		g.GET("/props", handler.GetAllProps)
 		g.POST("/props", handler.CreateProp)
 		g.PUT("/props/:propId", handler.UpdateProp)

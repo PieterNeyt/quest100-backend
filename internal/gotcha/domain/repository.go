@@ -17,6 +17,7 @@ type ParticipantRepository interface {
 	GetParticipantsByGame(gameID uuid.UUID) ([]*Participant, error)
 	GetExpiredParticipants(before interface{}) ([]*Participant, error)
 	DeleteParticipant(gameID, profileID uuid.UUID) error
+	ClearPendingKill(gameID, profileID uuid.UUID) error
 }
 
 type KillRepository interface {
@@ -30,6 +31,7 @@ type KillRepository interface {
 	GetOldestPendingKill(gameID uuid.UUID) (*GotchaKill, error)
 	HasPendingKill(gameID, hunterID uuid.UUID) (bool, error)
 	CountPendingKills(gameID uuid.UUID) (int, error)
+	GetPendingKillsByHunter(gameID, hunterID uuid.UUID) ([]*GotchaKill, error)
 
 	SaveKillLike(like *GotchaKillLike) error
 	DeleteKillLike(killID, profileID uuid.UUID) error

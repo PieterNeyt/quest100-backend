@@ -62,12 +62,10 @@ func (g *GotchaGame) ProcessKill(hunterID, victimID uuid.UUID) error {
 		return fmt.Errorf("victim is not hunter's current target")
 	}
 
-	// Mark victim dead
 	victim.IsAlive = false
 	victim.KilledAt = timePtr(time.Now())
 	victim.KilledBy = &hunterID
 
-	// Hunter inherits victim's target
 	hunter.TargetID = victim.TargetID
 	if hunter.TargetID != nil {
 		hunter.KillDeadline = time.Now().Add(time.Duration(g.KillDeadlineHours) * time.Hour)
