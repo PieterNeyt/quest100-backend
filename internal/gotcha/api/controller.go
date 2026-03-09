@@ -440,11 +440,23 @@ func (h *GotchaHandler) GetPendingKillCount(c *gin.Context) {
 // Props CRUD
 
 func (h *GotchaHandler) GetAllProps(c *gin.Context) {
-	props, err := h.service.GetAllProps()
+	pid, ok := profileID(c)
+	if !ok {
+		return
+	}
+
+	cam, err := h.getCampus(c, pid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	props, err := h.service.GetAllPropsByGame(cam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	response := make([]PropResponse, 0, len(props))
 	for _, p := range props {
 		response = append(response, propToResponse(p))
@@ -453,12 +465,24 @@ func (h *GotchaHandler) GetAllProps(c *gin.Context) {
 }
 
 func (h *GotchaHandler) CreateProp(c *gin.Context) {
+	pid, ok := profileID(c)
+	if !ok {
+		return
+	}
+
+	cam, err := h.getCampus(c, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	var body CreatePropRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	prop, err := h.service.CreateProp(body.NameEN, body.NameNL)
+
+	prop, err := h.service.CreateProp(cam, body.NameEN, body.NameNL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -472,6 +496,7 @@ func (h *GotchaHandler) UpdateProp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid propId"})
 		return
 	}
+
 	var body UpdatePropRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

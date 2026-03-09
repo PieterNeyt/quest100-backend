@@ -96,8 +96,8 @@ type GotchaService interface {
 	GetLeaderboard(campus string) ([]*domain.Participant, error)
 	GetEndScreen(campus string) (*EndScreen, error)
 
-	GetAllProps() ([]*domain.GotchaProp, error)
-	CreateProp(nameEN, nameNL string) (*domain.GotchaProp, error)
+	GetAllPropsByGame(campus string) ([]*domain.GotchaProp, error)
+	CreateProp(campus string, nameEN, nameNL string) (*domain.GotchaProp, error)
 	UpdateProp(id uuid.UUID, nameEN, nameNL string) (*domain.GotchaProp, error)
 	DeleteProp(id uuid.UUID) error
 
@@ -178,27 +178,35 @@ func (s *gotchaService) UpdateStartDate(campus string, startDate time.Time, kill
 	}
 	return game, nil
 }
-
 func (s *gotchaService) StartGame(campus string) error {
 	game, err := s.gameRepo.GetGameByCampus(campus)
 	if err != nil {
 		return err
 	}
 	if game.Status != domain.StatusOptIn {
-		return fmt.Errorf("game for campus %s is not in opt-in phase", campus)
+		return fmt.Errorf("game for campus %s is already active or finished", campus)
 	}
+
+	props, _ := s.propRepo.GetPropsByGame(game.ID)
+	if len(props) == 0 {
+		return fmt.Errorf("cannot start game without any props defined")
+	}
+
 	participants, err := s.participantRepo.GetParticipantsByGame(game.ID)
 	if err != nil {
 		return err
 	}
+
 	for _, p := range participants {
 		game.Participants = append(game.Participants, *p)
 	}
+
 	if err := game.AssignTargets(); err != nil {
 		return err
 	}
+
 	for i := range game.Participants {
-		prop, err := s.propRepo.GetRandomProp()
+		prop, err := s.propRepo.GetRandomProp(game.ID)
 		if err == nil {
 			game.Participants[i].AssignedPropID = &prop.ID
 		}
@@ -473,17 +481,18 @@ func (s *gotchaService) GetPendingKillCount(campus string) (int, error) {
 }
 
 func (s *gotchaService) assignNewProp(game *domain.GotchaGame, profileID uuid.UUID) error {
-	prop, err := s.propRepo.GetRandomProp()
+	prop, err := s.propRepo.GetRandomProp(game.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not assign new prop: no props found for game %s: %w", game.ID, err)
 	}
+
 	for i := range game.Participants {
 		if game.Participants[i].ProfileID == profileID {
 			game.Participants[i].AssignedPropID = &prop.ID
 			return s.participantRepo.SaveParticipant(&game.Participants[i])
 		}
 	}
-	return fmt.Errorf("participant not found in game")
+	return fmt.Errorf("participant %s not found in game %s", profileID, game.ID)
 }
 
 func (s *gotchaService) GetKillFeed(campus string, requestingProfileID uuid.UUID, limit, offset int) ([]*KillFeedItem, error) {
@@ -775,18 +784,23 @@ func (s *gotchaService) ProcessTimeouts() error {
 
 // Prop management
 
-func (s *gotchaService) GetAllProps() ([]*domain.GotchaProp, error) {
-	return s.propRepo.GetAllProps()
-}
+func (s *gotchaService) CreateProp(campus string, nameEN, nameNL string) (*domain.GotchaProp, error) {
+	game, err := s.gameRepo.GetGameByCampus(campus)
+	if err != nil {
+		return nil, err
+	}
+	if game.Status != domain.StatusOptIn {
+		return nil, fmt.Errorf("cannot add props after game has started")
+	}
 
-func (s *gotchaService) CreateProp(nameEN, nameNL string) (*domain.GotchaProp, error) {
 	prop := &domain.GotchaProp{
 		ID:     uuid.New(),
+		GameID: game.ID,
 		NameEN: nameEN,
 		NameNL: nameNL,
 	}
 	if err := s.propRepo.SaveProp(prop); err != nil {
-		return nil, fmt.Errorf("failed to create prop: %w", err)
+		return nil, err
 	}
 	return prop, nil
 }
@@ -794,16 +808,40 @@ func (s *gotchaService) CreateProp(nameEN, nameNL string) (*domain.GotchaProp, e
 func (s *gotchaService) UpdateProp(id uuid.UUID, nameEN, nameNL string) (*domain.GotchaProp, error) {
 	prop, err := s.propRepo.GetPropByID(id)
 	if err != nil {
-		return nil, fmt.Errorf("prop not found: %w", err)
+		return nil, err
 	}
+
+	game, err := s.gameRepo.GetGameByID(prop.GameID)
+	if err == nil && game.Status != domain.StatusOptIn {
+		return nil, fmt.Errorf("cannot update props after game has started")
+	}
+
 	prop.NameEN = nameEN
 	prop.NameNL = nameNL
 	if err := s.propRepo.SaveProp(prop); err != nil {
-		return nil, fmt.Errorf("failed to update prop: %w", err)
+		return nil, err
 	}
 	return prop, nil
 }
 
 func (s *gotchaService) DeleteProp(id uuid.UUID) error {
+	prop, err := s.propRepo.GetPropByID(id)
+	if err != nil {
+		return err
+	}
+
+	game, err := s.gameRepo.GetGameByID(prop.GameID)
+	if err == nil && game.Status != domain.StatusOptIn {
+		return fmt.Errorf("cannot delete props after game has started")
+	}
+
 	return s.propRepo.DeleteProp(id)
+}
+
+func (s *gotchaService) GetAllPropsByGame(campus string) ([]*domain.GotchaProp, error) {
+	game, err := s.gameRepo.GetGameByCampus(campus)
+	if err != nil {
+		return nil, err
+	}
+	return s.propRepo.GetPropsByGame(game.ID)
 }

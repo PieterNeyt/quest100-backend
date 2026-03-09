@@ -37,6 +37,7 @@ type GotchaKillLike struct {
 
 type GotchaProp struct {
 	ID     uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	GameID uuid.UUID `gorm:"type:uuid;not null;index" json:"gameId"`
 	NameEN string    `gorm:"type:varchar(100);not null" json:"nameEN"`
 	NameNL string    `gorm:"type:varchar(100);not null" json:"nameNL"`
 }

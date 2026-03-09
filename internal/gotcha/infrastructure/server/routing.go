@@ -24,7 +24,7 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	service := application.NewGotchaService(gameRepo, participantRepo, killRepo, propRepo, profileRepo)
 	handler := gotchaAPI.NewGotchaHandler(service, profileService)
 
-	// Background tasks: auto-start games & process timeouts
+	// auto-start games + process timeouts
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()

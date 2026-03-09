@@ -215,12 +215,17 @@ func NewPropRepository(db *gorm.DB) domain.PropRepository {
 	return &propRepository{db}
 }
 
-func (r *propRepository) GetRandomProp() (*domain.GotchaProp, error) {
+func (r *propRepository) GetRandomProp(gameID uuid.UUID) (*domain.GotchaProp, error) {
 	var prop domain.GotchaProp
-	err := r.db.Order("RANDOM()").First(&prop).Error
+	err := r.db.Where("game_id = ?", gameID).Order("RANDOM()").First(&prop).Error
 	return &prop, err
 }
 
+func (r *propRepository) GetPropsByGame(gameID uuid.UUID) ([]*domain.GotchaProp, error) {
+	var props []*domain.GotchaProp
+	err := r.db.Where("game_id = ?", gameID).Order("name_en ASC").Find(&props).Error
+	return props, err
+}
 func (r *propRepository) GetPropByID(id uuid.UUID) (*domain.GotchaProp, error) {
 	var prop domain.GotchaProp
 	err := r.db.First(&prop, "id = ?", id).Error
