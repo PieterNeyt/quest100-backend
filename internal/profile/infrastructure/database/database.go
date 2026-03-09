@@ -2,7 +2,10 @@ package database
 
 import (
 	"Quest100Backend/internal/profile/domain"
+	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -48,4 +51,54 @@ func seedDatabase(db *gorm.DB) {
 	if err != nil {
 		log.Printf("Could not seed database: %v", err)
 	}
+
+	if err := syncGopherAssets(db); err != nil {
+		log.Fatalf("Failed to sync assets: %v", err)
+	}
+}
+
+func syncGopherAssets(db *gorm.DB) error {
+	resp, err := http.Get("https://gopherize.me/api/artwork/")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	var apiResponse struct {
+		Categories []struct {
+			ID     string `json:"id"`
+			Name   string `json:"name"`
+			Images []struct {
+				ID        string `json:"id"`
+				Name      string `json:"name"`
+				Link      string `json:"href"`
+				Thumbnail string `json:"thumbnail_href"`
+			} `json:"images"`
+		} `json:"categories"`
+	}
+
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return err
+	}
+
+	for _, category := range apiResponse.Categories {
+		for _, image := range category.Images {
+			asset := domain.Asset{
+				ID:         image.ID,
+				Name:       image.Name,
+				Category:   category.Name,
+				LayerOrder: 0,
+				Price:      100,
+				Link:       image.Link,
+			}
+
+			if category.Name == "Body" || category.Name == "Eyes" {
+				asset.Price = 0
+			}
+
+			db.Create(&asset)
+		}
+	}
+	return nil
 }

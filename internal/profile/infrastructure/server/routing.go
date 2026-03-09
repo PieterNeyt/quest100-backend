@@ -21,5 +21,6 @@ func SetupProfileRoutes(r *gin.RouterGroup, profServ application.ProfileService)
 		profileGroup.PUT("/language", profileHandler.UpdateLanguage)
 		profileGroup.PUT("/picture", profileHandler.UpdateProfilePicture)
 		profileGroup.DELETE("/picture", profileHandler.DeleteProfilePicture)
+		profileGroup.GET("/assets", profileHandler.GetAvatarItems)
 	}
 }

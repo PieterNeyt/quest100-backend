@@ -27,6 +27,7 @@ type ProfileService interface {
 	GetProfiles() (*[]domain.Profile, error)
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
+	GetAssets(profileId uuid.UUID) ([]domain.Asset, error)
 }
 
 type profileService struct {
@@ -235,4 +236,12 @@ func (s *profileService) GetProfilesStatistics(profileUUID uuid.UUID) (domain.Pr
 		return domain.ProfileStats{}, fmt.Errorf("failed to get profile stats: %w", err)
 	}
 	return profileStats, nil
+}
+
+func (s *profileService) GetAssets(profileId uuid.UUID) ([]domain.Asset, error) {
+	assets, err := s.profileRepo.GetAssets(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assets: %w", err)
+	}
+	return *assets, nil
 }

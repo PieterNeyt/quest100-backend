@@ -255,3 +255,51 @@ func (h *ProfileHandler) GetProfilesStatistics(c *gin.Context) {
 
 	c.JSON(http.StatusOK, ProfileStats)
 }
+
+func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	assets, err := h.profileService.GetAssets(profileUUID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	categoryMap := make(map[string]*CategoryDTO)
+	var categoryOrder []string // To maintain a consistent order in the UI
+
+	for _, asset := range assets {
+		if _, exists := categoryMap[asset.Category]; !exists {
+			categoryMap[asset.Category] = &CategoryDTO{Name: asset.Category, Items: []AssetDTO{}}
+			categoryOrder = append(categoryOrder, asset.Category)
+		}
+
+		categoryMap[asset.Category].Items = append(categoryMap[asset.Category].Items, AssetDTO{
+			ID:         asset.ID,
+			Name:       asset.Name,
+			Category:   asset.Category,
+			LayerOrder: asset.LayerOrder,
+			Price:      asset.Price,
+			IsOwned:    false,
+			Link:       asset.Link,
+		})
+	}
+
+	var responseArray []CategoryDTO
+
+	for _, catName := range categoryOrder {
+		responseArray = append(responseArray, *categoryMap[catName])
+	}
+
+	c.JSON(http.StatusOK, responseArray)
+}

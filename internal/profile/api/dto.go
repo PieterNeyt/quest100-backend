@@ -16,3 +16,18 @@ type SyncProfileResponse struct {
 	Profile                 *domain.Profile `json:"profile"`
 	MicrosoftProfilePicture string          `json:"microsoftProfilePicture"`
 }
+
+type AssetDTO struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Category   string `json:"category"`
+	LayerOrder int    `json:"layer_order"`
+	Price      int    `json:"price"`
+	IsOwned    bool   `json:"isOwned"`
+	Link       string `json:"link"`
+}
+
+type CategoryDTO struct {
+	Name  string     `json:"name"`
+	Items []AssetDTO `json:"items"`
+}

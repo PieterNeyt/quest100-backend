@@ -125,3 +125,13 @@ func (r *ProfileRepository) GetProfileStats(profileId uuid.UUID) (domain.Profile
 
 	return stats, nil
 }
+
+func (r *ProfileRepository) GetAssets(profileId uuid.UUID) (*[]domain.Asset, error) {
+	var assets []domain.Asset
+	result := r.db.Find(&assets)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+	return &assets, nil
+}

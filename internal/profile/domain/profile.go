@@ -16,6 +16,7 @@ type ProfileRepository interface {
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
+	GetAssets(profileId uuid.UUID) (*[]Asset, error)
 }
 
 type Language string
@@ -37,6 +38,7 @@ type Profile struct {
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
+	Assets               []Asset            `gorm:"many2many:user_assets;" json:"assets"`
 }
 
 type ProfileStats struct {
@@ -53,6 +55,15 @@ type AttendanceRecord struct {
 	ProfileID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"profileId"`
 	ClassID   uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"classId"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type Asset struct {
+	ID         string `gorm:"primaryKey"`
+	Name       string
+	Category   string
+	LayerOrder int
+	Price      int
+	Link       string
 }
 
 func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
