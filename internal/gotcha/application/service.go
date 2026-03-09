@@ -152,7 +152,7 @@ func (s *gotchaService) GetCurrentGame(campus string) (*domain.GotchaGame, error
 func (s *gotchaService) CreateGame(campus string, startDate time.Time, killDeadlineHours int, prizePhotoBase64, prizeDescEN, prizeDescNL string) (*domain.GotchaGame, error) {
 	existing, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err == nil && existing != nil {
-		return nil, fmt.Errorf("an active game already exists for campus %s (id: %s)", campus, existing.ID)
+		return s.UpdateStartDate(campus, startDate, killDeadlineHours, prizePhotoBase64, prizeDescEN, prizeDescNL)
 	}
 
 	if killDeadlineHours <= 0 {
@@ -850,7 +850,10 @@ func (s *gotchaService) ProcessTimeouts() error {
 func (s *gotchaService) CreateProp(campus string, nameEN, nameNL string) (*domain.GotchaProp, error) {
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
-		return nil, err
+		game, err = s.CreateGame(campus, time.Time{}, 72, "", "", "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create game for prop: %w", err)
+		}
 	}
 	if game.Status != domain.StatusOptIn {
 		return nil, fmt.Errorf("cannot add props after game has started")
@@ -899,7 +902,7 @@ func (s *gotchaService) DeleteProp(id uuid.UUID) error {
 func (s *gotchaService) GetAllPropsByGame(campus string) ([]*domain.GotchaProp, error) {
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
-		return nil, err
+		return []*domain.GotchaProp{}, nil
 	}
 	return s.propRepo.GetPropsByGame(game.ID)
 }

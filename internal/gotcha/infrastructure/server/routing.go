@@ -43,7 +43,6 @@ func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
 		// Game
 		g.GET("/game", handler.GetCurrentGame)
 		g.POST("/games", handler.CreateGame)
-		g.PUT("/games/startdate", handler.UpdateStartDate)
 
 		// History
 		g.GET("/games/history", handler.GetGameHistory)

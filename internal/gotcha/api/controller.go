@@ -55,29 +55,6 @@ func (h *GotchaHandler) CreateGame(c *gin.Context) {
 	c.JSON(http.StatusCreated, game)
 }
 
-func (h *GotchaHandler) UpdateStartDate(c *gin.Context) {
-	pid, ok := profileID(c)
-	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	var body UpdateStartDateRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	game, err := h.service.UpdateStartDate(cam, body.StartDate, body.KillDeadlineHours, body.PrizePhotoBase64, body.PrizeDescriptionEN, body.PrizeDescriptionNL)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, game)
-}
-
 //  History
 
 func (h *GotchaHandler) GetGameHistory(c *gin.Context) {
