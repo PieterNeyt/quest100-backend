@@ -114,6 +114,17 @@ func (g *GotchaGame) activePlayers() []*Participant {
 	return result
 }
 
+func (g *GotchaGame) ValidateKillApproval(hunterID, victimID uuid.UUID) error {
+	hunter := g.FindParticipant(hunterID)
+	if hunter == nil || !hunter.IsAlive {
+		return fmt.Errorf("hunter is not alive or not found")
+	}
+	if hunter.TargetID == nil || *hunter.TargetID != victimID {
+		return fmt.Errorf("victim is not hunter's current target")
+	}
+	return nil
+}
+
 func (g *GotchaGame) FindParticipant(id uuid.UUID) *Participant {
 	for i := range g.Participants {
 		if g.Participants[i].ProfileID == id {

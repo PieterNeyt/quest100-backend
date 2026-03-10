@@ -28,8 +28,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	eventRouting.SetupEventRoutes(api, s.eventServ)
 	qrcodeRouting.SetupQRCodeRoutes(api, s.qrCodeServ)
 	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
-	gotchaRouting.SetupGotchaRoutes(api, s.db.GetDB())
-
+	gotchaRouting.SetupGotchaRoutes(api, s.gotchaServ, s.profileServ)
 
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 

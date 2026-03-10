@@ -3,25 +3,14 @@ package server
 import (
 	gotchaAPI "Quest100Backend/internal/gotcha/api"
 	"Quest100Backend/internal/gotcha/application"
-	gotchaDB "Quest100Backend/internal/gotcha/infrastructure/database"
 	profileApp "Quest100Backend/internal/profile/application"
-	profileDB "Quest100Backend/internal/profile/infrastructure/database"
 	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func SetupGotchaRoutes(r *gin.RouterGroup, db *gorm.DB) {
-	gameRepo := gotchaDB.NewGameRepository(db)
-	participantRepo := gotchaDB.NewParticipantRepository(db)
-	killRepo := gotchaDB.NewKillRepository(db)
-	propRepo := gotchaDB.NewPropRepository(db)
-	profileRepo := profileDB.NewProfileRepository(db)
-	profileService := profileApp.NewProfileService(profileRepo)
-
-	service := application.NewGotchaService(gameRepo, participantRepo, killRepo, propRepo, profileRepo)
+func SetupGotchaRoutes(r *gin.RouterGroup, service application.GotchaService, profileService profileApp.ProfileService) {
 	handler := gotchaAPI.NewGotchaHandler(service, profileService)
 
 	// auto-start games + process timeouts

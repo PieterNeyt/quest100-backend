@@ -24,18 +24,13 @@ func NewGotchaHandler(service application.GotchaService, profileService profileA
 // Game
 
 func (h *GotchaHandler) GetCurrentGame(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	game, err := h.service.GetCurrentGame(cam)
 	if err != nil {
-		c.JSON(http.StatusOK, nil)
+		c.Status(http.StatusNoContent)
 		return
 	}
 	c.JSON(http.StatusOK, game)
@@ -58,15 +53,11 @@ func (h *GotchaHandler) CreateGame(c *gin.Context) {
 //  History
 
 func (h *GotchaHandler) GetGameHistory(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
 		return
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+
 	summaries, err := h.service.GetGameHistory(cam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -97,15 +88,11 @@ func (h *GotchaHandler) GetGameHistory(c *gin.Context) {
 //  Opt-in / out
 
 func (h *GotchaHandler) OptIn(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
 		return
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+
 	if err := h.service.OptIn(cam, pid); err != nil {
 		var alreadyIn *domain.AlreadyOptedInError
 		if errors.As(err, &alreadyIn) {
@@ -119,15 +106,11 @@ func (h *GotchaHandler) OptIn(c *gin.Context) {
 }
 
 func (h *GotchaHandler) OptOut(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
 		return
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+
 	if err := h.service.OptOut(cam, pid); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -138,15 +121,11 @@ func (h *GotchaHandler) OptOut(c *gin.Context) {
 // Kills
 
 func (h *GotchaHandler) SubmitKill(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
 		return
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+
 	var body SubmitKillRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -165,9 +144,8 @@ func (h *GotchaHandler) ReviewKill(c *gin.Context) {
 	if !ok {
 		return
 	}
-	killID, err := uuid.Parse(c.Param("killId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid killId"})
+	killID, ok := parseUUIDParam(c, "killId")
+	if !ok {
 		return
 	}
 	var body ReviewKillRequest
@@ -185,15 +163,11 @@ func (h *GotchaHandler) ReviewKill(c *gin.Context) {
 //  Feed
 
 func (h *GotchaHandler) GetFeed(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
 		return
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
@@ -251,13 +225,8 @@ func (h *GotchaHandler) UnlikeKill(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetMyStatus(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	status, err := h.service.GetMyStatus(cam, pid)
@@ -269,15 +238,11 @@ func (h *GotchaHandler) GetMyStatus(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetTargetInfo(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
 		return
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+
 	info, err := h.service.GetTargetInfo(cam, pid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -296,13 +261,8 @@ func (h *GotchaHandler) GetTargetInfo(c *gin.Context) {
 //  Leaderboard / end screen
 
 func (h *GotchaHandler) GetLeaderboard(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	board, err := h.service.GetLeaderboard(cam)
@@ -314,13 +274,8 @@ func (h *GotchaHandler) GetLeaderboard(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetEndScreen(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	data, err := h.service.GetEndScreen(cam)
@@ -332,9 +287,8 @@ func (h *GotchaHandler) GetEndScreen(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetEndScreenByID(c *gin.Context) {
-	gameID, err := uuid.Parse(c.Param("gameId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid gameId"})
+	gameID, ok := parseUUIDParam(c, "killId")
+	if !ok {
 		return
 	}
 	data, err := h.service.GetEndScreenByID(gameID)
@@ -386,13 +340,8 @@ func buildEndScreenResponse(data *application.EndScreen) EndScreenResponse {
 // Pending kill review
 
 func (h *GotchaHandler) GetNextPendingKill(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	item, err := h.service.GetNextPendingKill(cam, pid)
@@ -419,13 +368,8 @@ func (h *GotchaHandler) GetNextPendingKill(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetPendingKills(c *gin.Context) {
-	pid, ok := profileID(c)
+	pid, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	items, err := h.service.GetPendingKills(cam, pid)
@@ -453,13 +397,8 @@ func (h *GotchaHandler) GetPendingKills(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetPendingKillCount(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	count, err := h.service.GetPendingKillCount(cam)
@@ -473,13 +412,8 @@ func (h *GotchaHandler) GetPendingKillCount(c *gin.Context) {
 //  Props CRUD
 
 func (h *GotchaHandler) GetAllProps(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	props, err := h.service.GetAllPropsByGame(cam)
@@ -495,13 +429,8 @@ func (h *GotchaHandler) GetAllProps(c *gin.Context) {
 }
 
 func (h *GotchaHandler) CreateProp(c *gin.Context) {
-	pid, ok := profileID(c)
+	_, cam, ok := h.profileAndCampus(c)
 	if !ok {
-		return
-	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	var body CreatePropRequest
@@ -518,9 +447,8 @@ func (h *GotchaHandler) CreateProp(c *gin.Context) {
 }
 
 func (h *GotchaHandler) UpdateProp(c *gin.Context) {
-	propID, err := uuid.Parse(c.Param("propId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid propId"})
+	propID, ok := parseUUIDParam(c, "killId")
+	if !ok {
 		return
 	}
 	var body UpdatePropRequest
@@ -537,9 +465,8 @@ func (h *GotchaHandler) UpdateProp(c *gin.Context) {
 }
 
 func (h *GotchaHandler) DeleteProp(c *gin.Context) {
-	propID, err := uuid.Parse(c.Param("propId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid propId"})
+	propID, ok := parseUUIDParam(c, "killId")
+	if !ok {
 		return
 	}
 	if err := h.service.DeleteProp(propID); err != nil {

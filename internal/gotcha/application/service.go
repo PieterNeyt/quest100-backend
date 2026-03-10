@@ -2,90 +2,12 @@ package application
 
 import (
 	"Quest100Backend/internal/gotcha/domain"
-	profileDomain "Quest100Backend/internal/profile/domain"
+	profileService "Quest100Backend/internal/profile/application"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-type ProfileSummary struct {
-	ID             uuid.UUID
-	FirstName      string
-	LastName       string
-	ProfilePicture *string
-}
-
-type PropSummary struct {
-	ID     uuid.UUID
-	NameEN string
-	NameNL string
-}
-
-type KillFeedItem struct {
-	ID          uuid.UUID
-	GameID      uuid.UUID
-	PhotoBase64 string
-	Status      domain.KillStatus
-	CreatedAt   time.Time
-	ReviewedAt  *time.Time
-	Hunter      ProfileSummary
-	Victim      ProfileSummary
-	Prop        *PropSummary
-	LikeCount   int
-	LikedByMe   bool
-}
-
-type TargetInfo struct {
-	Target       *ProfileSummary
-	AssignedProp *PropSummary
-	KillDeadline *time.Time
-}
-
-type EndScreenKillNode struct {
-	KillID           uuid.UUID
-	Hunter           ProfileSummary
-	Victim           ProfileSummary
-	Prop             *PropSummary
-	PhotoBase64      string
-	CreatedAt        time.Time
-	LikeCount        int
-	TargetAssignedAt *time.Time
-}
-
-type EndScreenStats struct {
-	TotalKills        int
-	TotalParticipants int
-	FastestKillSecs   int
-	MostKillsName     string
-	MostKillsCount    int
-}
-
-type EndScreen struct {
-	GameID             uuid.UUID
-	Winner             *ProfileSummary
-	WinnerKillCount    int
-	PrizePhotoBase64   string
-	PrizeDescriptionEN string
-	PrizeDescriptionNL string
-	Stats              EndScreenStats
-	Kills              []EndScreenKillNode
-}
-
-type GameSummary struct {
-	ID                 uuid.UUID
-	Campus             string
-	Status             domain.GameStatus
-	StartDate          time.Time
-	UpdatedAt          time.Time
-	WinnerID           *uuid.UUID
-	Winner             *ProfileSummary
-	WinnerKillCount    int
-	TotalParticipants  int
-	TotalKills         int
-	PrizeDescriptionEN string
-	PrizeDescriptionNL string
-}
 
 type GotchaService interface {
 	CreateGame(campus string, startDate time.Time, killDeadlineHours int, prizePhotoBase64, prizeDescEN, prizeDescNL string) (*domain.GotchaGame, error)
@@ -130,7 +52,7 @@ type gotchaService struct {
 	participantRepo domain.ParticipantRepository
 	killRepo        domain.KillRepository
 	propRepo        domain.PropRepository
-	profileRepo     profileDomain.ProfileRepository
+	profileService  profileService.ProfileService
 }
 
 func NewGotchaService(
@@ -138,9 +60,9 @@ func NewGotchaService(
 	participantRepo domain.ParticipantRepository,
 	killRepo domain.KillRepository,
 	propRepo domain.PropRepository,
-	profileRepo profileDomain.ProfileRepository,
+	profileService profileService.ProfileService,
 ) GotchaService {
-	return &gotchaService{gameRepo, participantRepo, killRepo, propRepo, profileRepo}
+	return &gotchaService{gameRepo, participantRepo, killRepo, propRepo, profileService}
 }
 
 // Game
@@ -315,12 +237,10 @@ func (s *gotchaService) SubmitKill(campus string, hunterID uuid.UUID, photoBase6
 	if err != nil || hunter == nil {
 		return nil, &domain.NotParticipantError{ProfileID: hunterID}
 	}
-	if !hunter.IsAlive {
-		return nil, fmt.Errorf("you are eliminated and cannot submit kills")
+	if err := hunter.CanSubmitKill(); err != nil {
+		return nil, err
 	}
-	if hunter.TargetID == nil {
-		return nil, fmt.Errorf("you have no assigned target")
-	}
+
 	hasPending, err := s.killRepo.HasPendingKill(game.ID, hunterID)
 	if err != nil {
 		return nil, fmt.Errorf("could not check pending kills: %w", err)
@@ -328,6 +248,7 @@ func (s *gotchaService) SubmitKill(campus string, hunterID uuid.UUID, photoBase6
 	if hasPending {
 		return nil, fmt.Errorf("you already have a kill waiting for review")
 	}
+
 	kill := &domain.GotchaKill{
 		ID:          uuid.New(),
 		GameID:      game.ID,
@@ -341,8 +262,8 @@ func (s *gotchaService) SubmitKill(campus string, hunterID uuid.UUID, photoBase6
 	if err := s.killRepo.SaveKill(kill); err != nil {
 		return nil, fmt.Errorf("failed to submit kill: %w", err)
 	}
-	now := time.Now()
-	hunter.PendingKillAt = &now
+
+	hunter.MarkPendingKill()
 	if err := s.participantRepo.SaveParticipant(hunter); err != nil {
 		return nil, fmt.Errorf("failed to update hunter pending status: %w", err)
 	}
@@ -372,16 +293,14 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 	}
 	return s.denyKill(kill)
 }
-
 func (s *gotchaService) denyKill(kill *domain.GotchaKill) error {
 	kill.Status = domain.KillDenied
 	hunter, err := s.participantRepo.GetParticipant(kill.GameID, kill.HunterID)
 	if err != nil || hunter == nil {
 		return s.killRepo.SaveKill(kill)
 	}
-	now := time.Now()
-	hunter.PendingKillAt = nil
-	if hunter.IsAlive && !hunter.KillDeadline.IsZero() && hunter.KillDeadline.Before(now) {
+
+	if hunter.IsTimedOut() {
 		game, err := s.gameRepo.GetGameByID(kill.GameID)
 		if err == nil {
 			participants, _ := s.participantRepo.GetParticipantsByGame(game.ID)
@@ -395,8 +314,10 @@ func (s *gotchaService) denyKill(kill *domain.GotchaKill) error {
 			_ = s.gameRepo.SaveGame(game)
 		}
 	} else {
+		hunter.ClearPendingKill()
 		_ = s.participantRepo.SaveParticipant(hunter)
 	}
+
 	return s.killRepo.SaveKill(kill)
 }
 
@@ -412,16 +333,12 @@ func (s *gotchaService) approveKill(kill *domain.GotchaKill, reviewerID uuid.UUI
 	for _, p := range participants {
 		game.Participants = append(game.Participants, *p)
 	}
-	hunter := game.FindParticipant(kill.HunterID)
-	victim := game.FindParticipant(kill.VictimID)
-	if hunter == nil || !hunter.IsAlive {
+
+	if err := game.ValidateKillApproval(kill.HunterID, kill.VictimID); err != nil {
 		kill.Status = domain.KillDenied
 		return s.killRepo.SaveKill(kill)
 	}
-	if hunter.TargetID == nil || *hunter.TargetID != kill.VictimID {
-		kill.Status = domain.KillDenied
-		return s.killRepo.SaveKill(kill)
-	}
+
 	kill.Status = domain.KillApproved
 	if err := game.ProcessKill(kill.HunterID, kill.VictimID); err != nil {
 		return err
@@ -429,14 +346,20 @@ func (s *gotchaService) approveKill(kill *domain.GotchaKill, reviewerID uuid.UUI
 	if err := s.assignNewProp(game, kill.HunterID); err != nil {
 		fmt.Printf("could not assign new prop: %v\n", err)
 	}
-	hunter.PendingKillAt = nil
-	victim.PendingKillAt = nil
+
+	hunter := game.FindParticipant(kill.HunterID)
+	victim := game.FindParticipant(kill.VictimID)
+
+	hunter.ClearPendingKill()
+	victim.ClearPendingKill()
+
 	if err := s.participantRepo.SaveParticipant(hunter); err != nil {
 		return err
 	}
 	if err := s.participantRepo.SaveParticipant(victim); err != nil {
 		return err
 	}
+
 	pendingKills, err := s.killRepo.GetPendingKillsByHunter(kill.GameID, kill.VictimID)
 	if err == nil {
 		for _, pk := range pendingKills {
@@ -447,6 +370,7 @@ func (s *gotchaService) approveKill(kill *domain.GotchaKill, reviewerID uuid.UUI
 			_ = s.killRepo.SaveKill(pk)
 		}
 	}
+
 	if err := s.killRepo.SaveKill(kill); err != nil {
 		return err
 	}
@@ -528,7 +452,7 @@ func (s *gotchaService) GetTargetInfo(campus string, profileID uuid.UUID) (*Targ
 	}
 	info := &TargetInfo{}
 	if participant.TargetID != nil {
-		targetProfile, err := s.profileRepo.GetProfileById(*participant.TargetID)
+		targetProfile, err := s.profileService.GetProfileById(*participant.TargetID)
 		if err == nil {
 			info.Target = &ProfileSummary{
 				ID:             targetProfile.ID,
@@ -587,7 +511,7 @@ func (s *gotchaService) buildEndScreen(game *domain.GotchaGame) (*EndScreen, err
 		if c, ok := profileCache[id]; ok {
 			return c.summary
 		}
-		p, err := s.profileRepo.GetProfileById(id)
+		p, err := s.profileService.GetProfileById(id)
 		e := &cached{}
 		if err == nil {
 			e.summary = ProfileSummary{ID: p.ID, FirstName: p.FirstName, LastName: p.LastName, ProfilePicture: p.CustomProfilePicture}
@@ -704,7 +628,7 @@ func (s *gotchaService) GetGameHistory(campus string) ([]*GameSummary, error) {
 		if c, ok := profileCache[id]; ok {
 			return &c.summary
 		}
-		p, err := s.profileRepo.GetProfileById(id)
+		p, err := s.profileService.GetProfileById(id)
 		e := &cached{}
 		if err == nil {
 			e.summary = ProfileSummary{ID: p.ID, FirstName: p.FirstName, LastName: p.LastName, ProfilePicture: p.CustomProfilePicture}
@@ -755,7 +679,7 @@ func (s *gotchaService) hydrateKills(kills []*domain.GotchaKill, requestingProfi
 		if c, ok := profileCache[id]; ok {
 			return c.summary
 		}
-		p, err := s.profileRepo.GetProfileById(id)
+		p, err := s.profileService.GetProfileById(id)
 		e := &cached{}
 		if err == nil {
 			e.summary = ProfileSummary{ID: p.ID, FirstName: p.FirstName, LastName: p.LastName, ProfilePicture: p.CustomProfilePicture}

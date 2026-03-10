@@ -1,12 +1,11 @@
 package domain
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-func (Participant) TableName() string { return "gotcha_participants" }
 
 type Participant struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
@@ -21,4 +20,27 @@ type Participant struct {
 
 	AssignedPropID *uuid.UUID `gorm:"type:uuid" json:"assignedPropId,omitempty"`
 	PendingKillAt  *time.Time `json:"pendingKillAt,omitempty"`
+}
+
+func (p *Participant) CanSubmitKill() error {
+	if !p.IsAlive {
+		return fmt.Errorf("you are eliminated and cannot submit kills")
+	}
+	if p.TargetID == nil {
+		return fmt.Errorf("you have no assigned target")
+	}
+	return nil
+}
+
+func (p *Participant) IsTimedOut() bool {
+	return p.IsAlive && !p.KillDeadline.IsZero() && p.KillDeadline.Before(time.Now())
+}
+
+func (p *Participant) ClearPendingKill() {
+	p.PendingKillAt = nil
+}
+
+func (p *Participant) MarkPendingKill() {
+	now := time.Now()
+	p.PendingKillAt = &now
 }

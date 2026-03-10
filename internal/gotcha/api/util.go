@@ -43,3 +43,24 @@ func (h *GotchaHandler) getCampus(c *gin.Context, pid uuid.UUID) (string, error)
 func propToResponse(p *domain.GotchaProp) PropResponse {
 	return PropResponse{ID: p.ID, NameEN: p.NameEN, NameNL: p.NameNL}
 }
+
+func (h *GotchaHandler) profileAndCampus(c *gin.Context) (uuid.UUID, string, bool) {
+	pid, ok := profileID(c)
+	if !ok {
+		return uuid.Nil, "", false
+	}
+	cam, err := h.getCampus(c, pid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return uuid.Nil, "", false
+	}
+	return pid, cam, true
+}
+func parseUUIDParam(c *gin.Context, param string) (uuid.UUID, bool) {
+	id, err := uuid.Parse(c.Param(param))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + param})
+		return uuid.Nil, false
+	}
+	return id, true
+}
