@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 
 type ProfileRepository interface {
 	GetProfileById(id uuid.UUID) (*Profile, error)
-	UpdateProfile(profile *Profile) error
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
@@ -17,6 +17,7 @@ type ProfileRepository interface {
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
 	GetAssets(profileId uuid.UUID) (*[]Asset, error)
+	GetAssetById(assetId string) (*Asset, error)
 }
 
 type Language string
@@ -62,7 +63,7 @@ type Asset struct {
 	Name       string
 	Category   string
 	LayerOrder int
-	Price      int
+	Price      int `gorm:"default:0"`
 	Link       string
 }
 
@@ -163,4 +164,13 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
 	}
+}
+
+func (p *Profile) BuyAsset(asset *Asset) error {
+	if p.Kudos < asset.Price {
+		return fmt.Errorf("kudos can't be less than price")
+	}
+	p.Kudos -= asset.Price
+	p.Assets = append(p.Assets, *asset)
+	return nil
 }

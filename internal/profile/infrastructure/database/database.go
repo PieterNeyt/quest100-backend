@@ -81,11 +81,11 @@ func syncGopherAssets(db *gorm.DB) error {
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
 		return err
 	}
-
+	var assets []domain.Asset
 	for _, category := range apiResponse.Categories {
 		for _, image := range category.Images {
 			asset := domain.Asset{
-				ID:         image.ID,
+				ID:         uuid.NewString(),
 				Name:       image.Name,
 				Category:   category.Name,
 				LayerOrder: 0,
@@ -97,8 +97,10 @@ func syncGopherAssets(db *gorm.DB) error {
 				asset.Price = 0
 			}
 
-			db.Create(&asset)
+			assets = append(assets, asset)
 		}
 	}
+
+	db.Save(&assets)
 	return nil
 }

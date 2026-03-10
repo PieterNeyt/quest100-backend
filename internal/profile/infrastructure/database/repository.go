@@ -47,26 +47,17 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 	return &profile, nil
 }
 
-func (r *ProfileRepository) UpdateProfile(profile *domain.Profile) error {
-	result := r.db.Where("id = ?", profile.ID).Save(profile)
-	if result.Error != nil {
-		return fmt.Errorf("failed to save profile: %w", result.Error)
-	}
-	return nil
-}
-
 func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
-	result := r.db.Omit("PlayerStats").Create(profile)
-	if result.Error != nil {
-		return result.Error
-	}
 
-	result = r.db.Create(&profile.PlayerStats)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("PlayerStats").Save(profile).Error; err != nil {
+			return err
+		}
+		if err := tx.Save(profile).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (r *ProfileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
@@ -134,4 +125,13 @@ func (r *ProfileRepository) GetAssets(profileId uuid.UUID) (*[]domain.Asset, err
 		return nil, fmt.Errorf("database error: %w", result.Error)
 	}
 	return &assets, nil
+}
+
+func (r *ProfileRepository) GetAssetById(assetId string) (*domain.Asset, error) {
+	var asset domain.Asset
+	result := r.db.First(&asset, "id = ?", assetId)
+	if result.Error != nil {
+		return nil, fmt.Errorf("asset with id %s not found: %w", assetId, result.Error)
+	}
+	return &asset, nil
 }

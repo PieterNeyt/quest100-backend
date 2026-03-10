@@ -303,3 +303,28 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responseArray)
 }
+
+func (h *ProfileHandler) BuyAvatarItem(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	avatarId := c.Param("id")
+	if avatarId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
+		return
+	}
+
+	if err := h.profileService.BuyAsset(profileUUID, avatarId); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
+}

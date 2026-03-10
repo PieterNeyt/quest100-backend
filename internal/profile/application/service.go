@@ -28,6 +28,7 @@ type ProfileService interface {
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
 	GetAssets(profileId uuid.UUID) ([]domain.Asset, error)
+	BuyAsset(profileId uuid.UUID, assetId string) error
 }
 
 type profileService struct {
@@ -78,7 +79,7 @@ func (s *profileService) GetProfiles() (*[]domain.Profile, error) {
 }
 
 func (s *profileService) UpdateProfile(profile *domain.Profile) error {
-	return s.profileRepo.UpdateProfile(profile)
+	return s.profileRepo.SaveProfile(profile)
 }
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
@@ -155,7 +156,7 @@ func (s *profileService) UpdateProfilePicture(profileId uuid.UUID, base64Img str
 		return nil, fmt.Errorf("profile not found: %w", err)
 	}
 	profile.CustomProfilePicture = &base64Img
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to update picture: %w", err)
 	}
 	return profile, nil
@@ -167,7 +168,7 @@ func (s *profileService) DeleteProfilePicture(profileId uuid.UUID) (*domain.Prof
 		return nil, fmt.Errorf("profile not found: %w", err)
 	}
 	profile.CustomProfilePicture = nil
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to delete picture: %w", err)
 	}
 	return profile, nil
@@ -189,7 +190,7 @@ func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, k
 		}
 	}
 
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 
@@ -244,4 +245,22 @@ func (s *profileService) GetAssets(profileId uuid.UUID) ([]domain.Asset, error) 
 		return nil, fmt.Errorf("failed to get assets: %w", err)
 	}
 	return *assets, nil
+}
+
+func (s *profileService) BuyAsset(profileId uuid.UUID, assetId string) error {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+	asset, err := s.profileRepo.GetAssetById(assetId)
+	if err != nil {
+		return fmt.Errorf("failed to get asset: %w", err)
+	}
+	if err := profile.BuyAsset(asset); err != nil {
+		return fmt.Errorf("failed to buy asset: %w", err)
+	}
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
+		return fmt.Errorf("failed to save profile: %w", err)
+	}
+	return nil
 }
