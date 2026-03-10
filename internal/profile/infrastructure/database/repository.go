@@ -125,3 +125,18 @@ func (r *ProfileRepository) GetProfileStats(profileId uuid.UUID) (domain.Profile
 
 	return stats, nil
 }
+func (r *ProfileRepository) GetCampusByProfileID(profileId uuid.UUID) (string, error) {
+	var campus string
+	result := r.db.
+		Model(&domain.Profile{}).
+		Select("campus").
+		Where("id = ?", profileId).
+		Scan(&campus)
+	if result.Error != nil {
+		return "", fmt.Errorf("failed to fetch campus: %w", result.Error)
+	}
+	if campus == "" {
+		return "", fmt.Errorf("campus not set on profile, sync first")
+	}
+	return campus, nil
+}

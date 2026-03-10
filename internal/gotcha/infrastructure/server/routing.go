@@ -3,15 +3,14 @@ package server
 import (
 	gotchaAPI "Quest100Backend/internal/gotcha/api"
 	"Quest100Backend/internal/gotcha/application"
-	profileApp "Quest100Backend/internal/profile/application"
 	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupGotchaRoutes(r *gin.RouterGroup, service application.GotchaService, profileService profileApp.ProfileService) {
-	handler := gotchaAPI.NewGotchaHandler(service, profileService)
+func SetupGotchaRoutes(r *gin.RouterGroup, service application.GotchaService) {
+	handler := gotchaAPI.NewGotchaHandler(service)
 
 	// auto-start games + process timeouts
 	go func() {

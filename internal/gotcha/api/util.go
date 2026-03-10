@@ -2,7 +2,6 @@ package api
 
 import (
 	"Quest100Backend/internal/gotcha/domain"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,43 +17,16 @@ func profileID(c *gin.Context) (uuid.UUID, bool) {
 	return v.(uuid.UUID), true
 }
 
-func campus(c *gin.Context) string {
-	v, _ := c.Get("campus")
-	if s, ok := v.(string); ok {
-		return s
-	}
-	return ""
-}
-
-func (h *GotchaHandler) getCampus(c *gin.Context, pid uuid.UUID) (string, error) {
-	if cam := campus(c); cam != "" {
-		return cam, nil
-	}
-	profile, err := h.profileService.GetProfileById(pid)
-	if err != nil {
-		return "", err
-	}
-	if profile.Campus == "" {
-		return "", fmt.Errorf("campus not set on profile, sync first")
-	}
-	return profile.Campus, nil
-}
-
 func propToResponse(p *domain.GotchaProp) PropResponse {
 	return PropResponse{ID: p.ID, NameEN: p.NameEN, NameNL: p.NameNL}
 }
 
-func (h *GotchaHandler) profileAndCampus(c *gin.Context) (uuid.UUID, string, bool) {
+func (h *GotchaHandler) profile(c *gin.Context) (uuid.UUID, bool) {
 	pid, ok := profileID(c)
 	if !ok {
-		return uuid.Nil, "", false
+		return uuid.Nil, false
 	}
-	cam, err := h.getCampus(c, pid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return uuid.Nil, "", false
-	}
-	return pid, cam, true
+	return pid, true
 }
 func parseUUIDParam(c *gin.Context, param string) (uuid.UUID, bool) {
 	id, err := uuid.Parse(c.Param(param))

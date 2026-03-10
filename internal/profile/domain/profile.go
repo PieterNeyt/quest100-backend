@@ -16,6 +16,7 @@ type ProfileRepository interface {
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
+	GetCampusByProfileID(id uuid.UUID) (string, error)
 }
 
 type Language string

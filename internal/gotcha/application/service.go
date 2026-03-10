@@ -12,34 +12,34 @@ import (
 type GotchaService interface {
 	CreateGame(campus string, startDate time.Time, killDeadlineHours int, prizePhotoBase64, prizeDescEN, prizeDescNL string) (*domain.GotchaGame, error)
 	StartGame(campus string) error
-	GetCurrentGame(campus string) (*domain.GotchaGame, error)
+	GetCurrentGame(profileID uuid.UUID) (*domain.GotchaGame, error)
 	UpdateStartDate(campus string, startDate time.Time, killDeadlineHours int, prizePhotoBase64, prizeDescEN, prizeDescNL string) (*domain.GotchaGame, error)
 
-	OptIn(campus string, profileID uuid.UUID) error
-	OptOut(campus string, profileID uuid.UUID) error
+	OptIn(profileID uuid.UUID) error
+	OptOut(profileID uuid.UUID) error
 
-	SubmitKill(campus string, hunterID uuid.UUID, photoBase64 string) (*domain.GotchaKill, error)
+	SubmitKill(hunterID uuid.UUID, photoBase64 string) (*domain.GotchaKill, error)
 	ReviewKill(killID, reviewerID uuid.UUID, approve bool) error
 
-	GetNextPendingKill(campus string, requestingProfileID uuid.UUID) (*KillFeedItem, error)
-	GetPendingKillCount(campus string) (int, error)
+	GetNextPendingKill(requestingProfileID uuid.UUID) (*KillFeedItem, error)
+	GetPendingKillCount(profileID uuid.UUID) (int, error)
 
-	GetKillFeed(campus string, requestingProfileID uuid.UUID, limit, offset int) ([]*KillFeedItem, error)
-	GetPendingKills(campus string, requestingProfileID uuid.UUID) ([]*KillFeedItem, error)
+	GetKillFeed(requestingProfileID uuid.UUID, limit, offset int) ([]*KillFeedItem, error)
+	GetPendingKills(requestingProfileID uuid.UUID) ([]*KillFeedItem, error)
 	LikeKill(killID, profileID uuid.UUID) error
 	UnlikeKill(killID, profileID uuid.UUID) error
 
-	GetMyStatus(campus string, profileID uuid.UUID) (*domain.Participant, error)
-	GetTargetInfo(campus string, profileID uuid.UUID) (*TargetInfo, error)
-	GetLeaderboard(campus string) ([]*domain.Participant, error)
+	GetMyStatus(profileID uuid.UUID) (*domain.Participant, error)
+	GetTargetInfo(profileID uuid.UUID) (*TargetInfo, error)
+	GetLeaderboard(profileID uuid.UUID) ([]*domain.Participant, error)
 
-	GetEndScreen(campus string) (*EndScreen, error)
+	GetEndScreen(profileID uuid.UUID) (*EndScreen, error)
 	GetEndScreenByID(gameID uuid.UUID) (*EndScreen, error)
 
-	GetGameHistory(campus string) ([]*GameSummary, error)
+	GetGameHistory(profileID uuid.UUID) ([]*GameSummary, error)
 
-	GetAllPropsByGame(campus string) ([]*domain.GotchaProp, error)
-	CreateProp(campus string, nameEN, nameNL string) (*domain.GotchaProp, error)
+	GetAllPropsByGame(profileID uuid.UUID) ([]*domain.GotchaProp, error)
+	CreateProp(profileID uuid.UUID, nameEN, nameNL string) (*domain.GotchaProp, error)
 	UpdateProp(id uuid.UUID, nameEN, nameNL string) (*domain.GotchaProp, error)
 	DeleteProp(id uuid.UUID) error
 
@@ -65,9 +65,17 @@ func NewGotchaService(
 	return &gotchaService{gameRepo, participantRepo, killRepo, propRepo, profileService}
 }
 
+func (s *gotchaService) campusFor(profileID uuid.UUID) (string, error) {
+	return s.profileService.GetCampusByProfileID(profileID)
+}
+
 // Game
 
-func (s *gotchaService) GetCurrentGame(campus string) (*domain.GotchaGame, error) {
+func (s *gotchaService) GetCurrentGame(profileID uuid.UUID) (*domain.GotchaGame, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	return s.gameRepo.GetGameByCampus(campus)
 }
 
@@ -181,9 +189,13 @@ func (s *gotchaService) CheckAndStartGames() error {
 	return nil
 }
 
-//  Opt-in / out
+// Opt-in / out
 
-func (s *gotchaService) OptIn(campus string, profileID uuid.UUID) error {
+func (s *gotchaService) OptIn(profileID uuid.UUID) error {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		game, err = s.CreateGame(campus, time.Time{}, 72, "", "", "")
@@ -208,7 +220,11 @@ func (s *gotchaService) OptIn(campus string, profileID uuid.UUID) error {
 	return s.participantRepo.SaveParticipant(p)
 }
 
-func (s *gotchaService) OptOut(campus string, profileID uuid.UUID) error {
+func (s *gotchaService) OptOut(profileID uuid.UUID) error {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return fmt.Errorf("no active game for campus %s: %w", campus, err)
@@ -225,7 +241,11 @@ func (s *gotchaService) OptOut(campus string, profileID uuid.UUID) error {
 
 // Kills
 
-func (s *gotchaService) SubmitKill(campus string, hunterID uuid.UUID, photoBase64 string) (*domain.GotchaKill, error) {
+func (s *gotchaService) SubmitKill(hunterID uuid.UUID, photoBase64 string) (*domain.GotchaKill, error) {
+	campus, err := s.campusFor(hunterID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, fmt.Errorf("no active game for campus %s: %w", campus, err)
@@ -293,6 +313,7 @@ func (s *gotchaService) ReviewKill(killID, reviewerID uuid.UUID, approve bool) e
 	}
 	return s.denyKill(kill)
 }
+
 func (s *gotchaService) denyKill(kill *domain.GotchaKill) error {
 	kill.Status = domain.KillDenied
 	hunter, err := s.participantRepo.GetParticipant(kill.GameID, kill.HunterID)
@@ -377,7 +398,11 @@ func (s *gotchaService) approveKill(kill *domain.GotchaKill, reviewerID uuid.UUI
 	return s.gameRepo.SaveGame(game)
 }
 
-func (s *gotchaService) GetNextPendingKill(campus string, requestingProfileID uuid.UUID) (*KillFeedItem, error) {
+func (s *gotchaService) GetNextPendingKill(requestingProfileID uuid.UUID) (*KillFeedItem, error) {
+	campus, err := s.campusFor(requestingProfileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -393,7 +418,11 @@ func (s *gotchaService) GetNextPendingKill(campus string, requestingProfileID uu
 	return items[0], nil
 }
 
-func (s *gotchaService) GetPendingKillCount(campus string) (int, error) {
+func (s *gotchaService) GetPendingKillCount(profileID uuid.UUID) (int, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return 0, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return 0, err
@@ -415,7 +444,11 @@ func (s *gotchaService) assignNewProp(game *domain.GotchaGame, profileID uuid.UU
 	return fmt.Errorf("participant %s not found in game %s", profileID, game.ID)
 }
 
-func (s *gotchaService) GetKillFeed(campus string, requestingProfileID uuid.UUID, limit, offset int) ([]*KillFeedItem, error) {
+func (s *gotchaService) GetKillFeed(requestingProfileID uuid.UUID, limit, offset int) ([]*KillFeedItem, error) {
+	campus, err := s.campusFor(requestingProfileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -427,7 +460,11 @@ func (s *gotchaService) GetKillFeed(campus string, requestingProfileID uuid.UUID
 	return s.hydrateKills(kills, requestingProfileID)
 }
 
-func (s *gotchaService) GetPendingKills(campus string, requestingProfileID uuid.UUID) ([]*KillFeedItem, error) {
+func (s *gotchaService) GetPendingKills(requestingProfileID uuid.UUID) ([]*KillFeedItem, error) {
+	campus, err := s.campusFor(requestingProfileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -441,7 +478,11 @@ func (s *gotchaService) GetPendingKills(campus string, requestingProfileID uuid.
 
 // Target info
 
-func (s *gotchaService) GetTargetInfo(campus string, profileID uuid.UUID) (*TargetInfo, error) {
+func (s *gotchaService) GetTargetInfo(profileID uuid.UUID) (*TargetInfo, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -474,9 +515,13 @@ func (s *gotchaService) GetTargetInfo(campus string, profileID uuid.UUID) (*Targ
 	return info, nil
 }
 
-//  End screen
+// End screen
 
-func (s *gotchaService) GetEndScreen(campus string) (*EndScreen, error) {
+func (s *gotchaService) GetEndScreen(profileID uuid.UUID) (*EndScreen, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetGameByFinishedCampus(campus)
 	if err != nil {
 		return nil, fmt.Errorf("no finished game for campus %s: %w", campus, err)
@@ -616,7 +661,11 @@ func (s *gotchaService) buildEndScreen(game *domain.GotchaGame) (*EndScreen, err
 
 // History
 
-func (s *gotchaService) GetGameHistory(campus string) ([]*GameSummary, error) {
+func (s *gotchaService) GetGameHistory(profileID uuid.UUID) ([]*GameSummary, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	games, err := s.gameRepo.GetGameHistoryByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -717,7 +766,7 @@ func (s *gotchaService) hydrateKills(kills []*domain.GotchaKill, requestingProfi
 	return items, nil
 }
 
-//  Likes
+// Likes
 
 func (s *gotchaService) LikeKill(killID, profileID uuid.UUID) error {
 	return s.killRepo.SaveKillLike(&domain.GotchaKillLike{KillID: killID, ProfileID: profileID, LikedAt: time.Now()})
@@ -727,9 +776,13 @@ func (s *gotchaService) UnlikeKill(killID, profileID uuid.UUID) error {
 	return s.killRepo.DeleteKillLike(killID, profileID)
 }
 
-//  Status
+// Status
 
-func (s *gotchaService) GetMyStatus(campus string, profileID uuid.UUID) (*domain.Participant, error) {
+func (s *gotchaService) GetMyStatus(profileID uuid.UUID) (*domain.Participant, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -737,7 +790,11 @@ func (s *gotchaService) GetMyStatus(campus string, profileID uuid.UUID) (*domain
 	return s.participantRepo.GetParticipant(game.ID, profileID)
 }
 
-func (s *gotchaService) GetLeaderboard(campus string) ([]*domain.Participant, error) {
+func (s *gotchaService) GetLeaderboard(profileID uuid.UUID) ([]*domain.Participant, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return nil, err
@@ -770,7 +827,11 @@ func (s *gotchaService) ProcessTimeouts() error {
 
 // Prop management
 
-func (s *gotchaService) CreateProp(campus string, nameEN, nameNL string) (*domain.GotchaProp, error) {
+func (s *gotchaService) CreateProp(profileID uuid.UUID, nameEN, nameNL string) (*domain.GotchaProp, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine campus: %w", err)
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		game, err = s.CreateGame(campus, time.Time{}, 72, "", "", "")
@@ -822,7 +883,11 @@ func (s *gotchaService) DeleteProp(id uuid.UUID) error {
 	return s.propRepo.DeleteProp(id)
 }
 
-func (s *gotchaService) GetAllPropsByGame(campus string) ([]*domain.GotchaProp, error) {
+func (s *gotchaService) GetAllPropsByGame(profileID uuid.UUID) ([]*domain.GotchaProp, error) {
+	campus, err := s.campusFor(profileID)
+	if err != nil {
+		return []*domain.GotchaProp{}, nil
+	}
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
 		return []*domain.GotchaProp{}, nil
