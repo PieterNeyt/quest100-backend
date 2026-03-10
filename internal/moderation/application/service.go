@@ -12,6 +12,7 @@ type ModerationService interface {
 	GetReports() (*[]domain.Report, error)
 	GetReportById(id uuid.UUID) (*domain.Report, error)
 	ResolveReport(id uuid.UUID) error
+	HasOpenReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error)
 }
 
 type moderationService struct {
@@ -48,4 +49,8 @@ func (s *moderationService) ResolveReport(id uuid.UUID) error {
 		return fmt.Errorf("failed to resolve report: %w", err)
 	}
 	return nil
+}
+
+func (s *moderationService) HasOpenReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error) {
+	return s.moderationRepo.HasOpenReport(targetID, channelType)
 }

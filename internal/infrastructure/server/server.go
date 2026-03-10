@@ -45,9 +45,9 @@ func NewServer() *http.Server {
 
 	pServ := profileApp.NewProfileService(pRepo)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
-	eServ := eventApp.NewEventService(eRepo, cServ)
-	qServ := utilApp.NewQRCodeService(qrGen)
 	mServ := modApp.NewModerationService(mRepo)
+	eServ := eventApp.NewEventService(eRepo, cServ, mServ)
+	qServ := utilApp.NewQRCodeService(qrGen)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{

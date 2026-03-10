@@ -64,3 +64,16 @@ func (r *ModerationRepository) ResolveReport(id uuid.UUID) error {
 
 	return nil
 }
+
+func (r *ModerationRepository) HasOpenReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error) {
+	var count int64
+	result := r.db.Model(&domain.Report{}).
+		Where("target_id = ? AND channel_type = ? AND resolved = false", targetID, channelType).
+		Count(&count)
+
+	if result.Error != nil {
+		return false, fmt.Errorf("failed to check open reports: %w", result.Error)
+	}
+
+	return count > 0, nil
+}

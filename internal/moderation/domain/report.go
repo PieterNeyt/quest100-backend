@@ -35,6 +35,7 @@ type ModerationRepository interface {
 	GetReports() (*[]Report, error)
 	GetReportById(id uuid.UUID) (*Report, error)
 	ResolveReport(id uuid.UUID) error
+	HasOpenReport(targetID uuid.UUID, channelType ChannelType) (bool, error)
 }
 
 func NewReport(userID, targetID uuid.UUID, channelType ChannelType, reportType ReportType, message string) (*Report, error) {
