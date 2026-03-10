@@ -9,15 +9,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type ReportRepository struct {
+type ModerationRepository struct {
 	db *gorm.DB
 }
 
-func NewReportRepository(db *gorm.DB) *ReportRepository {
-	return &ReportRepository{db: db}
+func NewModerationRepository(db *gorm.DB) *ModerationRepository {
+	return &ModerationRepository{db: db}
 }
 
-func (r *ReportRepository) SaveReport(report *domain.Report) error {
+func (r *ModerationRepository) SaveReport(report *domain.Report) error {
 	result := r.db.Create(report)
 	if result.Error != nil {
 		return fmt.Errorf("failed to save report: %w", result.Error)
@@ -25,7 +25,7 @@ func (r *ReportRepository) SaveReport(report *domain.Report) error {
 	return nil
 }
 
-func (r *ReportRepository) GetReports() (*[]domain.Report, error) {
+func (r *ModerationRepository) GetReports() (*[]domain.Report, error) {
 	var reports []domain.Report
 
 	result := r.db.Find(&reports)
@@ -36,7 +36,7 @@ func (r *ReportRepository) GetReports() (*[]domain.Report, error) {
 	return &reports, nil
 }
 
-func (r *ReportRepository) GetReportById(id uuid.UUID) (*domain.Report, error) {
+func (r *ModerationRepository) GetReportById(id uuid.UUID) (*domain.Report, error) {
 	var report domain.Report
 
 	result := r.db.First(&report, "id = ?", id)
@@ -50,7 +50,7 @@ func (r *ReportRepository) GetReportById(id uuid.UUID) (*domain.Report, error) {
 	return &report, nil
 }
 
-func (r *ReportRepository) ResolveReport(id uuid.UUID) error {
+func (r *ModerationRepository) ResolveReport(id uuid.UUID) error {
 	result := r.db.Model(&domain.Report{}).
 		Where("id = ?", id).
 		Update("resolved", true)

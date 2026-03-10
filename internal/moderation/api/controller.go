@@ -9,15 +9,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type ReportHandler struct {
-	reportService application.ReportService
+type ModerationHandler struct {
+	moderationService application.ModerationService
 }
 
-func NewReportHandler(reportService application.ReportService) *ReportHandler {
-	return &ReportHandler{reportService: reportService}
+func NewModerationHandler(moderationService application.ModerationService) *ModerationHandler {
+	return &ModerationHandler{moderationService: moderationService}
 }
 
-func (h *ReportHandler) CreateReport(c *gin.Context) {
+func (h *ModerationHandler) CreateReport(c *gin.Context) {
 	profileID, exists := c.Get("profileID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
@@ -31,7 +31,7 @@ func (h *ReportHandler) CreateReport(c *gin.Context) {
 		return
 	}
 
-	report, err := h.reportService.CreateReport(
+	report, err := h.moderationService.CreateReport(
 		profileUUID,
 		body.TargetID,
 		domain.ChannelType(body.ChannelType),
@@ -46,8 +46,8 @@ func (h *ReportHandler) CreateReport(c *gin.Context) {
 	c.JSON(http.StatusCreated, report)
 }
 
-func (h *ReportHandler) GetReports(c *gin.Context) {
-	reports, err := h.reportService.GetReports()
+func (h *ModerationHandler) GetReports(c *gin.Context) {
+	reports, err := h.moderationService.GetReports()
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -56,14 +56,14 @@ func (h *ReportHandler) GetReports(c *gin.Context) {
 	c.JSON(http.StatusOK, reports)
 }
 
-func (h *ReportHandler) ResolveReport(c *gin.Context) {
+func (h *ModerationHandler) ResolveReport(c *gin.Context) {
 	reportID, err := uuid.Parse(c.Param("reportId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID format"})
 		return
 	}
 
-	if err := h.reportService.ResolveReport(reportID); err != nil {
+	if err := h.moderationService.ResolveReport(reportID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

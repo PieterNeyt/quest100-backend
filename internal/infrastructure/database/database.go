@@ -3,6 +3,7 @@ package database
 import (
 	databaseComm "Quest100Backend/internal/communication/infrastructure/database"
 	databaseEvent "Quest100Backend/internal/event/infrastructure/database"
+	databaseModeration "Quest100Backend/internal/moderation/infrastructure/database"
 	databaseProfile "Quest100Backend/internal/profile/infrastructure/database"
 	"fmt"
 	"log"
@@ -99,6 +100,7 @@ func autoMigration(db *gorm.DB) {
 	databaseProfile.AutoMigration(db)
 	databaseEvent.AutoMigration(db)
 	databaseComm.AutoMigration(db)
+	databaseModeration.AutoMigration(db)
 }
 
 func (s *service) GetDB() *gorm.DB {

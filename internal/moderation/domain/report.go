@@ -30,7 +30,7 @@ const (
 	ChannelTypeAward
 )
 
-type ReportRepository interface {
+type ModerationRepository interface {
 	SaveReport(report *Report) error
 	GetReports() (*[]Report, error)
 	GetReportById(id uuid.UUID) (*Report, error)

@@ -8,6 +8,8 @@ import (
 	database3 "Quest100Backend/internal/event/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/schedular"
+	modApp "Quest100Backend/internal/moderation/application"
+	modDatabase "Quest100Backend/internal/moderation/infrastructure/database"
 	profileApp "Quest100Backend/internal/profile/application"
 	database2 "Quest100Backend/internal/profile/infrastructure/database"
 	utilApp "Quest100Backend/internal/util/qrcode/application"
@@ -29,6 +31,7 @@ type Server struct {
 	eventServ   eventApp.EventService
 	chatServ    comApp.ChatService
 	qrCodeServ  utilApp.QRCodeService
+	modServ     modApp.ModerationService
 }
 
 func NewServer() *http.Server {
@@ -38,11 +41,13 @@ func NewServer() *http.Server {
 	eRepo := database3.NewEventRepository(db.GetDB())
 	cRepo := database4.NewChatRepository(db.GetDB())
 	qrGen := domain.NewQRCodeGenerator(256)
+	mRepo := modDatabase.NewModerationRepository(db.GetDB())
 
 	pServ := profileApp.NewProfileService(pRepo)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ)
 	qServ := utilApp.NewQRCodeService(qrGen)
+	mServ := modApp.NewModerationService(mRepo)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
@@ -53,6 +58,7 @@ func NewServer() *http.Server {
 		eventServ:   eServ,
 		chatServ:    cServ,
 		qrCodeServ:  qServ,
+		modServ:     mServ,
 	}
 
 	schedular.StartDailyTableCleanup(

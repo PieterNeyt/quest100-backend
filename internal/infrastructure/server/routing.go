@@ -4,6 +4,7 @@ import (
 	commRouting "Quest100Backend/internal/communication/infrastructure/server"
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
+	moderationRouting "Quest100Backend/internal/moderation/infrastructure/server"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
 	qrcodeRouting "Quest100Backend/internal/util/qrcode/infrastructure/server"
 	"net/http"
@@ -26,8 +27,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	profileRouting.SetupProfileRoutes(api, s.profileServ)
 	eventRouting.SetupEventRoutes(api, s.eventServ)
 	qrcodeRouting.SetupQRCodeRoutes(api, s.qrCodeServ)
-	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
+	moderationRouting.SetupModerationRoutes(api, s.modServ)
 
+	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
 	r.GET("/debug/ws", func(c *gin.Context) {
