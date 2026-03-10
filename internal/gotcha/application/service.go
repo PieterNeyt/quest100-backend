@@ -264,7 +264,6 @@ func (s *gotchaService) CheckAndStartGames() error {
 func (s *gotchaService) OptIn(campus string, profileID uuid.UUID) error {
 	game, err := s.gameRepo.GetActiveGameByCampus(campus)
 	if err != nil {
-		// No active game → create one automatically
 		game, err = s.CreateGame(campus, time.Time{}, 72, "", "", "")
 		if err != nil {
 			return fmt.Errorf("failed to create game for campus %s: %w", campus, err)
