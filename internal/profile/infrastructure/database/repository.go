@@ -117,12 +117,20 @@ func (r *ProfileRepository) GetProfileStats(profileId uuid.UUID) (domain.Profile
 	return stats, nil
 }
 
-func (r *ProfileRepository) GetAssets(profileId uuid.UUID) (*[]domain.Asset, error) {
+func (r *ProfileRepository) GetAllAssets() (*[]domain.Asset, error) {
 	var assets []domain.Asset
 	result := r.db.Find(&assets)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+	return &assets, nil
+}
+
+func (r *ProfileRepository) GetProfileAssets(profileId uuid.UUID) (*[]domain.Asset, error) {
+	var assets []domain.Asset
+	if err := r.db.Model(&domain.Profile{ID: profileId}).Association("Assets").Find(&assets); err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
 	}
 	return &assets, nil
 }

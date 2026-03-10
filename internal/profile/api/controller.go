@@ -4,6 +4,7 @@ import (
 	"Quest100Backend/internal/profile/application"
 	"Quest100Backend/internal/profile/domain"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -269,7 +270,13 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 		return
 	}
 
-	assets, err := h.profileService.GetAssets(profileUUID)
+	assets, err := h.profileService.GetAllAssets()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	profileAssets, err := h.profileService.GetProfileAssets(profileUUID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -290,8 +297,10 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 			Category:   asset.Category,
 			LayerOrder: asset.LayerOrder,
 			Price:      asset.Price,
-			IsOwned:    false,
-			Link:       asset.Link,
+			IsOwned: slices.ContainsFunc(profileAssets, func(item domain.Asset) bool {
+				return item.ID == asset.ID
+			}),
+			Link: asset.Link,
 		})
 	}
 

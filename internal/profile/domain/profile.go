@@ -16,8 +16,9 @@ type ProfileRepository interface {
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
-	GetAssets(profileId uuid.UUID) (*[]Asset, error)
+	GetAllAssets() (*[]Asset, error)
 	GetAssetById(assetId string) (*Asset, error)
+	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
 }
 
 type Language string
@@ -58,6 +59,7 @@ type AttendanceRecord struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// TODO nadenken hoe opslaan equipped item
 type Asset struct {
 	ID         string `gorm:"primaryKey"`
 	Name       string
