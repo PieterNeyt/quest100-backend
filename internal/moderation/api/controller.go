@@ -31,7 +31,6 @@ func (h *ModerationHandler) CreateReport(c *gin.Context) {
 		return
 	}
 
-	// contextID optioneel meegeven (voor message reports = chatID)
 	var contextID *uuid.UUID
 	if body.ContextID != nil {
 		contextID = body.ContextID
