@@ -285,7 +285,7 @@ func (h *GotchaHandler) GetEndScreen(c *gin.Context) {
 }
 
 func (h *GotchaHandler) GetEndScreenByID(c *gin.Context) {
-	gameID, ok := parseUUIDParam(c, "killId")
+	gameID, ok := parseUUIDParam(c, "gameId")
 	if !ok {
 		return
 	}
@@ -445,7 +445,7 @@ func (h *GotchaHandler) CreateProp(c *gin.Context) {
 }
 
 func (h *GotchaHandler) UpdateProp(c *gin.Context) {
-	propID, ok := parseUUIDParam(c, "killId")
+	propID, ok := parseUUIDParam(c, "propId")
 	if !ok {
 		return
 	}
@@ -463,7 +463,7 @@ func (h *GotchaHandler) UpdateProp(c *gin.Context) {
 }
 
 func (h *GotchaHandler) DeleteProp(c *gin.Context) {
-	propID, ok := parseUUIDParam(c, "killId")
+	propID, ok := parseUUIDParam(c, "propId")
 	if !ok {
 		return
 	}
