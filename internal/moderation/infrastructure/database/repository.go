@@ -17,6 +17,17 @@ func NewModerationRepository(db *gorm.DB) *ModerationRepository {
 	return &ModerationRepository{db: db}
 }
 
+func (r *ModerationRepository) HasOpenReportByContextID(contextID uuid.UUID, channelType domain.ChannelType) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.Report{}).
+		Where("context_id = ? AND channel_type = ? AND resolved = ?", contextID, channelType, false).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check open report by context id: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *ModerationRepository) SaveReport(report *domain.Report) error {
 	result := r.db.Create(report)
 	if result.Error != nil {

@@ -31,12 +31,19 @@ func (h *ModerationHandler) CreateReport(c *gin.Context) {
 		return
 	}
 
+	// contextID optioneel meegeven (voor message reports = chatID)
+	var contextID *uuid.UUID
+	if body.ContextID != nil {
+		contextID = body.ContextID
+	}
+
 	report, err := h.moderationService.CreateReport(
 		profileUUID,
 		body.TargetID,
 		domain.ChannelType(body.ChannelType),
 		domain.ReportType(body.ReportType),
 		body.Message,
+		contextID,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

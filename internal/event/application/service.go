@@ -122,17 +122,28 @@ func (s *eventService) DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.U
 		return &domain.UnauthorizedError{Message: "only the organizer can delete this event"}
 	}
 
-	hasOpenReport, err := s.moderationServ.HasOpenReport(eventID, moderationDomain.ChannelTypeEvent)
+	HasOpenEventReport, err := s.moderationServ.HasOpenEventReport(eventID, moderationDomain.ChannelTypeEvent)
 	if err != nil {
-		return fmt.Errorf("failed to check open reports: %w", err)
+		return fmt.Errorf("failed to check open events reports: %w", err)
 	}
 
-	if hasOpenReport {
+	if HasOpenEventReport {
 		event.Hide()
 		if err := s.eventRepo.SaveEvent(event); err != nil {
 			return fmt.Errorf("failed to hide event with open report: %w", err)
 		}
 		return nil
+	}
+
+	hasOpenMessageReport, err := s.moderationServ.HasOpenMessageReport(eventID, moderationDomain.ChannelTypeMessage)
+	if err != nil {
+		return fmt.Errorf("failed to check open message reports: %w", err)
+	}
+	if !hasOpenMessageReport {
+		err := s.chatServ.DeleteChatRoom(requestingProfileID, eventID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return s.eventRepo.DeleteEvent(eventID)

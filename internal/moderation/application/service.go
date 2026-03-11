@@ -8,11 +8,12 @@ import (
 )
 
 type ModerationService interface {
-	CreateReport(userID, targetID uuid.UUID, channelType domain.ChannelType, reportType domain.ReportType, message string) (*domain.Report, error)
+	CreateReport(userID, targetID uuid.UUID, channelType domain.ChannelType, reportType domain.ReportType, message string, contextID *uuid.UUID) (*domain.Report, error)
 	GetReports() (*[]domain.Report, error)
 	GetReportById(id uuid.UUID) (*domain.Report, error)
 	ResolveReport(id uuid.UUID) error
-	HasOpenReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error)
+	HasOpenEventReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error)
+	HasOpenMessageReport(chatID uuid.UUID, channelType domain.ChannelType) (bool, error)
 }
 
 type moderationService struct {
@@ -23,8 +24,8 @@ func NewModerationService(moderationRepo domain.ModerationRepository) Moderation
 	return &moderationService{moderationRepo: moderationRepo}
 }
 
-func (s *moderationService) CreateReport(userID, targetID uuid.UUID, channelType domain.ChannelType, reportType domain.ReportType, message string) (*domain.Report, error) {
-	report, err := domain.NewReport(userID, targetID, channelType, reportType, message)
+func (s *moderationService) CreateReport(userID, targetID uuid.UUID, channelType domain.ChannelType, reportType domain.ReportType, message string, contextID *uuid.UUID) (*domain.Report, error) {
+	report, err := domain.NewReport(userID, targetID, channelType, reportType, message, contextID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create report: %w", err)
 	}
@@ -51,6 +52,10 @@ func (s *moderationService) ResolveReport(id uuid.UUID) error {
 	return nil
 }
 
-func (s *moderationService) HasOpenReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error) {
+func (s *moderationService) HasOpenEventReport(targetID uuid.UUID, channelType domain.ChannelType) (bool, error) {
 	return s.moderationRepo.HasOpenReport(targetID, channelType)
+}
+
+func (s *moderationService) HasOpenMessageReport(chatID uuid.UUID, channelType domain.ChannelType) (bool, error) {
+	return s.moderationRepo.HasOpenReportByContextID(chatID, channelType)
 }

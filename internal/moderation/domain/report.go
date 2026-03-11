@@ -6,6 +6,7 @@ type Report struct {
 	ID          uuid.UUID   `gorm:"type:uuid;primaryKey;" json:"id"`
 	UserID      uuid.UUID   `gorm:"type:uuid;" json:"userId"`
 	TargetID    uuid.UUID   `gorm:"type:uuid;" json:"targetId"`
+	ContextID   *uuid.UUID  `gorm:"type:uuid;" json:"contextId,omitempty"`
 	Resolved    bool        `gorm:"default:false" json:"resolved"`
 	ChannelType ChannelType `json:"channelType"`
 	ReportType  ReportType  `json:"reportType"`
@@ -36,9 +37,10 @@ type ModerationRepository interface {
 	GetReportById(id uuid.UUID) (*Report, error)
 	ResolveReport(id uuid.UUID) error
 	HasOpenReport(targetID uuid.UUID, channelType ChannelType) (bool, error)
+	HasOpenReportByContextID(contextID uuid.UUID, channelType ChannelType) (bool, error)
 }
 
-func NewReport(userID, targetID uuid.UUID, channelType ChannelType, reportType ReportType, message string) (*Report, error) {
+func NewReport(userID, targetID uuid.UUID, channelType ChannelType, reportType ReportType, message string, contextID *uuid.UUID) (*Report, error) {
 	if message == "" {
 		return nil, &InvalidReportError{Message: "message cannot be empty"}
 	}
@@ -47,6 +49,7 @@ func NewReport(userID, targetID uuid.UUID, channelType ChannelType, reportType R
 		ID:          uuid.New(),
 		UserID:      userID,
 		TargetID:    targetID,
+		ContextID:   contextID,
 		Resolved:    false,
 		ChannelType: channelType,
 		ReportType:  reportType,
