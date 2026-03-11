@@ -229,7 +229,7 @@ func (h *GotchaHandler) GetMyStatus(c *gin.Context) {
 	}
 	status, err := h.service.GetMyStatus(pid)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not a participant"})
+		c.JSON(http.StatusNoContent, gin.H{"error": "not a participant"})
 		return
 	}
 	c.JSON(http.StatusOK, status)
@@ -315,6 +315,7 @@ func buildEndScreenResponse(data *application.EndScreen) EndScreenResponse {
 	if data.Winner != nil {
 		resp.Winner = &ProfileSummary{ID: data.Winner.ID, FirstName: data.Winner.FirstName, LastName: data.Winner.LastName, ProfilePicture: data.Winner.ProfilePicture}
 	}
+
 	kills := make([]EndScreenKillNode, 0, len(data.Kills))
 	for _, k := range data.Kills {
 		node := EndScreenKillNode{
@@ -332,6 +333,39 @@ func buildEndScreenResponse(data *application.EndScreen) EndScreenResponse {
 		kills = append(kills, node)
 	}
 	resp.Kills = kills
+
+	// Map awards
+	awards := make([]GameAwardResponse, 0, len(data.Awards))
+	for _, a := range data.Awards {
+		ar := GameAwardResponse{
+			ID:             a.ID,
+			Category:       string(a.Category),
+			TitleKey:       a.TitleKey,
+			DescriptionKey: a.DescriptionKey,
+			PropName:       a.PropName,
+			Day:            a.Day,
+			Count:          a.Count,
+		}
+		if a.Profile != nil {
+			ar.Profile = &ProfileSummary{
+				ID:             a.Profile.ID,
+				FirstName:      a.Profile.FirstName,
+				LastName:       a.Profile.LastName,
+				ProfilePicture: a.Profile.ProfilePicture,
+			}
+		}
+		for _, p := range a.Profiles {
+			ar.Profiles = append(ar.Profiles, ProfileSummary{
+				ID:             p.ID,
+				FirstName:      p.FirstName,
+				LastName:       p.LastName,
+				ProfilePicture: p.ProfilePicture,
+			})
+		}
+		awards = append(awards, ar)
+	}
+	resp.Awards = awards
+
 	return resp
 }
 

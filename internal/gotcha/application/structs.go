@@ -59,6 +59,30 @@ type EndScreenStats struct {
 	MostKillsCount    int
 }
 
+// AwardCategory represents the category of a game award.
+type AwardCategory string
+
+const (
+	AwardCategoryCore   AwardCategory = "core"
+	AwardCategorySkill  AwardCategory = "skill"
+	AwardCategorySocial AwardCategory = "social"
+	AwardCategoryProp   AwardCategory = "prop"
+	AwardCategoryMeme   AwardCategory = "meme"
+	AwardCategoryGame   AwardCategory = "game"
+)
+
+type GameAward struct {
+	ID             string
+	Category       AwardCategory
+	TitleKey       string
+	DescriptionKey string
+	Profile        *ProfileSummary
+	Profiles       []ProfileSummary
+	Count          *int
+	PropName       string
+	Day            string
+}
+
 type EndScreen struct {
 	GameID             uuid.UUID
 	Winner             *ProfileSummary
@@ -68,6 +92,7 @@ type EndScreen struct {
 	PrizeDescriptionNL string
 	Stats              EndScreenStats
 	Kills              []EndScreenKillNode
+	Awards             []GameAward
 }
 
 type GameSummary struct {

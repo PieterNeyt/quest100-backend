@@ -641,6 +641,8 @@ func (s *gotchaService) buildEndScreen(game *domain.GotchaGame) (*EndScreen, err
 		killNodes = append(killNodes, node)
 	}
 
+	awards := buildAwards(killNodes)
+
 	return &EndScreen{
 		GameID:             game.ID,
 		Winner:             winner,
@@ -655,8 +657,271 @@ func (s *gotchaService) buildEndScreen(game *domain.GotchaGame) (*EndScreen, err
 			MostKillsName:     mostKillsName,
 			MostKillsCount:    mostKillsCount,
 		},
-		Kills: killNodes,
+		Kills:  killNodes,
+		Awards: awards,
 	}, nil
+}
+
+func buildAwards(kills []EndScreenKillNode) []GameAward {
+	if len(kills) == 0 {
+		return nil
+	}
+
+	sortedKills := make([]EndScreenKillNode, len(kills))
+	copy(sortedKills, kills)
+	sortByTime(sortedKills)
+
+	intPtr := func(v int) *int { return &v }
+
+	// Build helper maps
+	killCountMap := map[uuid.UUID]int{}
+	for _, k := range kills {
+		killCountMap[k.Hunter.ID]++
+	}
+
+	profileMap := map[uuid.UUID]ProfileSummary{}
+	for _, k := range kills {
+		profileMap[k.Hunter.ID] = k.Hunter
+		profileMap[k.Victim.ID] = k.Victim
+	}
+
+	killsByHunter := map[uuid.UUID][]EndScreenKillNode{}
+	for _, k := range kills {
+		killsByHunter[k.Hunter.ID] = append(killsByHunter[k.Hunter.ID], k)
+	}
+
+	var awards []GameAward
+
+	// First Blood – hunter of the first kill
+	firstBloodHunter := sortedKills[0].Hunter
+	awards = append(awards, GameAward{
+		ID:             "first-blood",
+		Category:       AwardCategorySkill,
+		TitleKey:       "gotcha.awards.firstBlood.title",
+		DescriptionKey: "gotcha.awards.firstBlood.desc",
+		Profile:        &firstBloodHunter,
+	})
+
+	// Serial Killer – most kills overall
+	var serialKillerID uuid.UUID
+	serialKillerCount := 0
+	for id, cnt := range killCountMap {
+		if cnt > serialKillerCount {
+			serialKillerCount = cnt
+			serialKillerID = id
+		}
+	}
+	if serialKillerID != uuid.Nil {
+		p := profileMap[serialKillerID]
+		awards = append(awards, GameAward{
+			ID:             "serial-killer",
+			Category:       AwardCategorySkill,
+			TitleKey:       "gotcha.awards.serialKiller.title",
+			DescriptionKey: "gotcha.awards.serialKiller.desc",
+			Profile:        &p,
+			Count:          intPtr(serialKillerCount),
+		})
+	}
+
+	fastestGap := time.Duration(1<<63 - 1)
+	slowestGap := time.Duration(0)
+	var speedDemonProfile *ProfileSummary
+	var patientHunterProfile *ProfileSummary
+
+	for id, hKills := range killsByHunter {
+		if len(hKills) < 2 {
+			continue
+		}
+		sortByTime(hKills)
+		for i := 1; i < len(hKills); i++ {
+			gap := hKills[i].CreatedAt.Sub(hKills[i-1].CreatedAt)
+			if gap < fastestGap {
+				fastestGap = gap
+				p := profileMap[id]
+				speedDemonProfile = &p
+			}
+			if gap > slowestGap {
+				slowestGap = gap
+				p := profileMap[id]
+				patientHunterProfile = &p
+			}
+		}
+	}
+
+	if speedDemonProfile != nil {
+		mins := int(fastestGap.Minutes())
+		if mins < 1 {
+			mins = 1
+		}
+		awards = append(awards, GameAward{
+			ID:             "speed-demon",
+			Category:       AwardCategorySkill,
+			TitleKey:       "gotcha.awards.speedDemon.title",
+			DescriptionKey: "gotcha.awards.speedDemon.desc",
+			Profile:        speedDemonProfile,
+			Count:          intPtr(mins),
+		})
+	}
+
+	if patientHunterProfile != nil {
+		hours := int(slowestGap.Hours())
+		awards = append(awards, GameAward{
+			ID:             "patient-hunter",
+			Category:       AwardCategorySkill,
+			TitleKey:       "gotcha.awards.patientHunter.title",
+			DescriptionKey: "gotcha.awards.patientHunter.desc",
+			Profile:        patientHunterProfile,
+			Count:          intPtr(hours),
+		})
+	}
+
+	// Best Disguise – kill with the most likes
+	var mostLikedKill *EndScreenKillNode
+	for i := range kills {
+		if mostLikedKill == nil || kills[i].LikeCount > mostLikedKill.LikeCount {
+			mostLikedKill = &kills[i]
+		}
+	}
+	if mostLikedKill != nil && mostLikedKill.LikeCount > 0 {
+		p := mostLikedKill.Hunter
+		awards = append(awards, GameAward{
+			ID:             "best-disguise",
+			Category:       AwardCategorySocial,
+			TitleKey:       "gotcha.awards.bestDisguise.title",
+			DescriptionKey: "gotcha.awards.bestDisguise.desc",
+			Profile:        &p,
+			Count:          intPtr(mostLikedKill.LikeCount),
+		})
+	}
+
+	// Deadliest Weapon – most-used prop (EN name stored; frontend can look up NL if needed)
+	type propCount struct {
+		nameEN string
+		nameNL string
+		count  int
+	}
+	propCounts := map[uuid.UUID]*propCount{}
+	for _, k := range kills {
+		if k.Prop == nil {
+			continue
+		}
+		if _, ok := propCounts[k.Prop.ID]; !ok {
+			propCounts[k.Prop.ID] = &propCount{nameEN: k.Prop.NameEN, nameNL: k.Prop.NameNL}
+		}
+		propCounts[k.Prop.ID].count++
+	}
+	var bestProp *propCount
+	for _, pc := range propCounts {
+		if bestProp == nil || pc.count > bestProp.count {
+			bestProp = pc
+		}
+	}
+	if bestProp != nil {
+		awards = append(awards, GameAward{
+			ID:             "deadliest-weapon",
+			Category:       AwardCategoryProp,
+			TitleKey:       "gotcha.awards.deadliestWeapon.title",
+			DescriptionKey: "gotcha.awards.deadliestWeapon.desc",
+			PropName:       bestProp.nameEN,
+			Count:          intPtr(bestProp.count),
+		})
+	}
+
+	// First Victim – victim of the first kill
+	firstVictim := sortedKills[0].Victim
+	awards = append(awards, GameAward{
+		ID:             "first-victim",
+		Category:       AwardCategoryMeme,
+		TitleKey:       "gotcha.awards.firstVictim.title",
+		DescriptionKey: "gotcha.awards.firstVictim.desc",
+		Profile:        &firstVictim,
+	})
+
+	// Unlucky – eliminated within 2 hours of the very first kill
+	firstKillTime := sortedKills[0].CreatedAt
+	var unluckyProfiles []ProfileSummary
+	for i := 1; i < len(sortedKills); i++ {
+		if sortedKills[i].CreatedAt.Sub(firstKillTime) < 2*time.Hour {
+			unluckyProfiles = append(unluckyProfiles, sortedKills[i].Victim)
+		}
+	}
+	if len(unluckyProfiles) > 0 {
+		awards = append(awards, GameAward{
+			ID:             "unlucky",
+			Category:       AwardCategoryMeme,
+			TitleKey:       "gotcha.awards.unlucky.title",
+			DescriptionKey: "gotcha.awards.unlucky.desc",
+			Profiles:       unluckyProfiles,
+		})
+	}
+
+	// AFK Victim – participated but never made a kill before being eliminated
+	hunterIDs := map[uuid.UUID]bool{}
+	for _, k := range kills {
+		hunterIDs[k.Hunter.ID] = true
+	}
+	var afkProfiles []ProfileSummary
+	seen := map[uuid.UUID]bool{}
+	for _, p := range profileMap {
+		if !hunterIDs[p.ID] && !seen[p.ID] {
+			afkProfiles = append(afkProfiles, p)
+			seen[p.ID] = true
+		}
+	}
+	if len(afkProfiles) > 0 {
+		awards = append(awards, GameAward{
+			ID:             "afk-victim",
+			Category:       AwardCategoryMeme,
+			TitleKey:       "gotcha.awards.afkVictim.title",
+			DescriptionKey: "gotcha.awards.afkVictim.desc",
+			Profiles:       afkProfiles,
+		})
+	}
+
+	// Final Victim – victim of the last kill
+	finalVictim := sortedKills[len(sortedKills)-1].Victim
+	awards = append(awards, GameAward{
+		ID:             "final-victim",
+		Category:       AwardCategoryGame,
+		TitleKey:       "gotcha.awards.finalVictim.title",
+		DescriptionKey: "gotcha.awards.finalVictim.desc",
+		Profile:        &finalVictim,
+	})
+
+	// Bloodiest Day – calendar day with the most kills
+	dayCounts := map[string]int{}
+	for _, k := range kills {
+		day := k.CreatedAt.Format("2 Jan") // e.g. "3 Mar"
+		dayCounts[day]++
+	}
+	bestDay := ""
+	bestDayCount := 0
+	for day, cnt := range dayCounts {
+		if cnt > bestDayCount {
+			bestDayCount = cnt
+			bestDay = day
+		}
+	}
+	if bestDay != "" {
+		awards = append(awards, GameAward{
+			ID:             "bloodiest-day",
+			Category:       AwardCategoryGame,
+			TitleKey:       "gotcha.awards.bloodiestDay.title",
+			DescriptionKey: "gotcha.awards.bloodiestDay.desc",
+			Day:            bestDay,
+			Count:          intPtr(bestDayCount),
+		})
+	}
+
+	return awards
+}
+
+func sortByTime(kills []EndScreenKillNode) {
+	for i := 1; i < len(kills); i++ {
+		for j := i; j > 0 && kills[j].CreatedAt.Before(kills[j-1].CreatedAt); j-- {
+			kills[j], kills[j-1] = kills[j-1], kills[j]
+		}
+	}
 }
 
 // History

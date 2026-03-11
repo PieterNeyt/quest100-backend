@@ -48,6 +48,8 @@ type UpdatePropRequest struct {
 	NameNL string `json:"nameNL" binding:"required"`
 }
 
+// Shared sub-types
+
 type ProfileSummary struct {
 	ID             uuid.UUID `json:"id"`
 	FirstName      string    `json:"firstName"`
@@ -60,6 +62,8 @@ type PropSummary struct {
 	NameEN string    `json:"nameEN"`
 	NameNL string    `json:"nameNL"`
 }
+
+// Kill feed
 
 type KillFeedItem struct {
 	ID          uuid.UUID      `json:"id"`
@@ -81,6 +85,8 @@ type TargetInfoResponse struct {
 	KillDeadline *time.Time      `json:"killDeadline"`
 }
 
+// End screen
+
 type EndScreenKillNode struct {
 	KillID           uuid.UUID      `json:"killId"`
 	Hunter           ProfileSummary `json:"hunter"`
@@ -100,6 +106,18 @@ type EndScreenStats struct {
 	MostKillsCount    int    `json:"mostKillsCount"`
 }
 
+type GameAwardResponse struct {
+	ID             string           `json:"id"`
+	Category       string           `json:"category"`
+	TitleKey       string           `json:"titleKey"`
+	DescriptionKey string           `json:"descriptionKey"`
+	Profile        *ProfileSummary  `json:"profile,omitempty"`
+	Profiles       []ProfileSummary `json:"profiles,omitempty"`
+	Count          *int             `json:"count,omitempty"`
+	PropName       string           `json:"propName,omitempty"`
+	Day            string           `json:"day,omitempty"`
+}
+
 type EndScreenResponse struct {
 	GameID             uuid.UUID           `json:"gameId"`
 	Winner             *ProfileSummary     `json:"winner"`
@@ -109,6 +127,7 @@ type EndScreenResponse struct {
 	PrizeDescriptionNL string              `json:"prizeDescriptionNL,omitempty"`
 	Stats              EndScreenStats      `json:"stats"`
 	Kills              []EndScreenKillNode `json:"kills"`
+	Awards             []GameAwardResponse `json:"awards"`
 }
 
 type PropResponse struct {
