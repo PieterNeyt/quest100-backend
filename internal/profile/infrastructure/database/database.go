@@ -12,22 +12,9 @@ import (
 )
 
 func AutoMigration(db *gorm.DB) {
-	if err := db.AutoMigrate(&domain.Profile{}); err != nil {
+	if err := db.AutoMigrate(&domain.Profile{}, &domain.KudosEntry{}, &domain.ProfileStats{},
+		&domain.AwardHistoryEntry{}, &domain.Avatar{}, &domain.AttendanceRecord{}, &domain.Asset{}); err != nil {
 		log.Printf("Failed to migrate database: %v", err)
-	}
-	if err := db.AutoMigrate(&domain.KudosEntry{}); err != nil {
-		log.Printf("Failed to migrate database: %v", err)
-	}
-	if err := db.AutoMigrate(&domain.ProfileStats{}); err != nil {
-		log.Printf("Failed to migrate database: %v", err)
-	}
-	if err := db.AutoMigrate(&domain.AwardHistoryEntry{}); err != nil {
-		log.Printf("Failed to migrate database: %v", err)
-	}
-
-	errAttendance := db.AutoMigrate(&domain.AttendanceRecord{})
-	if errAttendance != nil {
-		log.Printf("Failed to migrate AttendanceRecord: %v", errAttendance)
 	}
 
 	seedDatabase(db)

@@ -19,6 +19,7 @@ type ProfileRepository interface {
 	GetAllAssets() (*[]Asset, error)
 	GetAssetById(assetId string) (*Asset, error)
 	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
+	GetProfileAvatar(profileId uuid.UUID) (*Avatar, error)
 }
 
 type Language string
@@ -41,6 +42,7 @@ type Profile struct {
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
 	Assets               []Asset            `gorm:"many2many:user_assets;" json:"assets"`
+	Avatar               Avatar             `gorm:"foreignKey:ProfileID;references:ID" json:"avatar"`
 }
 
 type ProfileStats struct {
@@ -67,6 +69,33 @@ type Asset struct {
 	LayerOrder int
 	Price      int `gorm:"default:0"`
 	Link       string
+}
+
+type Avatar struct {
+	ProfileID uuid.UUID `gorm:"type:uuid;primaryKey;" json:"profileId"`
+	BodyID    string    `gorm:"not null"`
+	Body      Asset     `gorm:"foreignKey:BodyID"`
+
+	EyesID string `gorm:"not null"`
+	Eyes   Asset  `gorm:"foreignKey:EyesID"`
+
+	ShirtsID *string
+	Shirts   *Asset `gorm:"foreignKey:ShirtsID"`
+
+	HairID *string
+	Hair   *Asset `gorm:"foreignKey:HairID"`
+
+	FacialHairID *string
+	FacialHair   *Asset `gorm:"foreignKey:FacialHairID"`
+
+	GlassesID *string
+	Glasses   *Asset `gorm:"foreignKey:GlassesID"`
+
+	AccessoriesID *string
+	Accessories   *Asset `gorm:"foreignKey:AccessoriesID"`
+
+	ExtrasID *string
+	Extras   *Asset `gorm:"foreignKey:ExtrasID"`
 }
 
 func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
@@ -146,7 +175,7 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	return nil
 }
 
-func CreateProfile(graph *GraphProfile) *Profile {
+func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID string) *Profile {
 	return &Profile{
 		ID:          graph.Id,
 		FirstName:   graph.Name,
@@ -165,6 +194,16 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		KudosHistory:      []KudosEntry{},
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
+		Avatar: Avatar{
+			ProfileID: graph.Id,
+			BodyID:    defaultBodyID,
+			EyesID:    defaultEyesID,
+		},
+
+		Assets: []Asset{
+			{ID: defaultBodyID},
+			{ID: defaultEyesID},
+		},
 	}
 }
 
@@ -172,7 +211,33 @@ func (p *Profile) BuyAsset(asset *Asset) error {
 	if p.Kudos < asset.Price {
 		return fmt.Errorf("kudos can't be less than price")
 	}
-	p.Kudos -= asset.Price
 	p.Assets = append(p.Assets, *asset)
 	return nil
+}
+
+func (a *Avatar) AvatarAsArray() []Asset {
+	assets := make([]Asset, 0, 8)
+	assets = append(assets, a.Body, a.Eyes)
+	log.Println(a.BodyID, a.EyesID)
+	log.Println(a.Body, a.Eyes)
+
+	if a.Shirts != nil {
+		assets = append(assets, *a.Shirts)
+	}
+	if a.Hair != nil {
+		assets = append(assets, *a.Hair)
+	}
+	if a.FacialHair != nil {
+		assets = append(assets, *a.FacialHair)
+	}
+	if a.Glasses != nil {
+		assets = append(assets, *a.Glasses)
+	}
+	if a.Accessories != nil {
+		assets = append(assets, *a.Accessories)
+	}
+	if a.Extras != nil {
+		assets = append(assets, *a.Extras)
+	}
+	return assets
 }

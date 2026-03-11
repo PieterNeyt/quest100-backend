@@ -30,6 +30,7 @@ type ProfileService interface {
 	GetAllAssets() ([]domain.Asset, error)
 	GetProfileAssets(profileId uuid.UUID) ([]domain.Asset, error)
 	BuyAsset(profileId uuid.UUID, assetId string) error
+	GetEquippedAssets(profileUUID uuid.UUID) ([]domain.Asset, error)
 }
 
 type profileService struct {
@@ -85,7 +86,21 @@ func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
-		profile = domain.CreateProfile(graphProfile)
+		// TODO automatisch seeden van paar avatar items mogelijks verbeteren
+		assets, err := s.profileRepo.GetAllAssets()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get assets: %w", err)
+		}
+		var assetBodyId string
+		var assetEyesId string
+		for _, asset := range *assets {
+			if asset.Category == "Body" && asset.Name == "blue gopher" {
+				assetBodyId = asset.ID
+			} else if asset.Category == "Eyes" && asset.Name == "crazy eyes" {
+				assetEyesId = asset.ID
+			}
+		}
+		profile = domain.CreateProfile(graphProfile, assetBodyId, assetEyesId)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {
 			return nil, fmt.Errorf("failed to save profile: %w", err)
 		}
@@ -272,4 +287,12 @@ func (s *profileService) BuyAsset(profileId uuid.UUID, assetId string) error {
 		return fmt.Errorf("failed to save profile: %w", err)
 	}
 	return nil
+}
+
+func (s *profileService) GetEquippedAssets(profileId uuid.UUID) ([]domain.Asset, error) {
+	avatar, err := s.profileRepo.GetProfileAvatar(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get avatar: %w", err)
+	}
+	return avatar.AvatarAsArray(), nil
 }

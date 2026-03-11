@@ -25,6 +25,7 @@ type AssetDTO struct {
 	Price      int    `json:"price"`
 	IsOwned    bool   `json:"isOwned"`
 	Link       string `json:"link"`
+	Equipped   bool   `json:"equipped"`
 }
 
 type CategoryDTO struct {

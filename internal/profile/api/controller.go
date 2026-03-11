@@ -282,8 +282,10 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 		return
 	}
 
+	equippedAssets, err := h.profileService.GetEquippedAssets(profileUUID)
+
 	categoryMap := make(map[string]*CategoryDTO)
-	var categoryOrder []string // To maintain a consistent order in the UI
+	var categoryOrder []string
 
 	for _, asset := range assets {
 		if _, exists := categoryMap[asset.Category]; !exists {
@@ -301,6 +303,9 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 				return item.ID == asset.ID
 			}),
 			Link: asset.Link,
+			Equipped: slices.ContainsFunc(equippedAssets, func(item domain.Asset) bool {
+				return item.ID == asset.ID
+			}),
 		})
 	}
 
