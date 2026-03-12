@@ -23,5 +23,6 @@ func SetupProfileRoutes(r *gin.RouterGroup, profServ application.ProfileService)
 		profileGroup.DELETE("/picture", profileHandler.DeleteProfilePicture)
 		profileGroup.GET("/assets", profileHandler.GetAvatarItems)
 		profileGroup.PUT("/assets/:id", profileHandler.BuyAvatarItem)
+		profileGroup.PUT("/avatar/:id", profileHandler.EquipAvatarItem)
 	}
 }

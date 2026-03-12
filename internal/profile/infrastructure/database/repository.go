@@ -36,6 +36,7 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 		Preload("KudosHistory").
 		Preload("AttendanceRecords").
 		Preload("Avatar").
+		Preload("Assets").
 		First(&profile, "id = ?", profileId)
 
 	if result.Error != nil {

@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -207,19 +208,51 @@ func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID stri
 	}
 }
 
+func (p *Profile) OwnsAsset(assetId string) bool {
+	if slices.ContainsFunc(p.Assets, func(asset Asset) bool {
+		return asset.ID == assetId
+	}) {
+		return true
+	}
+	return false
+}
+
 func (p *Profile) BuyAsset(asset *Asset) error {
 	if p.Kudos < asset.Price {
 		return fmt.Errorf("kudos can't be less than price")
+	}
+	if p.OwnsAsset(asset.ID) {
+		return fmt.Errorf("asset with id %s is already owned", asset.ID)
 	}
 	p.Assets = append(p.Assets, *asset)
 	return nil
 }
 
+func (p *Profile) EquipAsset(asset *Asset) {
+	switch asset.Category {
+	case "Body":
+		p.Avatar.BodyID = asset.ID
+	case "Eyes":
+		p.Avatar.EyesID = asset.ID
+	case "Shirts":
+		p.Avatar.ShirtsID = &asset.ID
+	case "Hair":
+		p.Avatar.HairID = &asset.ID
+	case "FacialHair":
+		p.Avatar.FacialHairID = &asset.ID
+	case "Glasses":
+		p.Avatar.GlassesID = &asset.ID
+	case "Accessories":
+		p.Avatar.AccessoriesID = &asset.ID
+	case "Extras":
+		p.Avatar.ExtrasID = &asset.ID
+
+	}
+}
+
 func (a *Avatar) AvatarAsArray() []Asset {
 	assets := make([]Asset, 0, 8)
 	assets = append(assets, a.Body, a.Eyes)
-	log.Println(a.BodyID, a.EyesID)
-	log.Println(a.Body, a.Eyes)
 
 	if a.Shirts != nil {
 		assets = append(assets, *a.Shirts)
