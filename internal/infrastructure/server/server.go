@@ -6,6 +6,8 @@ import (
 	server2 "Quest100Backend/internal/communication/infrastructure/server"
 	eventApp "Quest100Backend/internal/event/application"
 	database3 "Quest100Backend/internal/event/infrastructure/database"
+	gotchaApp "Quest100Backend/internal/gotcha/application"
+	gotchaDB "Quest100Backend/internal/gotcha/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/schedular"
 	modApp "Quest100Backend/internal/moderation/application"
@@ -31,6 +33,7 @@ type Server struct {
 	eventServ   eventApp.EventService
 	chatServ    comApp.ChatService
 	qrCodeServ  utilApp.QRCodeService
+	gotchaServ  gotchaApp.GotchaService
 	modServ     modApp.ModerationService
 }
 
@@ -42,12 +45,17 @@ func NewServer() *http.Server {
 	cRepo := database4.NewChatRepository(db.GetDB())
 	qrGen := domain.NewQRCodeGenerator(256)
 	mRepo := modDatabase.NewModerationRepository(db.GetDB())
+	gGameRepo := gotchaDB.NewGameRepository(db.GetDB())
+	gPartRepo := gotchaDB.NewParticipantRepository(db.GetDB())
+	gKillRepo := gotchaDB.NewKillRepository(db.GetDB())
+	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
 
 	pServ := profileApp.NewProfileService(pRepo)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	mServ := modApp.NewModerationService(mRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ, mServ)
 	qServ := utilApp.NewQRCodeService(qrGen)
+	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
@@ -59,6 +67,7 @@ func NewServer() *http.Server {
 		chatServ:    cServ,
 		qrCodeServ:  qServ,
 		modServ:     mServ,
+		gotchaServ:  gServ,
 	}
 
 	schedular.StartDailyTableCleanup(

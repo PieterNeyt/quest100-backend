@@ -3,6 +3,7 @@ package database
 import (
 	databaseComm "Quest100Backend/internal/communication/infrastructure/database"
 	databaseEvent "Quest100Backend/internal/event/infrastructure/database"
+	databaseGotcha "Quest100Backend/internal/gotcha/infrastructure/database"
 	databaseModeration "Quest100Backend/internal/moderation/infrastructure/database"
 	databaseProfile "Quest100Backend/internal/profile/infrastructure/database"
 	"fmt"
@@ -99,6 +100,7 @@ func dropAllTables(db *gorm.DB) {
 func autoMigration(db *gorm.DB) {
 	databaseProfile.AutoMigration(db)
 	databaseEvent.AutoMigration(db)
+	databaseGotcha.AutoMigration(db)
 	databaseComm.AutoMigration(db)
 	databaseModeration.AutoMigration(db)
 }

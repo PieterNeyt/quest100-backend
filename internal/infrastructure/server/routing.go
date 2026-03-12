@@ -3,6 +3,7 @@ package server
 import (
 	commRouting "Quest100Backend/internal/communication/infrastructure/server"
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
+	gotchaRouting "Quest100Backend/internal/gotcha/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
 	moderationRouting "Quest100Backend/internal/moderation/infrastructure/server"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
@@ -30,6 +31,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	moderationRouting.SetupModerationRoutes(api, s.modServ)
 
 	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
+	gotchaRouting.SetupGotchaRoutes(api, s.gotchaServ)
+
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
 	r.GET("/debug/ws", func(c *gin.Context) {

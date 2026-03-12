@@ -16,6 +16,7 @@ type ProfileRepository interface {
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
+	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
 }
 
@@ -33,6 +34,7 @@ type Profile struct {
 	Email                string    `gorm:"uniqueIndex" json:"email"`
 	Kudos                int       `json:"kudos"`
 	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
+	Campus               string    `gorm:"type:varchar(100)" json:"campus"`
 	ArchetypeID          int
 	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
@@ -139,6 +141,7 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		FirstName:   graph.Name,
 		LastName:    graph.Surname,
 		Email:       graph.Mail,
+		Campus:      graph.OfficeLocation,
 		Kudos:       285,
 		ArchetypeID: 1,
 		PlayerStats: ProfileStats{
