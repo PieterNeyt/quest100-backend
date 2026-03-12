@@ -154,7 +154,22 @@ func (h *ProfileHandler) UpdateProfilePicture(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+func (h *ProfileHandler) GetProfileById(c *gin.Context) {
+	idStr := c.Param("id")
+	profileId, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
+		return
+	}
 
+	profile, err := h.profileService.GetProfileById(profileId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
 func (h *ProfileHandler) DeleteProfilePicture(c *gin.Context) {
 	profileID, exists := c.Get("profileID")
 	if !exists {

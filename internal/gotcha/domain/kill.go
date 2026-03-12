@@ -1,0 +1,43 @@
+package domain
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type KillStatus string
+
+const (
+	KillPending  KillStatus = "PENDING"
+	KillApproved KillStatus = "APPROVED"
+	KillDenied   KillStatus = "DENIED"
+)
+
+type GotchaKill struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
+	GameID      uuid.UUID  `gorm:"type:uuid;not null;index" json:"gameId"`
+	HunterID    uuid.UUID  `gorm:"type:uuid;not null" json:"hunterId"`
+	VictimID    uuid.UUID  `gorm:"type:uuid;not null" json:"victimId"`
+	PhotoBase64 string     `gorm:"type:text;not null" json:"photoBase64"`
+	PropID      *uuid.UUID `gorm:"type:uuid" json:"propId,omitempty"`
+	Status      KillStatus `gorm:"type:varchar(20)" json:"status"`
+	ReviewedBy  *uuid.UUID `gorm:"type:uuid" json:"reviewedBy,omitempty"`
+	ReviewedAt  *time.Time `json:"reviewedAt,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
+
+	Likes []GotchaKillLike `gorm:"foreignKey:KillID" json:"likes,omitempty"`
+}
+
+type GotchaKillLike struct {
+	KillID    uuid.UUID `gorm:"type:uuid;primaryKey" json:"killId"`
+	ProfileID uuid.UUID `gorm:"type:uuid;primaryKey" json:"profileId"`
+	LikedAt   time.Time `json:"likedAt"`
+}
+
+type GotchaProp struct {
+	ID     uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	GameID uuid.UUID `gorm:"type:uuid;not null;index" json:"gameId"`
+	NameEN string    `gorm:"type:varchar(100);not null" json:"nameEN"`
+	NameNL string    `gorm:"type:varchar(100);not null" json:"nameNL"`
+}
