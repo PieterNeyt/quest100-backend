@@ -11,9 +11,4 @@ func AutoMigration(db *gorm.DB) {
 	if err := db.AutoMigrate(domain.Report{}); err != nil {
 		log.Printf("Failed to migrate database: %v", err)
 	}
-
-	//seedDatabase(db)
-}
-
-func seedDatabase(db *gorm.DB) {
 }
