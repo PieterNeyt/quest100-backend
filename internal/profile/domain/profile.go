@@ -17,6 +17,7 @@ type ProfileRepository interface {
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
+	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetAllAssets() (*[]Asset, error)
 	GetAssetById(assetId string) (*Asset, error)
 	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
@@ -37,6 +38,7 @@ type Profile struct {
 	Email                string    `gorm:"uniqueIndex" json:"email"`
 	Kudos                int       `json:"kudos"`
 	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
+	Campus               string    `gorm:"type:varchar(100)" json:"campus"`
 	ArchetypeID          int
 	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
@@ -172,6 +174,7 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	p.FirstName = graph.Name
 	p.LastName = graph.Surname
 	p.Email = graph.Mail
+	p.Campus = graph.OfficeLocation
 	return nil
 }
 
@@ -181,7 +184,8 @@ func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID stri
 		FirstName:   graph.Name,
 		LastName:    graph.Surname,
 		Email:       graph.Mail,
-		Kudos:       3000,
+		Campus:      graph.OfficeLocation,
+		Kudos:       0,
 		ArchetypeID: 1,
 		PlayerStats: ProfileStats{
 			ProfileID:      graph.Id,

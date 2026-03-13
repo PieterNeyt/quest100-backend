@@ -27,6 +27,7 @@ type ProfileService interface {
 	GetProfiles() (*[]domain.Profile, error)
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
+	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetAllAssets() ([]domain.Asset, error)
 	GetProfileAssets(profileId uuid.UUID) ([]domain.Asset, error)
 	BuyAsset(profileId uuid.UUID, assetId string) error
@@ -42,6 +43,10 @@ func NewProfileService(profileRepo domain.ProfileRepository) ProfileService {
 	return &profileService{
 		profileRepo: profileRepo,
 	}
+}
+
+func (s *profileService) GetCampusByProfileID(id uuid.UUID) (string, error) {
+	return s.profileRepo.GetCampusByProfileID(id)
 }
 
 func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
