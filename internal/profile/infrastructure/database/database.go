@@ -72,12 +72,12 @@ func syncGopherAssets(db *gorm.DB) error {
 	for _, category := range apiResponse.Categories {
 		for _, image := range category.Images {
 			asset := domain.Asset{
-				ID:         uuid.NewString(),
-				Name:       image.Name,
-				Category:   category.Name,
-				LayerOrder: 0,
-				Price:      100,
-				Link:       image.Link,
+				ID:        uuid.NewString(),
+				Name:      image.Name,
+				Category:  category.Name,
+				Price:     100,
+				Link:      image.Link,
+				Thumbnail: image.Thumbnail,
 			}
 
 			if category.Name == "Body" || category.Name == "Eyes" {

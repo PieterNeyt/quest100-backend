@@ -31,7 +31,7 @@ type ProfileService interface {
 	GetProfileAssets(profileId uuid.UUID) ([]domain.Asset, error)
 	BuyAsset(profileId uuid.UUID, assetId string) error
 	GetEquippedAssets(profileUUID uuid.UUID) ([]domain.Asset, error)
-	EquipAsset(profileId uuid.UUID, assetId string) error
+	ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error)
 }
 
 type profileService struct {
@@ -298,21 +298,21 @@ func (s *profileService) GetEquippedAssets(profileId uuid.UUID) ([]domain.Asset,
 	return avatar.AvatarAsArray(), nil
 }
 
-func (s *profileService) EquipAsset(profileId uuid.UUID, assetId string) error {
+func (s *profileService) ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error) {
 	profile, err := s.GetProfileById(profileId)
 	if err != nil {
-		return fmt.Errorf("failed to get profile: %w", err)
+		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
 	if !profile.OwnsAsset(assetId) {
-		return fmt.Errorf("does not own asset")
+		return nil, fmt.Errorf("does not own asset")
 	}
 	asset, err := s.profileRepo.GetAssetById(assetId)
 	if err != nil {
-		return fmt.Errorf("failed to get asset: %w", err)
+		return nil, fmt.Errorf("failed to get asset: %w", err)
 	}
-	profile.EquipAsset(asset)
+	profile.ToggleAsset(asset)
 	if err := s.profileRepo.SaveProfile(profile); err != nil {
-		return fmt.Errorf("failed to save profile: %w", err)
+		return nil, fmt.Errorf("failed to save profile: %w", err)
 	}
-	return nil
+	return profile.Avatar.AvatarAsArray(), nil
 }

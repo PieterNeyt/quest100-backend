@@ -294,11 +294,10 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 		}
 
 		categoryMap[asset.Category].Items = append(categoryMap[asset.Category].Items, AssetDTO{
-			ID:         asset.ID,
-			Name:       asset.Name,
-			Category:   asset.Category,
-			LayerOrder: asset.LayerOrder,
-			Price:      asset.Price,
+			ID:       asset.ID,
+			Name:     asset.Name,
+			Category: asset.Category,
+			Price:    asset.Price,
 			IsOwned: slices.ContainsFunc(profileAssets, func(item domain.Asset) bool {
 				return item.ID == asset.ID
 			}),
@@ -306,6 +305,7 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 			Equipped: slices.ContainsFunc(equippedAssets, func(item domain.Asset) bool {
 				return item.ID == asset.ID
 			}),
+			Thumbnail: asset.Thumbnail,
 		})
 	}
 
@@ -343,7 +343,7 @@ func (h *ProfileHandler) BuyAvatarItem(c *gin.Context) {
 	c.JSON(http.StatusNoContent, nil)
 }
 
-func (h *ProfileHandler) EquipAvatarItem(c *gin.Context) {
+func (h *ProfileHandler) ToggleAvatarItem(c *gin.Context) {
 	profileID, exists := c.Get("profileID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
@@ -362,10 +362,25 @@ func (h *ProfileHandler) EquipAvatarItem(c *gin.Context) {
 		return
 	}
 
-	if err := h.profileService.EquipAsset(profileUUID, avatarId); err != nil {
+	assets, err := h.profileService.ToggleAsset(profileUUID, avatarId)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	var assetArray []AssetDTO
+	for _, asset := range assets {
+		assetArray = append(assetArray, AssetDTO{
+			ID:        asset.ID,
+			Name:      asset.Name,
+			Category:  asset.Category,
+			Price:     asset.Price,
+			IsOwned:   true,
+			Link:      asset.Link,
+			Equipped:  true,
+			Thumbnail: asset.Thumbnail,
+		})
+	}
+
+	c.JSON(http.StatusOK, assetArray)
 }

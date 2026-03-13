@@ -62,14 +62,13 @@ type AttendanceRecord struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// TODO nadenken hoe opslaan equipped item
 type Asset struct {
-	ID         string `gorm:"primaryKey"`
-	Name       string
-	Category   string
-	LayerOrder int
-	Price      int `gorm:"default:0"`
-	Link       string
+	ID        string `gorm:"primaryKey"`
+	Name      string
+	Category  string
+	Price     int `gorm:"default:0"`
+	Link      string
+	Thumbnail string
 }
 
 type Avatar struct {
@@ -182,7 +181,7 @@ func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID stri
 		FirstName:   graph.Name,
 		LastName:    graph.Surname,
 		Email:       graph.Mail,
-		Kudos:       0,
+		Kudos:       3000,
 		ArchetypeID: 1,
 		PlayerStats: ProfileStats{
 			ProfileID:      graph.Id,
@@ -228,25 +227,62 @@ func (p *Profile) BuyAsset(asset *Asset) error {
 	return nil
 }
 
-func (p *Profile) EquipAsset(asset *Asset) {
+func (p *Profile) ToggleAsset(asset *Asset) {
 	switch asset.Category {
 	case "Body":
 		p.Avatar.BodyID = asset.ID
+		p.Avatar.Body = *asset
 	case "Eyes":
 		p.Avatar.EyesID = asset.ID
+		p.Avatar.Eyes = *asset
 	case "Shirts":
-		p.Avatar.ShirtsID = &asset.ID
+		if p.Avatar.ShirtsID != nil && *p.Avatar.ShirtsID == asset.ID {
+			p.Avatar.ShirtsID = nil
+			p.Avatar.Shirts = nil
+		} else {
+			p.Avatar.ShirtsID = &asset.ID
+			p.Avatar.Shirts = asset
+		}
 	case "Hair":
-		p.Avatar.HairID = &asset.ID
-	case "FacialHair":
-		p.Avatar.FacialHairID = &asset.ID
+		if p.Avatar.HairID != nil && *p.Avatar.HairID == asset.ID {
+			p.Avatar.HairID = nil
+			p.Avatar.Hair = nil
+		} else {
+			p.Avatar.HairID = &asset.ID
+			p.Avatar.Hair = asset
+		}
+	case "Facial_Hair":
+		if p.Avatar.FacialHairID != nil && *p.Avatar.FacialHairID == asset.ID {
+			p.Avatar.FacialHairID = nil
+			p.Avatar.FacialHair = nil
+		} else {
+			p.Avatar.FacialHairID = &asset.ID
+			p.Avatar.FacialHair = asset
+		}
 	case "Glasses":
-		p.Avatar.GlassesID = &asset.ID
-	case "Accessories":
-		p.Avatar.AccessoriesID = &asset.ID
+		if p.Avatar.GlassesID != nil && *p.Avatar.GlassesID == asset.ID {
+			p.Avatar.GlassesID = nil
+			p.Avatar.Glasses = nil
+		} else {
+			p.Avatar.GlassesID = &asset.ID
+			p.Avatar.Glasses = asset
+		}
+	case "Hats_and_Hair_Accessories":
+		if p.Avatar.AccessoriesID != nil && *p.Avatar.AccessoriesID == asset.ID {
+			p.Avatar.AccessoriesID = nil
+			p.Avatar.Accessories = nil
+		} else {
+			p.Avatar.AccessoriesID = &asset.ID
+			p.Avatar.Accessories = asset
+		}
 	case "Extras":
-		p.Avatar.ExtrasID = &asset.ID
-
+		if p.Avatar.ExtrasID != nil && *p.Avatar.ExtrasID == asset.ID {
+			p.Avatar.ExtrasID = nil
+			p.Avatar.Extras = nil
+		} else {
+			p.Avatar.ExtrasID = &asset.ID
+			p.Avatar.Extras = asset
+		}
 	}
 }
 

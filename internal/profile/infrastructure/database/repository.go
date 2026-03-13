@@ -35,7 +35,9 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 	result := r.db.Debug().
 		Preload("KudosHistory").
 		Preload("AttendanceRecords").
-		Preload("Avatar").
+		Preload("Avatar").Preload("Avatar.Body").Preload("Avatar.Eyes").Preload("Avatar.Shirts").
+		Preload("Avatar.Hair").Preload("Avatar.FacialHair").Preload("Avatar.Glasses").Preload("Avatar.Accessories").
+		Preload("Avatar.Extras").
 		Preload("Assets").
 		First(&profile, "id = ?", profileId)
 

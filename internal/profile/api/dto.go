@@ -18,14 +18,14 @@ type SyncProfileResponse struct {
 }
 
 type AssetDTO struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Category   string `json:"category"`
-	LayerOrder int    `json:"layer_order"`
-	Price      int    `json:"price"`
-	IsOwned    bool   `json:"isOwned"`
-	Link       string `json:"link"`
-	Equipped   bool   `json:"equipped"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Category  string `json:"category"`
+	Price     int    `json:"price"`
+	IsOwned   bool   `json:"isOwned"`
+	Link      string `json:"link"`
+	Equipped  bool   `json:"equipped"`
+	Thumbnail string `json:"thumbnail"`
 }
 
 type CategoryDTO struct {
