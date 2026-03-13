@@ -70,12 +70,12 @@ func syncGopherAssets(db *gorm.DB) error {
 	}
 	var assets []domain.Asset
 	for _, category := range apiResponse.Categories {
-		for _, image := range category.Images {
+		for i, image := range category.Images {
 			asset := domain.Asset{
 				ID:        uuid.NewString(),
 				Name:      image.Name,
 				Category:  category.Name,
-				Price:     100,
+				Price:     i * 10,
 				Link:      image.Link,
 				Thumbnail: image.Thumbnail,
 			}
