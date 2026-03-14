@@ -28,6 +28,7 @@ const (
 
 type Profile struct {
 	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
+	EmployeeID           int       `gorm:"not null" json:"employeeId"`
 	FirstName            string    `json:"firstName"`
 	LastName             string    `json:"lastName"`
 	Email                string    `gorm:"uniqueIndex" json:"email"`
@@ -138,6 +139,7 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 func CreateProfile(graph *GraphProfile) *Profile {
 	return &Profile{
 		ID:          graph.Id,
+		EmployeeID:  graph.EmployeeID,
 		FirstName:   graph.Name,
 		LastName:    graph.Surname,
 		Email:       graph.Mail,

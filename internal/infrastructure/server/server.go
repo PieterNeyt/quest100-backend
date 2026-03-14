@@ -19,8 +19,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
 type Server struct {
@@ -49,7 +47,7 @@ func NewServer() *http.Server {
 	pServ := profileApp.NewProfileService(pRepo)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ)
-	qServ := utilApp.NewQRCodeService(qrGen)
+	qServ := utilApp.NewQRCodeService(qrGen, pServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))

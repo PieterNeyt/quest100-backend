@@ -106,7 +106,7 @@ func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profil
 }
 
 func (s *profileService) GetGraphProfile(token string) (*domain.GraphProfile, error) {
-	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/me", nil)
+	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/me?$select=id,employeeId,givenName,surname,mail,preferredLanguage,officeLocation", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	client := &http.Client{}

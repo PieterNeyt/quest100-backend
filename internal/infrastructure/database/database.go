@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	_ "github.com/joho/godotenv/autoload"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -26,13 +25,6 @@ type service struct {
 }
 
 var (
-	database   = os.Getenv("QUEST_DB_DATABASE")
-	password   = os.Getenv("QUEST_DB_PASSWORD")
-	username   = os.Getenv("QUEST_DB_USERNAME")
-	port       = os.Getenv("QUEST_DB_PORT")
-	host       = os.Getenv("QUEST_DB_HOST")
-	schema     = os.Getenv("QUEST_DB_SCHEMA")
-	resetDB    = os.Getenv("RESET_DATABASE")
 	dbInstance *service
 )
 
@@ -41,6 +33,13 @@ func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
+
+	database := os.Getenv("QUEST_DB_DATABASE")
+	password := os.Getenv("QUEST_DB_PASSWORD")
+	username := os.Getenv("QUEST_DB_USERNAME")
+	port := os.Getenv("QUEST_DB_PORT")
+	host := os.Getenv("QUEST_DB_HOST")
+	resetDB := os.Getenv("RESET_DATABASE")
 
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
@@ -70,6 +69,8 @@ func New() Service {
 }
 
 func dropAllTables(db *gorm.DB) {
+	schema := os.Getenv("QUEST_DB_SCHEMA")
+
 	var tables []string
 
 	schemaName := schema
@@ -108,6 +109,7 @@ func (s *service) GetDB() *gorm.DB {
 }
 
 func (s *service) Close() error {
+	database := os.Getenv("QUEST_DB_DATABASE")
 	log.Printf("Disconnected from database: %s", database)
 
 	sqlDB, err := s.db.DB()

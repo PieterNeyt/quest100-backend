@@ -13,6 +13,6 @@ func SetupQRCodeRoutes(r *gin.RouterGroup, qrServ application.QRCodeService) {
 
 	qrGroup := r.Group("/qrcode")
 	{
-		qrGroup.POST("/generate", auth.RequireRole(auth.Lector), qrHandler.GenerateQRCode)
+		qrGroup.POST("/generate", auth.RequireRole(auth.Student), qrHandler.GenerateQRCode)
 	}
 }

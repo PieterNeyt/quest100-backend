@@ -56,7 +56,7 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 }
 
 func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
-
+	//TODO controle dat de persoon wel echt deze les heeft
 	classId, err := uuid.Parse(c.Param("classId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class ID format"})
