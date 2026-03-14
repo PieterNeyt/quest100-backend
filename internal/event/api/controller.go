@@ -51,6 +51,22 @@ func (h *EventHandler) GetEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, event)
 }
 
+func (h *EventHandler) GetReportedEvenByID(c *gin.Context) {
+	//TODO hier een check toevoegen da ge wel een admin bent
+	eventID, err := uuid.Parse(c.Param("eventId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	event, err := h.eventService.GetReportedEvenByID(eventID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+	c.JSON(http.StatusOK, event)
+}
+
 func (h *EventHandler) CreateEvent(c *gin.Context) {
 	profileID, ok := getProfileID(c)
 	if !ok {

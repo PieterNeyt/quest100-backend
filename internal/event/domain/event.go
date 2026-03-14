@@ -14,6 +14,7 @@ type EventRepository interface {
 	DeleteEvent(id uuid.UUID) error
 	RemoveAttendee(eventID uuid.UUID, profileID uuid.UUID) error
 	GetEventByIDWithProfiles(id uuid.UUID) (*EventWithProfiles, error)
+	GetReportedEvenByID(id uuid.UUID) (*Event, error)
 }
 
 type EventCategory string

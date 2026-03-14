@@ -29,6 +29,22 @@ func (r *eventRepository) GetEventByID(id uuid.UUID) (*domain.Event, error) {
 	var event domain.Event
 	result := r.db.
 		Preload("Attendees").
+		Where("visibility = ?", domain.EventVisibilityPublic).
+		First(&event, "id = ?", id)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("event with id %s not found", id)
+		}
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+	return &event, nil
+}
+
+func (r *eventRepository) GetReportedEvenByID(id uuid.UUID) (*domain.Event, error) {
+	var event domain.Event
+	result := r.db.
+		Preload("Attendees").
 		First(&event, "id = ?", id)
 
 	if result.Error != nil {
