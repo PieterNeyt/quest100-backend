@@ -4,6 +4,7 @@ import (
 	"Quest100Backend/internal/profile/application"
 	"Quest100Backend/internal/profile/domain"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -291,4 +292,151 @@ func (h *ProfileHandler) GetLastKudosEntries(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, entries)
+}
+
+func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	assets, err := h.profileService.GetAllAssets()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	profileAssets, err := h.profileService.GetProfileAssets(profileUUID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	equippedAssets, err := h.profileService.GetEquippedAssets(profileUUID)
+
+	categoryMap := make(map[string]*CategoryDTO)
+	var categoryOrder []string
+
+	for _, asset := range assets {
+		if _, exists := categoryMap[asset.Category]; !exists {
+			categoryMap[asset.Category] = &CategoryDTO{Name: asset.Category, Items: []AssetDTO{}}
+			categoryOrder = append(categoryOrder, asset.Category)
+		}
+
+		categoryMap[asset.Category].Items = append(categoryMap[asset.Category].Items, AssetDTO{
+			ID:       asset.ID,
+			Name:     asset.Name,
+			Category: asset.Category,
+			Price:    asset.Price,
+			IsOwned: slices.ContainsFunc(profileAssets, func(item domain.Asset) bool {
+				return item.ID == asset.ID
+			}),
+			Link: asset.Link,
+			Equipped: slices.ContainsFunc(equippedAssets, func(item domain.Asset) bool {
+				return item.ID == asset.ID
+			}),
+			Thumbnail: asset.Thumbnail,
+		})
+	}
+
+	var responseArray []CategoryDTO
+
+	for _, catName := range categoryOrder {
+		responseArray = append(responseArray, *categoryMap[catName])
+	}
+
+	c.JSON(http.StatusOK, responseArray)
+}
+
+func (h *ProfileHandler) BuyAvatarItem(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	avatarId := c.Param("id")
+	if avatarId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
+		return
+	}
+
+	if err := h.profileService.BuyAsset(profileUUID, avatarId); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *ProfileHandler) ToggleAvatarItem(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	profileUUID, ok := profileID.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
+		return
+	}
+
+	avatarId := c.Param("id")
+	if avatarId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
+		return
+	}
+
+	assets, err := h.profileService.ToggleAsset(profileUUID, avatarId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var assetArray []AssetDTO
+	for _, asset := range assets {
+		assetArray = append(assetArray, AssetDTO{
+			ID:        asset.ID,
+			Name:      asset.Name,
+			Category:  asset.Category,
+			Price:     asset.Price,
+			IsOwned:   true,
+			Link:      asset.Link,
+			Equipped:  true,
+			Thumbnail: asset.Thumbnail,
+		})
+	}
+
+	c.JSON(http.StatusOK, assetArray)
+}
+
+func (h *ProfileHandler) ProxyAsset(c *gin.Context) {
+	url := c.Query("url")
+	if url == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url required"})
+		return
+	}
+
+	contentType, body, err := h.profileService.FetchExternalAsset(url)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	defer body.Close()
+
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Cache-Control", "public, max-age=86400")
+	c.DataFromReader(http.StatusOK, -1, contentType, body, nil)
 }

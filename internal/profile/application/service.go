@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -29,6 +30,12 @@ type ProfileService interface {
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error)
+	GetAllAssets() ([]domain.Asset, error)
+	GetProfileAssets(profileId uuid.UUID) ([]domain.Asset, error)
+	BuyAsset(profileId uuid.UUID, assetId string) error
+	GetEquippedAssets(profileUUID uuid.UUID) ([]domain.Asset, error)
+	ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error)
+	FetchExternalAsset(url string) (contentType string, body io.ReadCloser, err error)
 }
 
 type profileService struct {
@@ -83,12 +90,26 @@ func (s *profileService) GetProfiles() (*[]domain.Profile, error) {
 }
 
 func (s *profileService) UpdateProfile(profile *domain.Profile) error {
-	return s.profileRepo.UpdateProfile(profile)
+	return s.profileRepo.SaveProfile(profile)
 }
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
-		profile = domain.CreateProfile(graphProfile)
+		// TODO automatisch seeden van paar avatar items mogelijks verbeteren
+		assets, err := s.profileRepo.GetAllAssets()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get assets: %w", err)
+		}
+		var assetBodyId string
+		var assetEyesId string
+		for _, asset := range *assets {
+			if asset.Category == "Body" && asset.Name == "blue gopher" {
+				assetBodyId = asset.ID
+			} else if asset.Category == "Eyes" && asset.Name == "crazy eyes" {
+				assetEyesId = asset.ID
+			}
+		}
+		profile = domain.CreateProfile(graphProfile, assetBodyId, assetEyesId)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {
 			return nil, fmt.Errorf("failed to save profile: %w", err)
 		}
@@ -160,7 +181,7 @@ func (s *profileService) UpdateProfilePicture(profileId uuid.UUID, base64Img str
 		return nil, fmt.Errorf("profile not found: %w", err)
 	}
 	profile.CustomProfilePicture = &base64Img
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to update picture: %w", err)
 	}
 	return profile, nil
@@ -172,7 +193,7 @@ func (s *profileService) DeleteProfilePicture(profileId uuid.UUID) (*domain.Prof
 		return nil, fmt.Errorf("profile not found: %w", err)
 	}
 	profile.CustomProfilePicture = nil
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to delete picture: %w", err)
 	}
 	return profile, nil
@@ -194,7 +215,7 @@ func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, k
 		}
 	}
 
-	if err := s.profileRepo.UpdateProfile(profile); err != nil {
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
 		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 
@@ -241,6 +262,89 @@ func (s *profileService) GetProfilesStatistics(profileUUID uuid.UUID) (domain.Pr
 		return domain.ProfileStats{}, fmt.Errorf("failed to get profile stats: %w", err)
 	}
 	return profileStats, nil
+}
+
+func (s *profileService) GetAllAssets() ([]domain.Asset, error) {
+	assets, err := s.profileRepo.GetAllAssets()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assets: %w", err)
+	}
+	return *assets, nil
+}
+
+func (s *profileService) GetProfileAssets(profileId uuid.UUID) ([]domain.Asset, error) {
+	assets, err := s.profileRepo.GetProfileAssets(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assets: %w", err)
+	}
+	return *assets, nil
+}
+
+func (s *profileService) BuyAsset(profileId uuid.UUID, assetId string) error {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+	asset, err := s.profileRepo.GetAssetById(assetId)
+	if err != nil {
+		return fmt.Errorf("failed to get asset: %w", err)
+	}
+	if err := profile.BuyAsset(asset); err != nil {
+		return fmt.Errorf("failed to buy asset: %w", err)
+	}
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
+		return fmt.Errorf("failed to save profile: %w", err)
+	}
+	return nil
+}
+
+func (s *profileService) GetEquippedAssets(profileId uuid.UUID) ([]domain.Asset, error) {
+	avatar, err := s.profileRepo.GetProfileAvatar(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get avatar: %w", err)
+	}
+	return avatar.AvatarAsArray(), nil
+}
+
+func (s *profileService) ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error) {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+	if !profile.OwnsAsset(assetId) {
+		return nil, fmt.Errorf("does not own asset")
+	}
+	asset, err := s.profileRepo.GetAssetById(assetId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get asset: %w", err)
+	}
+	profile.ToggleAsset(asset)
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
+		return nil, fmt.Errorf("failed to save profile: %w", err)
+	}
+	return profile.Avatar.AvatarAsArray(), nil
+}
+
+func (s *profileService) FetchExternalAsset(url string) (string, io.ReadCloser, error) {
+	if !strings.HasPrefix(url, "https://storage.googleapis.com/gopherizeme.appspot.com/") {
+		return "", nil, fmt.Errorf("url not allowed")
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to fetch asset: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return "", nil, fmt.Errorf("upstream returned %d", resp.StatusCode)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/png"
+	}
+
+	return contentType, resp.Body, nil
 }
 
 func (s *profileService) GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error) {

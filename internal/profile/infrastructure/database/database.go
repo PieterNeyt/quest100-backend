@@ -2,29 +2,19 @@ package database
 
 import (
 	"Quest100Backend/internal/profile/domain"
+	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 func AutoMigration(db *gorm.DB) {
-	if err := db.AutoMigrate(&domain.Profile{}); err != nil {
+	if err := db.AutoMigrate(&domain.Profile{}, &domain.KudosEntry{}, &domain.ProfileStats{},
+		&domain.AwardHistoryEntry{}, &domain.Avatar{}, &domain.AttendanceRecord{}, &domain.Asset{}); err != nil {
 		log.Printf("Failed to migrate database: %v", err)
-	}
-	if err := db.AutoMigrate(&domain.KudosEntry{}); err != nil {
-		log.Printf("Failed to migrate database: %v", err)
-	}
-	if err := db.AutoMigrate(&domain.ProfileStats{}); err != nil {
-		log.Printf("Failed to migrate database: %v", err)
-	}
-	if err := db.AutoMigrate(&domain.AwardHistoryEntry{}); err != nil {
-		log.Printf("Failed to migrate database: %v", err)
-	}
-
-	errAttendance := db.AutoMigrate(&domain.AttendanceRecord{})
-	if errAttendance != nil {
-		log.Printf("Failed to migrate AttendanceRecord: %v", errAttendance)
 	}
 
 	seedDatabase(db)
@@ -169,4 +159,56 @@ func seedDatabase(db *gorm.DB) {
 			log.Printf("Could not seed profile %s %s: %v", p.FirstName, p.LastName, err)
 		}
 	}
+
+	if err := syncGopherAssets(db); err != nil {
+		log.Fatalf("Failed to sync assets: %v", err)
+	}
+}
+
+func syncGopherAssets(db *gorm.DB) error {
+	resp, err := http.Get("https://gopherize.me/api/artwork/")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	var apiResponse struct {
+		Categories []struct {
+			ID     string `json:"id"`
+			Name   string `json:"name"`
+			Images []struct {
+				ID        string `json:"id"`
+				Name      string `json:"name"`
+				Link      string `json:"href"`
+				Thumbnail string `json:"thumbnail_href"`
+			} `json:"images"`
+		} `json:"categories"`
+	}
+
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return err
+	}
+	var assets []domain.Asset
+	for _, category := range apiResponse.Categories {
+		for i, image := range category.Images {
+			asset := domain.Asset{
+				ID:        uuid.NewString(),
+				Name:      image.Name,
+				Category:  category.Name,
+				Price:     i * 10,
+				Link:      image.Link,
+				Thumbnail: image.Thumbnail,
+			}
+
+			if category.Name == "Body" || category.Name == "Eyes" {
+				asset.Price = 0
+			}
+
+			assets = append(assets, asset)
+		}
+	}
+
+	db.Save(&assets)
+	return nil
 }

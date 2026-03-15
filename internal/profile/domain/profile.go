@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,7 +11,6 @@ import (
 
 type ProfileRepository interface {
 	GetProfileById(id uuid.UUID) (*Profile, error)
-	UpdateProfile(profile *Profile) error
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
@@ -18,6 +19,10 @@ type ProfileRepository interface {
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
+	GetAllAssets() (*[]Asset, error)
+	GetAssetById(assetId string) (*Asset, error)
+	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
+	GetProfileAvatar(profileId uuid.UUID) (*Avatar, error)
 }
 
 type Language string
@@ -40,6 +45,8 @@ type Profile struct {
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
+	Assets               []Asset            `gorm:"many2many:user_assets;" json:"assets"`
+	Avatar               Avatar             `gorm:"foreignKey:ProfileID;references:ID" json:"avatar"`
 }
 
 type ProfileStats struct {
@@ -56,6 +63,42 @@ type AttendanceRecord struct {
 	ProfileID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"profileId"`
 	ClassID   uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"classId"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type Asset struct {
+	ID        string `gorm:"primaryKey"`
+	Name      string
+	Category  string
+	Price     int `gorm:"default:0"`
+	Link      string
+	Thumbnail string
+}
+
+type Avatar struct {
+	ProfileID uuid.UUID `gorm:"type:uuid;primaryKey;" json:"profileId"`
+	BodyID    string    `gorm:"not null"`
+	Body      Asset     `gorm:"foreignKey:BodyID"`
+
+	EyesID string `gorm:"not null"`
+	Eyes   Asset  `gorm:"foreignKey:EyesID"`
+
+	ShirtsID *string
+	Shirts   *Asset `gorm:"foreignKey:ShirtsID"`
+
+	HairID *string
+	Hair   *Asset `gorm:"foreignKey:HairID"`
+
+	FacialHairID *string
+	FacialHair   *Asset `gorm:"foreignKey:FacialHairID"`
+
+	GlassesID *string
+	Glasses   *Asset `gorm:"foreignKey:GlassesID"`
+
+	AccessoriesID *string
+	Accessories   *Asset `gorm:"foreignKey:AccessoriesID"`
+
+	ExtrasID *string
+	Extras   *Asset `gorm:"foreignKey:ExtrasID"`
 }
 
 func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
@@ -140,8 +183,8 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	return nil
 }
 
-func CreateProfile(graph *GraphProfile) *Profile {
-	profile := &Profile{
+func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID string) *Profile {
+	return &Profile{
 		ID:          graph.Id,
 		FirstName:   graph.Name,
 		LastName:    graph.Surname,
@@ -168,7 +211,119 @@ func CreateProfile(graph *GraphProfile) *Profile {
 			{ID: uuid.New(), ProfileID: graph.Id, Amount: 60, Reason: "Submitted extra assignment", Type: KudoKnowledge},
 			{ID: uuid.New(), ProfileID: graph.Id, Amount: 45, Reason: "Presented group project", Type: KudoTeamwork},
 		},
-	}
+		Avatar: Avatar{
+			ProfileID: graph.Id,
+			BodyID:    defaultBodyID,
+			EyesID:    defaultEyesID,
+		},
 
-	return profile
+		Assets: []Asset{
+			{ID: defaultBodyID},
+			{ID: defaultEyesID},
+		},
+	}
+}
+
+func (p *Profile) OwnsAsset(assetId string) bool {
+	if slices.ContainsFunc(p.Assets, func(asset Asset) bool {
+		return asset.ID == assetId
+	}) {
+		return true
+	}
+	return false
+}
+
+func (p *Profile) BuyAsset(asset *Asset) error {
+	if p.Kudos < asset.Price {
+		return fmt.Errorf("kudos can't be less than price")
+	}
+	if p.OwnsAsset(asset.ID) {
+		return fmt.Errorf("asset with id %s is already owned", asset.ID)
+	}
+	p.Assets = append(p.Assets, *asset)
+	return nil
+}
+
+func (p *Profile) ToggleAsset(asset *Asset) {
+	switch asset.Category {
+	case "Body":
+		p.Avatar.BodyID = asset.ID
+		p.Avatar.Body = *asset
+	case "Eyes":
+		p.Avatar.EyesID = asset.ID
+		p.Avatar.Eyes = *asset
+	case "Shirts":
+		if p.Avatar.ShirtsID != nil && *p.Avatar.ShirtsID == asset.ID {
+			p.Avatar.ShirtsID = nil
+			p.Avatar.Shirts = nil
+		} else {
+			p.Avatar.ShirtsID = &asset.ID
+			p.Avatar.Shirts = asset
+		}
+	case "Hair":
+		if p.Avatar.HairID != nil && *p.Avatar.HairID == asset.ID {
+			p.Avatar.HairID = nil
+			p.Avatar.Hair = nil
+		} else {
+			p.Avatar.HairID = &asset.ID
+			p.Avatar.Hair = asset
+		}
+	case "Facial_Hair":
+		if p.Avatar.FacialHairID != nil && *p.Avatar.FacialHairID == asset.ID {
+			p.Avatar.FacialHairID = nil
+			p.Avatar.FacialHair = nil
+		} else {
+			p.Avatar.FacialHairID = &asset.ID
+			p.Avatar.FacialHair = asset
+		}
+	case "Glasses":
+		if p.Avatar.GlassesID != nil && *p.Avatar.GlassesID == asset.ID {
+			p.Avatar.GlassesID = nil
+			p.Avatar.Glasses = nil
+		} else {
+			p.Avatar.GlassesID = &asset.ID
+			p.Avatar.Glasses = asset
+		}
+	case "Hats_and_Hair_Accessories":
+		if p.Avatar.AccessoriesID != nil && *p.Avatar.AccessoriesID == asset.ID {
+			p.Avatar.AccessoriesID = nil
+			p.Avatar.Accessories = nil
+		} else {
+			p.Avatar.AccessoriesID = &asset.ID
+			p.Avatar.Accessories = asset
+		}
+	case "Extras":
+		if p.Avatar.ExtrasID != nil && *p.Avatar.ExtrasID == asset.ID {
+			p.Avatar.ExtrasID = nil
+			p.Avatar.Extras = nil
+		} else {
+			p.Avatar.ExtrasID = &asset.ID
+			p.Avatar.Extras = asset
+		}
+	}
+}
+
+func (a *Avatar) AvatarAsArray() []Asset {
+	assets := make([]Asset, 0, 8)
+	assets = append(assets, a.Body, a.Eyes)
+
+	if a.Shirts != nil {
+		assets = append(assets, *a.Shirts)
+	}
+	if a.Hair != nil {
+		assets = append(assets, *a.Hair)
+	}
+	if a.FacialHair != nil {
+		assets = append(assets, *a.FacialHair)
+	}
+	if a.Glasses != nil {
+		assets = append(assets, *a.Glasses)
+	}
+	if a.Accessories != nil {
+		assets = append(assets, *a.Accessories)
+	}
+	if a.Extras != nil {
+		assets = append(assets, *a.Extras)
+	}
+	return assets
 }
