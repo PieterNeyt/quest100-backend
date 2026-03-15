@@ -3,6 +3,8 @@ package application
 import (
 	"Quest100Backend/internal/communication/application"
 	"Quest100Backend/internal/event/domain"
+	moderationApp "Quest100Backend/internal/moderation/application"
+	moderationDomain "Quest100Backend/internal/moderation/domain"
 	"fmt"
 	"time"
 
@@ -41,13 +43,19 @@ type EventService interface {
 }
 
 type eventService struct {
-	eventRepo domain.EventRepository
-	chatServ  application.ChatService
+	eventRepo      domain.EventRepository
+	chatServ       application.ChatService
+	moderationServ moderationApp.ModerationService
 }
 
-func NewEventService(eventRepo domain.EventRepository, chatServ application.ChatService) EventService {
-	return &eventService{eventRepo: eventRepo, chatServ: chatServ}
+func NewEventService(eventRepo domain.EventRepository, chatServ application.ChatService, moderationServ moderationApp.ModerationService) EventService {
+	return &eventService{
+		eventRepo:      eventRepo,
+		chatServ:       chatServ,
+		moderationServ: moderationServ,
+	}
 }
+
 func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error) {
 	event := domain.CreateEvent(
 		input.Title,
@@ -62,8 +70,7 @@ func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to save event: %w", err)
 	}
-	err := s.chatServ.CreateChatRoom(event.ID)
-	if err != nil {
+	if err := s.chatServ.CreateChatRoom(event.ID); err != nil {
 		return nil, fmt.Errorf("failed to create chat room: %w", err)
 	}
 	return s.JoinEvent(event.ID, input.OrganizerID)
@@ -103,7 +110,6 @@ func (s *eventService) UpdateEvent(eventID uuid.UUID, requestingProfileID uuid.U
 	if err := s.eventRepo.SaveEvent(event); err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
 	}
-	// Geef enriched versie terug
 	return s.eventRepo.GetEventByIDWithProfiles(eventID)
 }
 
@@ -115,6 +121,31 @@ func (s *eventService) DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.U
 	if !event.IsOrganizer(requestingProfileID) {
 		return &domain.UnauthorizedError{Message: "only the organizer can delete this event"}
 	}
+
+	HasOpenEventReport, err := s.moderationServ.HasOpenEventReport(eventID, moderationDomain.ChannelTypeEvent)
+	if err != nil {
+		return fmt.Errorf("failed to check open events reports: %w", err)
+	}
+
+	if HasOpenEventReport {
+		event.Hide()
+		if err := s.eventRepo.SaveEvent(event); err != nil {
+			return fmt.Errorf("failed to hide event with open report: %w", err)
+		}
+		return nil
+	}
+
+	hasOpenMessageReport, err := s.moderationServ.HasOpenMessageReport(eventID, moderationDomain.ChannelTypeMessage)
+	if err != nil {
+		return fmt.Errorf("failed to check open message reports: %w", err)
+	}
+	if !hasOpenMessageReport {
+		err := s.chatServ.DeleteChatRoom(requestingProfileID, eventID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return s.eventRepo.DeleteEvent(eventID)
 }
 

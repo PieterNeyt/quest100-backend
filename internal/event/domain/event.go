@@ -18,22 +18,30 @@ type EventRepository interface {
 
 type EventCategory string
 
+type EventVisibility string
+
+const (
+	EventVisibilityPublic EventVisibility = "public"
+	EventVisibilityHidden EventVisibility = "hidden"
+)
+
 type EventWithProfiles struct {
 	Event
 	Attendees []AttendeeResponse `json:"attendees"`
 }
 
 type Event struct {
-	ID           uuid.UUID     `gorm:"type:uuid;primaryKey" json:"id"`
-	Title        string        `gorm:"not null" json:"title"`
-	Description  string        `gorm:"type:text" json:"description"`
-	Photo        *string       `gorm:"type:text" json:"photo"`
-	Category     EventCategory `gorm:"type:varchar(20)" json:"category"`
-	OrganizerID  uuid.UUID     `gorm:"type:uuid;not null" json:"organizerId"`
-	EventDate    time.Time     `json:"eventDate"`
-	MaxAttendees *int          `json:"maxAttendees"`
-	CreatedAt    time.Time     `json:"createdAt"`
-	UpdatedAt    time.Time     `json:"updatedAt"`
+	ID           uuid.UUID       `gorm:"type:uuid;primaryKey" json:"id"`
+	Title        string          `gorm:"not null" json:"title"`
+	Description  string          `gorm:"type:text" json:"description"`
+	Photo        *string         `gorm:"type:text" json:"photo"`
+	Category     EventCategory   `gorm:"type:varchar(20)" json:"category"`
+	Visibility   EventVisibility `gorm:"type:varchar(10);not null;default:'public'" json:"visibility"`
+	OrganizerID  uuid.UUID       `gorm:"type:uuid;not null" json:"organizerId"`
+	EventDate    time.Time       `json:"eventDate"`
+	MaxAttendees *int            `json:"maxAttendees"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
 
 	Attendees []EventAttendee `gorm:"foreignKey:EventID;references:ID;constraint:OnDelete:CASCADE" json:"attendees"`
 }
@@ -52,6 +60,7 @@ func CreateEvent(
 		Description:  description,
 		Photo:        photo,
 		Category:     category,
+		Visibility:   EventVisibilityPublic,
 		OrganizerID:  organizerID,
 		EventDate:    eventDate,
 		MaxAttendees: maxAttendees,
@@ -93,6 +102,11 @@ func (e *Event) Update(
 	}
 
 	return nil
+}
+
+func (e *Event) Hide() {
+	e.Visibility = EventVisibilityHidden
+	e.UpdatedAt = time.Now()
 }
 
 func (e *Event) IsOrganizer(profileID uuid.UUID) bool {

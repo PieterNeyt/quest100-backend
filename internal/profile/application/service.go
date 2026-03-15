@@ -28,6 +28,7 @@ type ProfileService interface {
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
+	GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error)
 }
 
 type profileService struct {
@@ -240,4 +241,12 @@ func (s *profileService) GetProfilesStatistics(profileUUID uuid.UUID) (domain.Pr
 		return domain.ProfileStats{}, fmt.Errorf("failed to get profile stats: %w", err)
 	}
 	return profileStats, nil
+}
+
+func (s *profileService) GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error) {
+	entries, err := s.profileRepo.GetLastKudosEntries(profileId, 10)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kudos entries: %w", err)
+	}
+	return entries, nil
 }
