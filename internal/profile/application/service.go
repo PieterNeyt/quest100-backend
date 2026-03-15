@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -33,6 +34,7 @@ type ProfileService interface {
 	BuyAsset(profileId uuid.UUID, assetId string) error
 	GetEquippedAssets(profileUUID uuid.UUID) ([]domain.Asset, error)
 	ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error)
+	FetchExternalAsset(url string) (contentType string, body io.ReadCloser, err error)
 }
 
 type profileService struct {
@@ -320,4 +322,26 @@ func (s *profileService) ToggleAsset(profileId uuid.UUID, assetId string) ([]dom
 		return nil, fmt.Errorf("failed to save profile: %w", err)
 	}
 	return profile.Avatar.AvatarAsArray(), nil
+}
+
+func (s *profileService) FetchExternalAsset(url string) (string, io.ReadCloser, error) {
+	if !strings.HasPrefix(url, "https://storage.googleapis.com/gopherizeme.appspot.com/") {
+		return "", nil, fmt.Errorf("url not allowed")
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to fetch asset: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return "", nil, fmt.Errorf("upstream returned %d", resp.StatusCode)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/png"
+	}
+
+	return contentType, resp.Body, nil
 }

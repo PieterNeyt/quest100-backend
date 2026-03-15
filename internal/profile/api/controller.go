@@ -399,3 +399,22 @@ func (h *ProfileHandler) ToggleAvatarItem(c *gin.Context) {
 
 	c.JSON(http.StatusOK, assetArray)
 }
+
+func (h *ProfileHandler) ProxyAsset(c *gin.Context) {
+	url := c.Query("url")
+	if url == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url required"})
+		return
+	}
+
+	contentType, body, err := h.profileService.FetchExternalAsset(url)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	defer body.Close()
+
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Cache-Control", "public, max-age=86400")
+	c.DataFromReader(http.StatusOK, -1, contentType, body, nil)
+}

@@ -23,6 +23,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 	}))
 
+	profileRouting.SetupPublicProfileRoutes(r, s.profileServ)
+
 	api := r.Group("/api", auth.AuthMiddleware())
 	profileRouting.SetupProfileRoutes(api, s.profileServ)
 	eventRouting.SetupEventRoutes(api, s.eventServ)

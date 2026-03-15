@@ -7,9 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func SetupPublicProfileRoutes(r *gin.Engine, profServ application.ProfileService) {
+	profileHandler := api.NewProfileHandler(profServ)
+	r.GET("/api/proxy/asset", profileHandler.ProxyAsset)
+}
+
 func SetupProfileRoutes(r *gin.RouterGroup, profServ application.ProfileService) {
 	profileHandler := api.NewProfileHandler(profServ)
-
 	profileGroup := r.Group("/profiles")
 	{
 		profileGroup.POST("/attendance/:classId", profileHandler.HandleAttendance)
