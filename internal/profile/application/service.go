@@ -29,6 +29,7 @@ type ProfileService interface {
 	GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error)
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
+	GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error)
 	GetAllAssets() ([]domain.Asset, error)
 	GetProfileAssets(profileId uuid.UUID) ([]domain.Asset, error)
 	BuyAsset(profileId uuid.UUID, assetId string) error
@@ -344,4 +345,12 @@ func (s *profileService) FetchExternalAsset(url string) (string, io.ReadCloser, 
 	}
 
 	return contentType, resp.Body, nil
+}
+
+func (s *profileService) GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error) {
+	entries, err := s.profileRepo.GetLastKudosEntries(profileId, 10)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kudos entries: %w", err)
+	}
+	return entries, nil
 }

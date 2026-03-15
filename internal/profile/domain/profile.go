@@ -18,6 +18,7 @@ type ProfileRepository interface {
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
+	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
 	GetAllAssets() (*[]Asset, error)
 	GetAssetById(assetId string) (*Asset, error)
 	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
@@ -32,14 +33,14 @@ const (
 )
 
 type Profile struct {
-	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
-	FirstName            string    `json:"firstName"`
-	LastName             string    `json:"lastName"`
-	Email                string    `gorm:"uniqueIndex" json:"email"`
-	Kudos                int       `json:"kudos"`
-	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
-	Campus               string    `gorm:"type:varchar(100)" json:"campus"`
-	ArchetypeID          int
+	ID                   uuid.UUID          `gorm:"type:uuid;primaryKey;" json:"id"`
+	FirstName            string             `json:"firstName"`
+	LastName             string             `json:"lastName"`
+	Email                string             `gorm:"uniqueIndex" json:"email"`
+	Kudos                int                `json:"kudos"`
+	CustomProfilePicture *string            `gorm:"type:text" json:"customProfilePicture"`
+	Campus               string             `gorm:"type:varchar(100)" json:"campus"`
+	ArchetypeID          int                `json:"archetypeId"`
 	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
@@ -174,7 +175,11 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	p.FirstName = graph.Name
 	p.LastName = graph.Surname
 	p.Email = graph.Mail
-	p.Campus = graph.OfficeLocation
+
+	if err := p.CalculateArcheType(); err != nil {
+		log.Printf("Error calculating archetype during sync: %v", err)
+	}
+
 	return nil
 }
 
@@ -185,19 +190,27 @@ func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID stri
 		LastName:    graph.Surname,
 		Email:       graph.Mail,
 		Campus:      graph.OfficeLocation,
-		Kudos:       0,
+		Kudos:       285,
 		ArchetypeID: 1,
 		PlayerStats: ProfileStats{
 			ProfileID:      graph.Id,
-			KudoKnowledge:  0,
-			KudoAttendance: 0,
-			KudoTeamwork:   0,
-			KudoAtmosphere: 0,
-			KudoEngagement: 0,
+			KudoKnowledge:  80,
+			KudoAttendance: 60,
+			KudoTeamwork:   55,
+			KudoAtmosphere: 45,
+			KudoEngagement: 45,
 		},
-		KudosHistory:      []KudosEntry{},
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
+		KudosHistory: []KudosEntry{
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 50, Reason: "Aced the JavaScript quiz", Type: KudoKnowledge},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 30, Reason: "Helped a teammate debug their code", Type: KudoTeamwork},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 40, Reason: "Active participation in class discussion", Type: KudoEngagement},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 25, Reason: "Organized a study group session", Type: KudoAtmosphere},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 35, Reason: "Perfect attendance this week", Type: KudoAttendance},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 60, Reason: "Submitted extra assignment", Type: KudoKnowledge},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 45, Reason: "Presented group project", Type: KudoTeamwork},
+		},
 		Avatar: Avatar{
 			ProfileID: graph.Id,
 			BodyID:    defaultBodyID,

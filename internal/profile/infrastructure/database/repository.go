@@ -141,6 +141,22 @@ func (r *ProfileRepository) GetCampusByProfileID(profileId uuid.UUID) (string, e
 	return campus, nil
 }
 
+func (r *ProfileRepository) GetLastKudosEntries(profileId uuid.UUID, limit int) ([]domain.KudosEntry, error) {
+	var entries []domain.KudosEntry
+
+	result := r.db.
+		Where("profile_id = ?", profileId).
+		Order("date DESC").
+		Limit(limit).
+		Find(&entries)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to fetch kudos entries: %w", result.Error)
+	}
+
+	return entries, nil
+}
+
 func (r *ProfileRepository) GetAllAssets() (*[]domain.Asset, error) {
 	var assets []domain.Asset
 	result := r.db.Find(&assets)
