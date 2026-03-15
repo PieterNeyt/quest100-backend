@@ -57,12 +57,7 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 }
 
 func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
-	//TODO controle dat de persoon wel echt deze les heeft
 	classIdStr := c.Param("classId")
-	if classIdStr == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Class ID not found"})
-		return
-	}
 	classId, err := strconv.Atoi(classIdStr)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Class ID not found"})

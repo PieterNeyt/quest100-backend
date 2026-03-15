@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image/png"
+	"log"
 
 	"github.com/skip2/go-qrcode"
 )
@@ -44,5 +45,6 @@ func (g *qrCodeGenerator) GenerateQRCode(data string) (string, error) {
 
 func (g *qrCodeGenerator) GenerateAttendanceQRCode(classID int, baseURL string) (string, error) {
 	attendanceURL := fmt.Sprintf("%s/attendance/%d", baseURL, classID)
+	log.Println(attendanceURL)
 	return g.GenerateQRCode(attendanceURL)
 }

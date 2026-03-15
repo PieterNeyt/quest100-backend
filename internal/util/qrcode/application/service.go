@@ -44,9 +44,6 @@ func (s *qrCodeService) GenerateAttendanceQRCode(profileId uuid.UUID) (string, e
 	}
 
 	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:4200" // fallback
-	}
 
 	qrCode, err := s.qrGenerator.GenerateAttendanceQRCode(classID, frontendURL)
 	if err != nil {

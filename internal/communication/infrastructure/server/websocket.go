@@ -5,6 +5,7 @@ import (
 	"Quest100Backend/internal/communication/domain"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return r.Header.Get("Origin") == "http://localhost:4200"
+		return r.Header.Get("Origin") == os.Getenv("FRONTEND_URL")
 	},
 }
 
