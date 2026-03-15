@@ -35,6 +35,10 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 	result := r.db.Debug().
 		Preload("KudosHistory").
 		Preload("AttendanceRecords").
+		Preload("Avatar").Preload("Avatar.Body").Preload("Avatar.Eyes").Preload("Avatar.Shirts").
+		Preload("Avatar.Hair").Preload("Avatar.FacialHair").Preload("Avatar.Glasses").Preload("Avatar.Accessories").
+		Preload("Avatar.Extras").
+		Preload("Assets").
 		First(&profile, "id = ?", profileId)
 
 	if result.Error != nil {
@@ -47,26 +51,22 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 	return &profile, nil
 }
 
-func (r *ProfileRepository) UpdateProfile(profile *domain.Profile) error {
-	result := r.db.Where("id = ?", profile.ID).Save(profile)
-	if result.Error != nil {
-		return fmt.Errorf("failed to save profile: %w", result.Error)
-	}
-	return nil
-}
-
 func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
-	result := r.db.Omit("PlayerStats").Create(profile)
-	if result.Error != nil {
-		return result.Error
-	}
 
-	result = r.db.Create(&profile.PlayerStats)
-	if result.Error != nil {
-		return result.Error
-	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("PlayerStats", "KudosHistory", "Avatar", "Assets").Save(profile).Error; err != nil {
+			return err
+		}
 
-	return nil
+		if err := tx.Save(&profile.Avatar).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(profile).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (r *ProfileRepository) AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error {
@@ -155,6 +155,43 @@ func (r *ProfileRepository) GetLastKudosEntries(profileId uuid.UUID, limit int) 
 	}
 
 	return entries, nil
+}
+
+func (r *ProfileRepository) GetAllAssets() (*[]domain.Asset, error) {
+	var assets []domain.Asset
+	result := r.db.Find(&assets)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+	return &assets, nil
+}
+
+func (r *ProfileRepository) GetProfileAssets(profileId uuid.UUID) (*[]domain.Asset, error) {
+	var assets []domain.Asset
+	if err := r.db.Model(&domain.Profile{ID: profileId}).Association("Assets").Find(&assets); err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+	return &assets, nil
+}
+
+func (r *ProfileRepository) GetProfileAvatar(profileId uuid.UUID) (*domain.Avatar, error) {
+	var avatar domain.Avatar
+	if err := r.db.Model(&domain.Profile{ID: profileId}).Preload("Body").Preload("Eyes").Preload("Shirts").
+		Preload("Hair").Preload("FacialHair").Preload("Glasses").Preload("Accessories").
+		Preload("Extras").Association("Avatar").Find(&avatar); err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+	return &avatar, nil
+}
+
+func (r *ProfileRepository) GetAssetById(assetId string) (*domain.Asset, error) {
+	var asset domain.Asset
+	result := r.db.First(&asset, "id = ?", assetId)
+	if result.Error != nil {
+		return nil, fmt.Errorf("asset with id %s not found: %w", assetId, result.Error)
+	}
+	return &asset, nil
 }
 
 func (r *ProfileRepository) GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error) {
