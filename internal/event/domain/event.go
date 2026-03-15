@@ -105,27 +105,9 @@ func (e *Event) Update(
 	return nil
 }
 
-func (e *Event) SetVisibility(visibility EventVisibility) error {
-	if visibility != EventVisibilityPublic && visibility != EventVisibilityHidden {
-		return fmt.Errorf("invalid visibility value: %s", visibility)
-	}
-	e.Visibility = visibility
-	e.UpdatedAt = time.Now()
-	return nil
-}
-
 func (e *Event) Hide() {
 	e.Visibility = EventVisibilityHidden
 	e.UpdatedAt = time.Now()
-}
-
-func (e *Event) Publish() {
-	e.Visibility = EventVisibilityPublic
-	e.UpdatedAt = time.Now()
-}
-
-func (e *Event) IsHidden() bool {
-	return e.Visibility == EventVisibilityHidden
 }
 
 func (e *Event) IsOrganizer(profileID uuid.UUID) bool {
