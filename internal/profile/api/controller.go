@@ -154,6 +154,7 @@ func (h *ProfileHandler) UpdateProfilePicture(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+
 func (h *ProfileHandler) GetProfileById(c *gin.Context) {
 	idStr := c.Param("id")
 	profileId, err := uuid.Parse(idStr)
@@ -170,6 +171,7 @@ func (h *ProfileHandler) GetProfileById(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+
 func (h *ProfileHandler) DeleteProfilePicture(c *gin.Context) {
 	profileID, exists := c.Get("profileID")
 	if !exists {
@@ -220,6 +222,7 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, profile)
 }
+
 func (h *ProfileHandler) GetProfiles(c *gin.Context) {
 	profiles, err := h.profileService.GetProfiles()
 	if err != nil {
@@ -291,4 +294,21 @@ func (h *ProfileHandler) GetLastKudosEntries(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, entries)
+}
+
+func (h *ProfileHandler) GetKudoEntrieById(c *gin.Context) {
+	idStr := c.Param("id")
+	kudoId, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid kudo entry id"})
+		return
+	}
+
+	entry, err := h.profileService.GetKudoEntryById(kudoId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "kudo entry not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, entry)
 }

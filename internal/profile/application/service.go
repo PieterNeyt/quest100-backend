@@ -29,6 +29,7 @@ type ProfileService interface {
 	GetProfilesStatistics(profileUUID uuid.UUID) (domain.ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID) ([]domain.KudosEntry, error)
+	GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error)
 }
 
 type profileService struct {
@@ -74,6 +75,7 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 
 	return profile, kudos, false, nil
 }
+
 func (s *profileService) GetProfileById(id uuid.UUID) (*domain.Profile, error) {
 	return s.profileRepo.GetProfileById(id)
 }
@@ -85,6 +87,7 @@ func (s *profileService) GetProfiles() (*[]domain.Profile, error) {
 func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 	return s.profileRepo.UpdateProfile(profile)
 }
+
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
@@ -126,6 +129,7 @@ func (s *profileService) GetGraphProfile(token string) (*domain.GraphProfile, er
 
 	return &user, nil
 }
+
 func (s *profileService) GetGraphProfilePicture(token string) (string, error) {
 	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/me/photo/$value", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -189,7 +193,7 @@ func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, k
 	}
 
 	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {
-		if err := profile.AddKudos(kudos, message, kudoType); err != nil {
+		if err := profile.AddKudos(kudos, message, kudoType, senderId); err != nil {
 			return nil, fmt.Errorf("failed to add kudos: %w", err)
 		}
 	}
@@ -249,4 +253,12 @@ func (s *profileService) GetLastKudosEntries(profileId uuid.UUID) ([]domain.Kudo
 		return nil, fmt.Errorf("failed to get kudos entries: %w", err)
 	}
 	return entries, nil
+}
+
+func (s *profileService) GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error) {
+	entry, err := s.profileRepo.GetKudoEntryById(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kudo entry: %w", err)
+	}
+	return entry, nil
 }

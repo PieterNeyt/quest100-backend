@@ -18,6 +18,7 @@ type ProfileRepository interface {
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
+	GetKudoEntryById(id uuid.UUID) (*KudosEntry, error)
 }
 
 type Language string
@@ -87,15 +88,21 @@ func (p *Profile) RecordAttendance(classId uuid.UUID) error {
 	return nil
 }
 
-func (p *Profile) AddKudos(kudos int, reason string, kudoType KudoType) error {
+func (p *Profile) AddKudos(kudos int, reason string, kudoType KudoType, senderID ...uuid.UUID) error {
 	if kudos < 0 {
 		return &NegativeKudosError{Arg: kudos, Message: "Kudos can't be negative"}
+	}
+
+	var sender *uuid.UUID
+	if len(senderID) > 0 {
+		sender = &senderID[0]
 	}
 
 	p.Kudos += kudos
 	p.KudosHistory = append(p.KudosHistory, KudosEntry{
 		ID:        uuid.New(),
 		ProfileID: p.ID,
+		SenderID:  sender,
 		Amount:    kudos,
 		Reason:    reason,
 		Type:      kudoType,
@@ -141,6 +148,8 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 }
 
 func CreateProfile(graph *GraphProfile) *Profile {
+	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
+
 	profile := &Profile{
 		ID:          graph.Id,
 		FirstName:   graph.Name,
@@ -160,7 +169,7 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
 		KudosHistory: []KudosEntry{
-			{ID: uuid.New(), ProfileID: graph.Id, Amount: 50, Reason: "Aced the JavaScript quiz", Type: KudoKnowledge},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 50, Reason: "Aced the JavaScript quiz", Type: KudoKnowledge, SenderID: &hardcodedID},
 			{ID: uuid.New(), ProfileID: graph.Id, Amount: 30, Reason: "Helped a teammate debug their code", Type: KudoTeamwork},
 			{ID: uuid.New(), ProfileID: graph.Id, Amount: 40, Reason: "Active participation in class discussion", Type: KudoEngagement},
 			{ID: uuid.New(), ProfileID: graph.Id, Amount: 25, Reason: "Organized a study group session", Type: KudoAtmosphere},

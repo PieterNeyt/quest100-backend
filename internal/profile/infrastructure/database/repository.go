@@ -156,3 +156,11 @@ func (r *ProfileRepository) GetLastKudosEntries(profileId uuid.UUID, limit int) 
 
 	return entries, nil
 }
+
+func (r *ProfileRepository) GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error) {
+	var entry domain.KudosEntry
+	if err := r.db.First(&entry, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &entry, nil
+}
