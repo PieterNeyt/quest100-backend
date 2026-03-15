@@ -14,6 +14,7 @@ import (
 	database2 "Quest100Backend/internal/profile/infrastructure/database"
 	utilApp "Quest100Backend/internal/util/qrcode/application"
 	"Quest100Backend/internal/util/qrcode/domain"
+	timeApp "Quest100Backend/internal/util/timeEdit/application"
 	"fmt"
 	"net/http"
 	"os"
@@ -44,10 +45,11 @@ func NewServer() *http.Server {
 	gKillRepo := gotchaDB.NewKillRepository(db.GetDB())
 	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
 
-	pServ := profileApp.NewProfileService(pRepo)
+	tServ := timeApp.NewTimeEditService()
+	pServ := profileApp.NewProfileService(pRepo, tServ)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ)
-	qServ := utilApp.NewQRCodeService(qrGen, pServ)
+	qServ := utilApp.NewQRCodeService(qrGen, pServ, tServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))

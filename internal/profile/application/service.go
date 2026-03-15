@@ -2,6 +2,8 @@ package application
 
 import (
 	"Quest100Backend/internal/profile/domain"
+	"Quest100Backend/internal/util/timeEdit/application"
+	domain2 "Quest100Backend/internal/util/timeEdit/domain"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,7 +17,7 @@ import (
 )
 
 type ProfileService interface {
-	HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error)
+	HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error)
 	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error)
 	GetGraphProfile(token string) (*domain.GraphProfile, error)
 	GetProfileById(id uuid.UUID) (*domain.Profile, error)
@@ -31,12 +33,14 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	profileRepo domain.ProfileRepository
+	profileRepo     domain.ProfileRepository
+	timeEditService application.TimeEditService
 }
 
-func NewProfileService(profileRepo domain.ProfileRepository) ProfileService {
+func NewProfileService(profileRepo domain.ProfileRepository, timeEditService application.TimeEditService) ProfileService {
 	return &profileService{
-		profileRepo: profileRepo,
+		profileRepo:     profileRepo,
+		timeEditService: timeEditService,
 	}
 }
 
@@ -44,12 +48,23 @@ func (s *profileService) GetCampusByProfileID(id uuid.UUID) (string, error) {
 	return s.profileRepo.GetCampusByProfileID(id)
 }
 
-func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
-
+func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
 	profile, err := s.GetProfileById(profileId)
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
 	}
+	token, err := s.timeEditService.TimeEditTokenReq()
+	if err != nil {
+		return nil, 0, false, err
+	}
+	posClassId, err := s.timeEditService.TimeEditReservationsReq(token, domain2.Student, profile.EmployeeID)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if posClassId != classId {
+		return nil, 0, false, fmt.Errorf("student is not in this class")
+	}
+
 	if err := profile.RecordAttendance(classId); err != nil {
 		var dupErr *domain.DuplicateAttendanceError
 		if errors.As(err, &dupErr) {

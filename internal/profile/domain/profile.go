@@ -54,11 +54,11 @@ type ProfileStats struct {
 type AttendanceRecord struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
 	ProfileID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"profileId"`
-	ClassID   uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"classId"`
+	ClassID   int       `gorm:"uniqueIndex:idx_profile_class_unique" json:"classId"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
+func (p *Profile) HasAttendedClass(classId int) bool {
 	for _, record := range p.AttendanceRecords {
 		if record.ClassID == classId {
 			return true
@@ -67,7 +67,7 @@ func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
 	return false
 }
 
-func (p *Profile) RecordAttendance(classId uuid.UUID) error {
+func (p *Profile) RecordAttendance(classId int) error {
 	if p.HasAttendedClass(classId) {
 		return &DuplicateAttendanceError{
 			ProfileID: p.ID,

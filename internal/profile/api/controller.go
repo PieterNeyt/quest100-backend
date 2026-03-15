@@ -4,6 +4,7 @@ import (
 	"Quest100Backend/internal/profile/application"
 	"Quest100Backend/internal/profile/domain"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -57,9 +58,14 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 
 func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
 	//TODO controle dat de persoon wel echt deze les heeft
-	classId, err := uuid.Parse(c.Param("classId"))
+	classIdStr := c.Param("classId")
+	if classIdStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Class ID not found"})
+		return
+	}
+	classId, err := strconv.Atoi(classIdStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class ID format"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Class ID not found"})
 		return
 	}
 

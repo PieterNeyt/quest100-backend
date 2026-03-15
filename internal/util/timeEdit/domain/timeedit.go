@@ -1,5 +1,10 @@
 package domain
 
+import (
+	"fmt"
+	"time"
+)
+
 type Date struct {
 	StartDate int64 `json:"startDate"`
 	EndDate   int64 `json:"endDate"`
@@ -19,8 +24,9 @@ type RequestBody struct {
 type TypeID string
 
 const (
-	Student TypeID = "person.student"
-	Lector         = "person.staff"
+	Student  TypeID = "person.student"
+	Lector          = "person.staff"
+	Teaching        = "activitytype.teaching"
 )
 
 type Object struct {
@@ -41,4 +47,31 @@ type ResponseBody struct {
 	TotalPages   int      `json:"totalPages"`
 	TotalResults int      `json:"totalResults"`
 	Results      []Result `json:"results"`
+}
+
+func CreateRequestBody(typeID TypeID, employeeId int) *RequestBody {
+	timeNow := time.Now().Unix()
+	timeNow = 1773739800
+	return &RequestBody{
+		Date: Date{
+			StartDate: timeNow,
+			EndDate:   timeNow,
+		},
+		IDFormat: "EXTERNAL",
+		//TODO nog verder aanvullen voor alle teaching type objects
+		SearchObjects: []SearchObject{
+			{
+				TypeID:   typeID,
+				ObjectID: fmt.Sprintf("person_%d", employeeId),
+			},
+			{
+				TypeID:   Teaching,
+				ObjectID: "_te_47675",
+			},
+			{
+				TypeID:   Teaching,
+				ObjectID: "_te_47677",
+			},
+		},
+	}
 }
