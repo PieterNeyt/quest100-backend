@@ -51,14 +51,14 @@ type ResponseBody struct {
 
 func CreateRequestBody(typeID TypeID, employeeId int) *RequestBody {
 	timeNow := time.Now().Unix()
-	timeNow = 1773739800
+	// TODO dit gebruiken voor een valide les voor een andere les te gebruiken moet je een datum naar unix (int64) formaat zetten
+	//timeNow = 1773739800
 	return &RequestBody{
 		Date: Date{
 			StartDate: timeNow,
 			EndDate:   timeNow,
 		},
 		IDFormat: "EXTERNAL",
-		//TODO nog verder aanvullen voor alle teaching type objects
 		SearchObjects: []SearchObject{
 			{
 				TypeID:   typeID,
@@ -70,7 +70,23 @@ func CreateRequestBody(typeID TypeID, employeeId int) *RequestBody {
 			},
 			{
 				TypeID:   Teaching,
+				ObjectID: "_te_47676",
+			},
+			{
+				TypeID:   Teaching,
 				ObjectID: "_te_47677",
+			},
+			{
+				TypeID:   Teaching,
+				ObjectID: "_te_47678",
+			},
+			{
+				TypeID:   Teaching,
+				ObjectID: "_te_47679",
+			},
+			{
+				TypeID:   Teaching,
+				ObjectID: "_te_47680",
 			},
 		},
 	}
