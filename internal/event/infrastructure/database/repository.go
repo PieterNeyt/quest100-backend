@@ -42,7 +42,9 @@ func (r *eventRepository) GetEventByID(id uuid.UUID) (*domain.Event, error) {
 
 func (r *eventRepository) GetAllEvents() ([]*domain.Event, error) {
 	var events []*domain.Event
-	if err := r.db.Preload("Attendees").Find(&events).Error; err != nil {
+	if err := r.db.Preload("Attendees").
+		Where("visibility = ?", domain.EventVisibilityPublic).
+		Find(&events).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch events: %w", err)
 	}
 	return events, nil

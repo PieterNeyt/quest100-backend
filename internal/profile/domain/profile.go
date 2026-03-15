@@ -9,7 +9,6 @@ import (
 
 type ProfileRepository interface {
 	GetProfileById(id uuid.UUID) (*Profile, error)
-	UpdateProfile(profile *Profile) error
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
@@ -17,6 +16,11 @@ type ProfileRepository interface {
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
 	GetCampusByProfileID(id uuid.UUID) (string, error)
+	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
+	GetAllAssets() (*[]Asset, error)
+	GetAssetById(assetId string) (*Asset, error)
+	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
+	GetProfileAvatar(profileId uuid.UUID) (*Avatar, error)
 }
 
 type Language string
@@ -27,19 +31,21 @@ const (
 )
 
 type Profile struct {
-	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
-	EmployeeID           int       `gorm:"not null" json:"employeeId"`
-	FirstName            string    `json:"firstName"`
-	LastName             string    `json:"lastName"`
-	Email                string    `gorm:"uniqueIndex" json:"email"`
-	Kudos                int       `json:"kudos"`
-	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
-	Campus               string    `gorm:"type:varchar(100)" json:"campus"`
-	ArchetypeID          int
+	ID                   uuid.UUID          `gorm:"type:uuid;primaryKey;" json:"id"`
+	EmployeeID           int                `gorm:"not null" json:"employeeId"`
+	FirstName            string             `json:"firstName"`
+	LastName             string             `json:"lastName"`
+	Email                string             `gorm:"uniqueIndex" json:"email"`
+	Kudos                int                `json:"kudos"`
+	CustomProfilePicture *string            `gorm:"type:text" json:"customProfilePicture"`
+	Campus               string             `gorm:"type:varchar(100)" json:"campus"`
+	ArchetypeID          int                `json:"archetypeId"`
 	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
+	Assets               []Asset            `gorm:"many2many:user_assets;" json:"assets"`
+	Avatar               Avatar             `gorm:"foreignKey:ProfileID;references:ID" json:"avatar"`
 }
 
 type ProfileStats struct {
@@ -56,6 +62,42 @@ type AttendanceRecord struct {
 	ProfileID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"profileId"`
 	ClassID   int       `gorm:"uniqueIndex:idx_profile_class_unique" json:"classId"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type Asset struct {
+	ID        string `gorm:"primaryKey"`
+	Name      string
+	Category  string
+	Price     int `gorm:"default:0"`
+	Link      string
+	Thumbnail string
+}
+
+type Avatar struct {
+	ProfileID uuid.UUID `gorm:"type:uuid;primaryKey;" json:"profileId"`
+	BodyID    string    `gorm:"not null"`
+	Body      Asset     `gorm:"foreignKey:BodyID"`
+
+	EyesID string `gorm:"not null"`
+	Eyes   Asset  `gorm:"foreignKey:EyesID"`
+
+	ShirtsID *string
+	Shirts   *Asset `gorm:"foreignKey:ShirtsID"`
+
+	HairID *string
+	Hair   *Asset `gorm:"foreignKey:HairID"`
+
+	FacialHairID *string
+	FacialHair   *Asset `gorm:"foreignKey:FacialHairID"`
+
+	GlassesID *string
+	Glasses   *Asset `gorm:"foreignKey:GlassesID"`
+
+	AccessoriesID *string
+	Accessories   *Asset `gorm:"foreignKey:AccessoriesID"`
+
+	ExtrasID *string
+	Extras   *Asset `gorm:"foreignKey:ExtrasID"`
 }
 
 func (p *Profile) HasAttendedClass(classId int) bool {
@@ -132,11 +174,15 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	p.FirstName = graph.Name
 	p.LastName = graph.Surname
 	p.Email = graph.Mail
-	p.Campus = graph.OfficeLocation
+
+	if err := p.CalculateArcheType(); err != nil {
+		log.Printf("Error calculating archetype during sync: %v", err)
+	}
+
 	return nil
 }
 
-func CreateProfile(graph *GraphProfile) *Profile {
+func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID string) *Profile {
 	return &Profile{
 		ID:          graph.Id,
 		EmployeeID:  graph.EmployeeID,
@@ -144,18 +190,140 @@ func CreateProfile(graph *GraphProfile) *Profile {
 		LastName:    graph.Surname,
 		Email:       graph.Mail,
 		Campus:      graph.OfficeLocation,
-		Kudos:       0,
+		Kudos:       285,
 		ArchetypeID: 1,
 		PlayerStats: ProfileStats{
 			ProfileID:      graph.Id,
-			KudoKnowledge:  0,
-			KudoAttendance: 0,
-			KudoTeamwork:   0,
-			KudoAtmosphere: 0,
-			KudoEngagement: 0,
+			KudoKnowledge:  80,
+			KudoAttendance: 60,
+			KudoTeamwork:   55,
+			KudoAtmosphere: 45,
+			KudoEngagement: 45,
 		},
-		KudosHistory:      []KudosEntry{},
 		PreferredLanguage: graph.PreferredLanguage,
 		AttendanceRecords: []AttendanceRecord{},
+		KudosHistory: []KudosEntry{
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 50, Reason: "Aced the JavaScript quiz", Type: KudoKnowledge},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 30, Reason: "Helped a teammate debug their code", Type: KudoTeamwork},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 40, Reason: "Active participation in class discussion", Type: KudoEngagement},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 25, Reason: "Organized a study group session", Type: KudoAtmosphere},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 35, Reason: "Perfect attendance this week", Type: KudoAttendance},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 60, Reason: "Submitted extra assignment", Type: KudoKnowledge},
+			{ID: uuid.New(), ProfileID: graph.Id, Amount: 45, Reason: "Presented group project", Type: KudoTeamwork},
+		},
+		Avatar: Avatar{
+			ProfileID: graph.Id,
+			BodyID:    defaultBodyID,
+			EyesID:    defaultEyesID,
+		},
+
+		Assets: []Asset{
+			{ID: defaultBodyID},
+			{ID: defaultEyesID},
+		},
 	}
+}
+
+func (p *Profile) OwnsAsset(assetId string) bool {
+	if slices.ContainsFunc(p.Assets, func(asset Asset) bool {
+		return asset.ID == assetId
+	}) {
+		return true
+	}
+	return false
+}
+
+func (p *Profile) BuyAsset(asset *Asset) error {
+	if p.Kudos < asset.Price {
+		return fmt.Errorf("kudos can't be less than price")
+	}
+	if p.OwnsAsset(asset.ID) {
+		return fmt.Errorf("asset with id %s is already owned", asset.ID)
+	}
+	p.Assets = append(p.Assets, *asset)
+	return nil
+}
+
+func (p *Profile) ToggleAsset(asset *Asset) {
+	switch asset.Category {
+	case "Body":
+		p.Avatar.BodyID = asset.ID
+		p.Avatar.Body = *asset
+	case "Eyes":
+		p.Avatar.EyesID = asset.ID
+		p.Avatar.Eyes = *asset
+	case "Shirts":
+		if p.Avatar.ShirtsID != nil && *p.Avatar.ShirtsID == asset.ID {
+			p.Avatar.ShirtsID = nil
+			p.Avatar.Shirts = nil
+		} else {
+			p.Avatar.ShirtsID = &asset.ID
+			p.Avatar.Shirts = asset
+		}
+	case "Hair":
+		if p.Avatar.HairID != nil && *p.Avatar.HairID == asset.ID {
+			p.Avatar.HairID = nil
+			p.Avatar.Hair = nil
+		} else {
+			p.Avatar.HairID = &asset.ID
+			p.Avatar.Hair = asset
+		}
+	case "Facial_Hair":
+		if p.Avatar.FacialHairID != nil && *p.Avatar.FacialHairID == asset.ID {
+			p.Avatar.FacialHairID = nil
+			p.Avatar.FacialHair = nil
+		} else {
+			p.Avatar.FacialHairID = &asset.ID
+			p.Avatar.FacialHair = asset
+		}
+	case "Glasses":
+		if p.Avatar.GlassesID != nil && *p.Avatar.GlassesID == asset.ID {
+			p.Avatar.GlassesID = nil
+			p.Avatar.Glasses = nil
+		} else {
+			p.Avatar.GlassesID = &asset.ID
+			p.Avatar.Glasses = asset
+		}
+	case "Hats_and_Hair_Accessories":
+		if p.Avatar.AccessoriesID != nil && *p.Avatar.AccessoriesID == asset.ID {
+			p.Avatar.AccessoriesID = nil
+			p.Avatar.Accessories = nil
+		} else {
+			p.Avatar.AccessoriesID = &asset.ID
+			p.Avatar.Accessories = asset
+		}
+	case "Extras":
+		if p.Avatar.ExtrasID != nil && *p.Avatar.ExtrasID == asset.ID {
+			p.Avatar.ExtrasID = nil
+			p.Avatar.Extras = nil
+		} else {
+			p.Avatar.ExtrasID = &asset.ID
+			p.Avatar.Extras = asset
+		}
+	}
+}
+
+func (a *Avatar) AvatarAsArray() []Asset {
+	assets := make([]Asset, 0, 8)
+	assets = append(assets, a.Body, a.Eyes)
+
+	if a.Shirts != nil {
+		assets = append(assets, *a.Shirts)
+	}
+	if a.Hair != nil {
+		assets = append(assets, *a.Hair)
+	}
+	if a.FacialHair != nil {
+		assets = append(assets, *a.FacialHair)
+	}
+	if a.Glasses != nil {
+		assets = append(assets, *a.Glasses)
+	}
+	if a.Accessories != nil {
+		assets = append(assets, *a.Accessories)
+	}
+	if a.Extras != nil {
+		assets = append(assets, *a.Extras)
+	}
+	return assets
 }

@@ -114,7 +114,7 @@ func (s *chatService) LeaveChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
 }
 
 func (s *chatService) DeleteChatRoom(userId uuid.UUID, eventId uuid.UUID) error {
-	// TODO vragen wat we gaan doen bij het verwijderen van een chat als een event bv wordt gedelete gaan we dan ook direct de hele chat verwijderen of controlere we bv of dat er een message is geflagd ofzo
+
 	chat, err := s.getChatRoom(userId, eventId)
 	if err != nil {
 		return err

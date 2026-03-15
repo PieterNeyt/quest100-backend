@@ -9,7 +9,6 @@ import (
 
 func SetupProfileRoutes(r *gin.RouterGroup, profServ application.ProfileService) {
 	profileHandler := api.NewProfileHandler(profServ)
-
 	profileGroup := r.Group("/profiles")
 	{
 		profileGroup.POST("/attendance/:classId", profileHandler.HandleAttendance)
@@ -18,9 +17,14 @@ func SetupProfileRoutes(r *gin.RouterGroup, profServ application.ProfileService)
 		profileGroup.GET("/stats", profileHandler.GetProfilesStatistics)
 		profileGroup.GET("/sync", profileHandler.Sync)
 		profileGroup.GET("", profileHandler.GetProfiles)
+		profileGroup.GET("/kudos/recent", profileHandler.GetLastKudosEntries)
 		profileGroup.PUT("/language", profileHandler.UpdateLanguage)
 		profileGroup.PUT("/picture", profileHandler.UpdateProfilePicture)
 		profileGroup.DELETE("/picture", profileHandler.DeleteProfilePicture)
 		profileGroup.GET("/:id", profileHandler.GetProfileById)
+		profileGroup.GET("/assets", profileHandler.GetAvatarItems)
+		profileGroup.PUT("/assets/:id", profileHandler.BuyAvatarItem)
+		profileGroup.PUT("/avatar/:id", profileHandler.ToggleAvatarItem)
+		profileGroup.GET("/proxy/asset", profileHandler.ProxyAsset)
 	}
 }
