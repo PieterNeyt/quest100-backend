@@ -54,7 +54,7 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Omit("PlayerStats", "Avatar", "Assets").Save(profile).Error; err != nil {
+		if err := tx.Omit("PlayerStats", "KudosHistory", "Avatar", "Assets").Save(profile).Error; err != nil {
 			return err
 		}
 
