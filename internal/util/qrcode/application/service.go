@@ -15,7 +15,6 @@ import (
 )
 
 type QRCodeService interface {
-	GenerateQRCode(id string) (string, error)
 	GenerateAttendanceQRCode(profileId uuid.UUID) (string, error)
 }
 
@@ -31,28 +30,18 @@ func NewQRCodeService(qrGenerator domain.QRCodeGenerator, profileService applica
 	}
 }
 
-func (s *qrCodeService) GenerateQRCode(id string) (string, error) {
-	if id == "" {
-		return "", &domain.InvalidQRCodeDataError{Message: "ID cannot be empty"}
-	}
-
-	qrCode, err := s.qrGenerator.GenerateQRCode(id)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate qr code: %w", err)
-	}
-
-	return qrCode, nil
-}
-
 func (s *qrCodeService) GenerateAttendanceQRCode(profileId uuid.UUID) (string, error) {
 	profile, err := s.profileService.GetProfileById(profileId)
 	if err != nil {
 		return "", fmt.Errorf("failed to get profile: %w", err)
 	}
-	token := TimeEditTokenReq()
-	classID := TimeEditReservationsReq(token, domain.Lector, profile.EmployeeID)
-	if classID == -1 {
-		return "", &domain.InvalidQRCodeDataError{Message: "Class ID cannot be empty"}
+	token, err := timeEditTokenReq()
+	if err != nil {
+		return "", err
+	}
+	classID, err := timeEditReservationsReq(token, domain.Lector, profile.EmployeeID)
+	if err != nil {
+		return "", err
 	}
 
 	frontendURL := os.Getenv("FRONTEND_URL")
@@ -68,8 +57,7 @@ func (s *qrCodeService) GenerateAttendanceQRCode(profileId uuid.UUID) (string, e
 	return qrCode, nil
 }
 
-// TODO time edit methodes checken/verbeteren
-func TimeEditTokenReq() string {
+func timeEditTokenReq() (string, error) {
 	req, _ := http.NewRequest("POST", "https://api.test.timeedit.net/v1/organizations/"+os.Getenv("ORG_ID")+"/api-keys/authenticate", nil)
 	req.Header.Set("Authorization", os.Getenv("API_KEY"))
 	req.Header.Set("X-Region", "EU_EES")
@@ -77,20 +65,20 @@ func TimeEditTokenReq() string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("failed to request token: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	var token map[string]string
 	if err := json.Unmarshal(body, &token); err != nil {
-		return ""
+		return "", fmt.Errorf("failed to unmarshal token: %w", err)
 	}
 
-	return token["token"]
+	return token["token"], nil
 }
 
-func TimeEditReservationsReq(token string, typeID domain.TypeID, id int) int {
+func timeEditReservationsReq(token string, typeID domain.TypeID, id int) (int, error) {
 	timeNow := time.Now().Unix()
 	body := domain.RequestBody{
 		Date: domain.Date{
@@ -114,17 +102,17 @@ func TimeEditReservationsReq(token string, typeID domain.TypeID, id int) int {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return -1
+		return 0, fmt.Errorf("failed to request reservations: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	var resv = domain.ResponseBody{}
 	if err := json.Unmarshal(respBody, &resv); err != nil {
-		return -1
+		return 0, fmt.Errorf("failed to unmarshal reservation response: %w", err)
 	}
 	if resv.TotalResults != 1 {
-		return -1
+		return 0, fmt.Errorf("failed to request reservation response: expected 1 result, got %d", resv.TotalResults)
 	}
-	return resv.Results[0].ID
+	return resv.Results[0].ID, nil
 }
