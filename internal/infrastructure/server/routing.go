@@ -37,7 +37,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
 	r.GET("/debug/ws", func(c *gin.Context) {
-		// Calling the method we just created
 		snapshot := s.hub.GetSnapshot()
 
 		c.JSON(200, snapshot)

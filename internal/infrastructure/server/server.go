@@ -25,15 +25,16 @@ import (
 )
 
 type Server struct {
-	port        int
-	db          database.Service
-	hub         *server2.Hub
-	profileServ profileApp.ProfileService
-	eventServ   eventApp.EventService
-	chatServ    comApp.ChatService
-	qrCodeServ  utilApp.QRCodeService
-	gotchaServ  gotchaApp.GotchaService
-	modServ     modApp.ModerationService
+	port         int
+	db           database.Service
+	hub          *server2.Hub
+	profileServ  profileApp.ProfileService
+	eventServ    eventApp.EventService
+	chatServ     comApp.ChatService
+	qrCodeServ   utilApp.QRCodeService
+	gotchaServ   gotchaApp.GotchaService
+	modServ      modApp.ModerationService
+	timeEditServ timeApp.TimeEditService
 }
 
 func NewServer() *http.Server {
@@ -59,15 +60,16 @@ func NewServer() *http.Server {
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
-		port:        port,
-		db:          db,
-		hub:         server2.NewHub(),
-		profileServ: pServ,
-		eventServ:   eServ,
-		chatServ:    cServ,
-		qrCodeServ:  qServ,
-		modServ:     mServ,
-		gotchaServ:  gServ,
+		port:         port,
+		db:           db,
+		hub:          server2.NewHub(),
+		profileServ:  pServ,
+		eventServ:    eServ,
+		chatServ:     cServ,
+		qrCodeServ:   qServ,
+		modServ:      mServ,
+		gotchaServ:   gServ,
+		timeEditServ: tServ,
 	}
 
 	schedular.StartDailyTableCleanup(
