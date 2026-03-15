@@ -21,6 +21,20 @@ func AutoMigration(db *gorm.DB) {
 }
 
 func seedDatabase(db *gorm.DB) {
+	if err := syncGopherAssets(db); err != nil {
+		log.Fatalf("Failed to sync assets: %v", err)
+	}
+
+	var defaultBody domain.Asset
+	if err := db.Where("category = ? AND name = ?", "Body", "blue gopher").First(&defaultBody).Error; err != nil {
+		log.Fatalf("Could not find default Body asset: %v", err)
+	}
+
+	var defaultEyes domain.Asset
+	if err := db.Where("category = ? AND name = ?", "Eyes", "crazy eyes").First(&defaultEyes).Error; err != nil {
+		log.Fatalf("Could not find default Eyes asset: %v", err)
+	}
+
 	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
 	picture := "https://media.licdn.com/dms/image/v2/D4D03AQFUJr-0NnhW_w/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1715145874530?e=2147483647&v=beta&t=9w9T7AsoZPaZ3q9AOIRALdaVxel2rcC8BH0ynPczQqQ"
 	hugo := domain.Profile{
@@ -35,121 +49,110 @@ func seedDatabase(db *gorm.DB) {
 		CustomProfilePicture: &picture,
 	}
 
-	err := db.Where(domain.Profile{ID: hardcodedID}).FirstOrCreate(&hugo).Error
-	if err != nil {
+	if err := db.Where(domain.Profile{ID: hardcodedID}).FirstOrCreate(&hugo).Error; err != nil {
 		log.Printf("Could not seed database: %v", err)
 	}
 
 	extraProfiles := []domain.Profile{
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000002"),
-			FirstName:            "Wout",
-			LastName:             "Brandhout",
-			Email:                "wout.Brandhout@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          2,
-			Campus:               "Campus Stad",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+			FirstName:         "Wout",
+			LastName:          "Brandhout",
+			Email:             "wout.Brandhout@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       2,
+			Campus:            "Campus Stad",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000003"),
-			FirstName:            "Bart",
-			LastName:             "slechtinbiljart",
-			Email:                "bart.slechtinbiljart@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          3,
-			Campus:               "Campus Stad",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000003"),
+			FirstName:         "Bart",
+			LastName:          "slechtinbiljart",
+			Email:             "bart.slechtinbiljart@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       3,
+			Campus:            "Campus Stad",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000004"),
-			FirstName:            "Miezel",
-			LastName:             "De Kiezel",
-			Email:                "steen.dekiezel@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          1,
-			Campus:               "Campus Stad",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000004"),
+			FirstName:         "Miezel",
+			LastName:          "De Kiezel",
+			Email:             "steen.dekiezel@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       1,
+			Campus:            "Campus Stad",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000005"),
-			FirstName:            "Tim",
-			LastName:             "Simsalabim",
-			Email:                "tim.Simsalabim@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          2,
-			Campus:               "Campus Hoboken",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000005"),
+			FirstName:         "Tim",
+			LastName:          "Simsalabim",
+			Email:             "tim.Simsalabim@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       2,
+			Campus:            "Campus Hoboken",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000006"),
-			FirstName:            "Lien",
-			LastName:             "Bijnaderinzien",
-			Email:                "lien.Bijnaderinzien@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          3,
-			Campus:               "Campus Stad",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+			FirstName:         "Lien",
+			LastName:          "Bijnaderinzien",
+			Email:             "lien.Bijnaderinzien@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       3,
+			Campus:            "Campus Stad",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000007"),
-			FirstName:            "Luis",
-			LastName:             "Steengruis",
-			Email:                "Luis.Steengruis@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          1,
-			Campus:               "Campus Hoboken",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000007"),
+			FirstName:         "Luis",
+			LastName:          "Steengruis",
+			Email:             "Luis.Steengruis@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       1,
+			Campus:            "Campus Hoboken",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000008"),
-			FirstName:            "Ann",
-			LastName:             "De Mortelman",
-			Email:                "ann.demortelman@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          2,
-			Campus:               "Campus Stad",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000008"),
+			FirstName:         "Ann",
+			LastName:          "De Mortelman",
+			Email:             "ann.demortelman@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       2,
+			Campus:            "Campus Stad",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000009"),
-			FirstName:            "Rein",
-			LastName:             "Azijn",
-			Email:                "rein.Azijn@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          3,
-			Campus:               "Campus Hoboken",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000009"),
+			FirstName:         "Rein",
+			LastName:          "Azijn",
+			Email:             "rein.Azijn@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       3,
+			Campus:            "Campus Hoboken",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000010"),
-			FirstName:            "Noel",
-			LastName:             "Zonderdoel",
-			Email:                "noel.Zonderdoel@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          1,
-			Campus:               "Campus Stad",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000010"),
+			FirstName:         "Noel",
+			LastName:          "Zonderdoel",
+			Email:             "noel.Zonderdoel@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       1,
+			Campus:            "Campus Stad",
+			PreferredLanguage: domain.NL,
 		},
 		{
-			ID:                   uuid.MustParse("00000000-0000-0000-0000-000000000011"),
-			FirstName:            "Mark",
-			LastName:             "Benchmark",
-			Email:                "mark.Benchmark@student.kdg.be",
-			Kudos:                0,
-			ArchetypeID:          2,
-			Campus:               "Campus Hoboken",
-			PreferredLanguage:    domain.NL,
-			CustomProfilePicture: nil,
+			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000011"),
+			FirstName:         "Mark",
+			LastName:          "Benchmark",
+			Email:             "mark.Benchmark@student.kdg.be",
+			Kudos:             0,
+			ArchetypeID:       2,
+			Campus:            "Campus Hoboken",
+			PreferredLanguage: domain.NL,
 		},
 	}
 
@@ -160,8 +163,33 @@ func seedDatabase(db *gorm.DB) {
 		}
 	}
 
-	if err := syncGopherAssets(db); err != nil {
-		log.Fatalf("Failed to sync assets: %v", err)
+	seedAvatars(db, defaultBody.ID, defaultEyes.ID)
+}
+
+func seedAvatars(db *gorm.DB, bodyID string, eyesID string) {
+	profileIDs := []uuid.UUID{
+		uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000003"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000004"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000005"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000007"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000008"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000009"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000010"),
+		uuid.MustParse("00000000-0000-0000-0000-000000000011"),
+	}
+
+	for _, profileID := range profileIDs {
+		avatar := domain.Avatar{
+			ProfileID: profileID,
+			BodyID:    bodyID,
+			EyesID:    eyesID,
+		}
+		if err := db.Where(domain.Avatar{ProfileID: profileID}).FirstOrCreate(&avatar).Error; err != nil {
+			log.Printf("Could not seed avatar for profile %s: %v", profileID, err)
+		}
 	}
 }
 
@@ -189,11 +217,12 @@ func syncGopherAssets(db *gorm.DB) error {
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
 		return err
 	}
+
 	var assets []domain.Asset
 	for _, category := range apiResponse.Categories {
 		for i, image := range category.Images {
 			asset := domain.Asset{
-				ID:        uuid.NewString(),
+				ID:        uuid.NewSHA1(uuid.NameSpaceURL, []byte(image.Link)).String(),
 				Name:      image.Name,
 				Category:  category.Name,
 				Price:     i * 10,
@@ -209,6 +238,8 @@ func syncGopherAssets(db *gorm.DB) error {
 		}
 	}
 
-	db.Save(&assets)
+	if result := db.Save(&assets); result.Error != nil {
+		return result.Error
+	}
 	return nil
 }

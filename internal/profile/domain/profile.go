@@ -46,6 +46,8 @@ type Profile struct {
 	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
 	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
 	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
+	Assets               []Asset            `gorm:"many2many:user_assets;" json:"assets"`
+	Avatar               Avatar             `gorm:"foreignKey:ProfileID;references:ID" json:"avatar"`
 }
 
 type ProfileStats struct {
@@ -129,15 +131,21 @@ func (p *Profile) RecordAttendance(classId uuid.UUID) error {
 	return nil
 }
 
-func (p *Profile) AddKudos(kudos int, reason string, kudoType KudoType) error {
+func (p *Profile) AddKudos(kudos int, reason string, kudoType KudoType, senderID ...uuid.UUID) error {
 	if kudos < 0 {
 		return &NegativeKudosError{Arg: kudos, Message: "Kudos can't be negative"}
+	}
+
+	var sender *uuid.UUID
+	if len(senderID) > 0 {
+		sender = &senderID[0]
 	}
 
 	p.Kudos += kudos
 	p.KudosHistory = append(p.KudosHistory, KudosEntry{
 		ID:        uuid.New(),
 		ProfileID: p.ID,
+		SenderID:  sender,
 		Amount:    kudos,
 		Reason:    reason,
 		Type:      kudoType,
@@ -182,7 +190,7 @@ func (p *Profile) Sync(graph *GraphProfile) error {
 	return nil
 }
 
-func CreateProfile(graph *GraphProfile) *Profile {
+func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID string) *Profile {
 	hardcodedID, _ := uuid.Parse("00000000-0000-0000-0000-000000000001")
 
 	profile := &Profile{
