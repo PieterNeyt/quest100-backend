@@ -17,8 +17,9 @@ const (
 )
 
 type KudosEntry struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;"`
-	ProfileID uuid.UUID `gorm:"type:uuid;index;"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;"`
+	ProfileID uuid.UUID  `gorm:"type:uuid;index;"`
+	SenderID  *uuid.UUID `gorm:"type:uuid;index;"`
 	Amount    int
 	Reason    string
 	Type      KudoType

@@ -13,5 +13,7 @@ func SetupModerationRoutes(r *gin.RouterGroup, modSer application.ModerationServ
 	moderationGroup := r.Group("/moderation")
 	{
 		moderationGroup.POST("/report", modHandler.CreateReport)
+		moderationGroup.GET("/reports", modHandler.GetReports)
+		moderationGroup.PATCH("/report/:reportId/resolve", modHandler.ResolveReport)
 	}
 }

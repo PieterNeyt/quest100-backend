@@ -440,3 +440,20 @@ func (h *ProfileHandler) ProxyAsset(c *gin.Context) {
 	c.Header("Cache-Control", "public, max-age=86400")
 	c.DataFromReader(http.StatusOK, -1, contentType, body, nil)
 }
+
+func (h *ProfileHandler) GetKudoEntrieById(c *gin.Context) {
+	idStr := c.Param("id")
+	kudoId, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid kudo entry id"})
+		return
+	}
+
+	entry, err := h.profileService.GetKudoEntryById(kudoId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "kudo entry not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, entry)
+}

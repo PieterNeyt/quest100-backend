@@ -36,6 +36,7 @@ type ProfileService interface {
 	GetEquippedAssets(profileUUID uuid.UUID) ([]domain.Asset, error)
 	ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error)
 	FetchExternalAsset(url string) (contentType string, body io.ReadCloser, err error)
+	GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error)
 }
 
 type profileService struct {
@@ -210,7 +211,7 @@ func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, k
 	}
 
 	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {
-		if err := profile.AddKudos(kudos, message, kudoType); err != nil {
+		if err := profile.AddKudos(kudos, message, kudoType, senderId); err != nil {
 			return nil, fmt.Errorf("failed to add kudos: %w", err)
 		}
 	}
@@ -353,4 +354,12 @@ func (s *profileService) GetLastKudosEntries(profileId uuid.UUID) ([]domain.Kudo
 		return nil, fmt.Errorf("failed to get kudos entries: %w", err)
 	}
 	return entries, nil
+}
+
+func (s *profileService) GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error) {
+	entry, err := s.profileRepo.GetKudoEntryById(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kudo entry: %w", err)
+	}
+	return entry, nil
 }
