@@ -211,3 +211,11 @@ func (r *ProfileRepository) GetAssetById(assetId string) (*domain.Asset, error) 
 	}
 	return &asset, nil
 }
+
+func (r *ProfileRepository) GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error) {
+	var entry domain.KudosEntry
+	if err := r.db.First(&entry, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &entry, nil
+}

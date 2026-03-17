@@ -40,6 +40,7 @@ type EventService interface {
 	DeleteEvent(eventID uuid.UUID, requestingProfileID uuid.UUID) error
 	JoinEvent(eventID uuid.UUID, profileID uuid.UUID) (*domain.Event, error)
 	LeaveEvent(eventID uuid.UUID, profileID uuid.UUID) error
+	GetReportedEvenByID(id uuid.UUID) (*domain.Event, error)
 }
 
 type eventService struct {
@@ -78,6 +79,10 @@ func (s *eventService) CreateEvent(input CreateEventInput) (*domain.Event, error
 
 func (s *eventService) GetEventByID(id uuid.UUID) (*domain.Event, error) {
 	return s.eventRepo.GetEventByID(id)
+}
+
+func (s *eventService) GetReportedEvenByID(id uuid.UUID) (*domain.Event, error) {
+	return s.eventRepo.GetReportedEvenByID(id)
 }
 
 func (s *eventService) GetEventByIDWithProfiles(id uuid.UUID) (*domain.EventWithProfiles, error) {
