@@ -44,7 +44,7 @@ func (e *ProfileError) Error() string {
 
 type DuplicateAttendanceError struct {
 	ProfileID uuid.UUID
-	ClassID   uuid.UUID
+	ClassID   int
 	Message   string
 }
 

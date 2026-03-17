@@ -1,48 +1,49 @@
 package application
 
 import (
+	"Quest100Backend/internal/profile/application"
 	"Quest100Backend/internal/util/qrcode/domain"
+	application2 "Quest100Backend/internal/util/timeEdit/application"
+	domain2 "Quest100Backend/internal/util/timeEdit/domain"
 	"fmt"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 type QRCodeService interface {
-	GenerateQRCode(id string) (string, error)
-	GenerateAttendanceQRCode(classID string) (string, error)
+	GenerateAttendanceQRCode(profileId uuid.UUID) (string, error)
 }
 
 type qrCodeService struct {
-	qrGenerator domain.QRCodeGenerator
+	qrGenerator     domain.QRCodeGenerator
+	profileService  application.ProfileService
+	timeEditService application2.TimeEditService
 }
 
-func NewQRCodeService(qrGenerator domain.QRCodeGenerator) QRCodeService {
+func NewQRCodeService(qrGenerator domain.QRCodeGenerator, profileService application.ProfileService, timeEditService application2.TimeEditService) QRCodeService {
 	return &qrCodeService{
-		qrGenerator: qrGenerator,
+		qrGenerator:     qrGenerator,
+		profileService:  profileService,
+		timeEditService: timeEditService,
 	}
 }
 
-func (s *qrCodeService) GenerateQRCode(id string) (string, error) {
-	if id == "" {
-		return "", &domain.InvalidQRCodeDataError{Message: "ID cannot be empty"}
-	}
-
-	qrCode, err := s.qrGenerator.GenerateQRCode(id)
+func (s *qrCodeService) GenerateAttendanceQRCode(profileId uuid.UUID) (string, error) {
+	profile, err := s.profileService.GetProfileById(profileId)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate qr code: %w", err)
+		return "", fmt.Errorf("failed to get profile: %w", err)
 	}
-
-	return qrCode, nil
-}
-
-func (s *qrCodeService) GenerateAttendanceQRCode(classID string) (string, error) {
-	if classID == "" {
-		return "", &domain.InvalidQRCodeDataError{Message: "Class ID cannot be empty"}
+	token, err := s.timeEditService.TimeEditTokenReq()
+	if err != nil {
+		return "", err
+	}
+	classID, err := s.timeEditService.TimeEditReservationsReq(token, domain2.Lector, profile.EmployeeID)
+	if err != nil {
+		return "", err
 	}
 
 	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:4200" // fallback
-	}
 
 	qrCode, err := s.qrGenerator.GenerateAttendanceQRCode(classID, frontendURL)
 	if err != nil {

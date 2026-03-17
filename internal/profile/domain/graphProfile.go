@@ -2,12 +2,14 @@ package domain
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/google/uuid"
 )
 
 type GraphProfile struct {
 	Id                uuid.UUID `json:"id"`
+	EmployeeID        int       `json:"employeeId"`
 	Name              string    `json:"givenName"`
 	Surname           string    `json:"surname"`
 	Mail              string    `json:"mail"`
@@ -19,6 +21,7 @@ func (g *GraphProfile) UnmarshalJSON(data []byte) error {
 	type Alias GraphProfile
 	aux := &struct {
 		Id                string `json:"id"`
+		EmployeeID        string `json:"employeeId"`
 		PreferredLanguage string `json:"preferredLanguage"`
 		*Alias
 	}{
@@ -34,6 +37,9 @@ func (g *GraphProfile) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	g.Id = parsedUUID
+
+	parsedEmployeeID, err := strconv.Atoi(aux.EmployeeID)
+	g.EmployeeID = parsedEmployeeID
 
 	switch aux.PreferredLanguage[0:2] {
 	case "en":

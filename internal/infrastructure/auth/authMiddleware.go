@@ -28,7 +28,7 @@ const (
 
 var jwks *keyfunc.JWKS
 
-func init() {
+func InitAuth() {
 	var err error
 	jwksURL := fmt.Sprintf(
 		"https://login.microsoftonline.com/%s/discovery/v2.0/keys",

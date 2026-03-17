@@ -5,13 +5,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image/png"
+	"log"
 
 	"github.com/skip2/go-qrcode"
 )
 
 type QRCodeGenerator interface {
 	GenerateQRCode(data string) (string, error)
-	GenerateAttendanceQRCode(classID string, baseURL string) (string, error)
+	GenerateAttendanceQRCode(classID int, baseURL string) (string, error)
 }
 
 type qrCodeGenerator struct {
@@ -42,7 +43,8 @@ func (g *qrCodeGenerator) GenerateQRCode(data string) (string, error) {
 	return fmt.Sprintf("data:image/png;base64,%s", base64Str), nil
 }
 
-func (g *qrCodeGenerator) GenerateAttendanceQRCode(classID string, baseURL string) (string, error) {
-	attendanceURL := fmt.Sprintf("%s/attendance/%s", baseURL, classID)
+func (g *qrCodeGenerator) GenerateAttendanceQRCode(classID int, baseURL string) (string, error) {
+	attendanceURL := fmt.Sprintf("%s/attendance/%d", baseURL, classID)
+	log.Println(attendanceURL)
 	return g.GenerateQRCode(attendanceURL)
 }

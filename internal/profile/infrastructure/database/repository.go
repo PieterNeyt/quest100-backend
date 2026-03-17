@@ -13,6 +13,24 @@ type ProfileRepository struct {
 	db *gorm.DB
 }
 
+func (r *ProfileRepository) GetDefaultBodyAsset() (*domain.Asset, error) {
+	var asset domain.Asset
+	result := r.db.First(&asset, "name = ? AND category = ?", "blue gopher", "Body")
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &asset, nil
+}
+
+func (r *ProfileRepository) GetDefaultEyesAsset() (*domain.Asset, error) {
+	var asset domain.Asset
+	result := r.db.First(&asset, "name = ? AND category = ?", "crazy eyes", "Eyes")
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &asset, nil
+}
+
 func NewProfileRepository(db *gorm.DB) *ProfileRepository {
 	return &ProfileRepository{db: db}
 }

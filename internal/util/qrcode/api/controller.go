@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type QRCodeHandler struct {
@@ -18,20 +19,19 @@ func NewQRCodeHandler(qrService application.QRCodeService) *QRCodeHandler {
 }
 
 func (h *QRCodeHandler) GenerateQRCode(c *gin.Context) {
-	var req GenerateQRRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID is required"})
+	profileId, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "no profile id found"})
 		return
 	}
 
-	qrCodeBase64, err := h.qrService.GenerateAttendanceQRCode(req.ID)
+	qrCodeBase64, err := h.qrService.GenerateAttendanceQRCode(profileId.(uuid.UUID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, GenerateQRResponse{
 		QRCode: qrCodeBase64,
-		ID:     req.ID,
 	})
 }

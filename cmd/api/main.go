@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Quest100Backend/internal/infrastructure/auth"
 	"Quest100Backend/internal/infrastructure/server"
 	"context"
 	"errors"
@@ -10,6 +11,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -36,13 +39,16 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 }
 
 func main() {
+	_ = godotenv.Load(".env")
+	_ = godotenv.Overload(".env.secret")
+
+	auth.InitAuth()
 	server := server.NewServer()
 
 	done := make(chan bool, 1)
 	go gracefulShutdown(server, done)
 
-	err := server.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		panic(fmt.Sprintf("http server error: %s", err))
 	}
 

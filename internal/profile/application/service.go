@@ -2,6 +2,8 @@ package application
 
 import (
 	"Quest100Backend/internal/profile/domain"
+	"Quest100Backend/internal/util/timeEdit/application"
+	timeDom "Quest100Backend/internal/util/timeEdit/domain"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -16,7 +18,7 @@ import (
 )
 
 type ProfileService interface {
-	HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error)
+	HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error)
 	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error)
 	GetGraphProfile(token string) (*domain.GraphProfile, error)
 	GetProfileById(id uuid.UUID) (*domain.Profile, error)
@@ -40,12 +42,14 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	profileRepo domain.ProfileRepository
+	profileRepo     domain.ProfileRepository
+	timeEditService application.TimeEditService
 }
 
-func NewProfileService(profileRepo domain.ProfileRepository) ProfileService {
+func NewProfileService(profileRepo domain.ProfileRepository, timeEditService application.TimeEditService) ProfileService {
 	return &profileService{
-		profileRepo: profileRepo,
+		profileRepo:     profileRepo,
+		timeEditService: timeEditService,
 	}
 }
 
@@ -53,12 +57,23 @@ func (s *profileService) GetCampusByProfileID(id uuid.UUID) (string, error) {
 	return s.profileRepo.GetCampusByProfileID(id)
 }
 
-func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
-
+func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
 	profile, err := s.GetProfileById(profileId)
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
 	}
+	token, err := s.timeEditService.TimeEditTokenReq()
+	if err != nil {
+		return nil, 0, false, err
+	}
+	posClassId, err := s.timeEditService.TimeEditReservationsReq(token, timeDom.Student, profile.EmployeeID)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if posClassId != classId {
+		return nil, 0, false, fmt.Errorf("student is not in this class")
+	}
+
 	if err := profile.RecordAttendance(classId); err != nil {
 		var dupErr *domain.DuplicateAttendanceError
 		if errors.As(err, &dupErr) {
@@ -96,21 +111,15 @@ func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
-		// TODO automatisch seeden van paar avatar items mogelijks verbeteren
-		assets, err := s.profileRepo.GetAllAssets()
+		assetBody, err := s.profileRepo.GetDefaultBodyAsset()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get assets: %w", err)
+			return nil, fmt.Errorf("failed to get default body asset: %w", err)
 		}
-		var assetBodyId string
-		var assetEyesId string
-		for _, asset := range *assets {
-			if asset.Category == "Body" && asset.Name == "blue gopher" {
-				assetBodyId = asset.ID
-			} else if asset.Category == "Eyes" && asset.Name == "crazy eyes" {
-				assetEyesId = asset.ID
-			}
+		assetEyes, err := s.profileRepo.GetDefaultEyesAsset()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default eyes asset: %w", err)
 		}
-		profile = domain.CreateProfile(graphProfile, assetBodyId, assetEyesId)
+		profile = domain.CreateProfile(graphProfile, assetBody.ID, assetEyes.ID)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {
 			return nil, fmt.Errorf("failed to save profile: %w", err)
 		}
@@ -129,7 +138,7 @@ func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profil
 }
 
 func (s *profileService) GetGraphProfile(token string) (*domain.GraphProfile, error) {
-	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/me", nil)
+	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/me?$select=id,employeeId,givenName,surname,mail,preferredLanguage,officeLocation", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	client := &http.Client{}

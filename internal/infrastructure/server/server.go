@@ -16,25 +16,25 @@ import (
 	database2 "Quest100Backend/internal/profile/infrastructure/database"
 	utilApp "Quest100Backend/internal/util/qrcode/application"
 	"Quest100Backend/internal/util/qrcode/domain"
+	timeApp "Quest100Backend/internal/util/timeEdit/application"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
 type Server struct {
-	port        int
-	db          database.Service
-	hub         *server2.Hub
-	profileServ profileApp.ProfileService
-	eventServ   eventApp.EventService
-	chatServ    comApp.ChatService
-	qrCodeServ  utilApp.QRCodeService
-	gotchaServ  gotchaApp.GotchaService
-	modServ     modApp.ModerationService
+	port         int
+	db           database.Service
+	hub          *server2.Hub
+	profileServ  profileApp.ProfileService
+	eventServ    eventApp.EventService
+	chatServ     comApp.ChatService
+	qrCodeServ   utilApp.QRCodeService
+	gotchaServ   gotchaApp.GotchaService
+	modServ      modApp.ModerationService
+	timeEditServ timeApp.TimeEditService
 }
 
 func NewServer() *http.Server {
@@ -50,24 +50,26 @@ func NewServer() *http.Server {
 	gKillRepo := gotchaDB.NewKillRepository(db.GetDB())
 	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
 
-	pServ := profileApp.NewProfileService(pRepo)
+	tServ := timeApp.NewTimeEditService()
+	pServ := profileApp.NewProfileService(pRepo, tServ)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	mServ := modApp.NewModerationService(mRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ, mServ)
-	qServ := utilApp.NewQRCodeService(qrGen)
+	qServ := utilApp.NewQRCodeService(qrGen, pServ, tServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
-		port:        port,
-		db:          db,
-		hub:         server2.NewHub(),
-		profileServ: pServ,
-		eventServ:   eServ,
-		chatServ:    cServ,
-		qrCodeServ:  qServ,
-		modServ:     mServ,
-		gotchaServ:  gServ,
+		port:         port,
+		db:           db,
+		hub:          server2.NewHub(),
+		profileServ:  pServ,
+		eventServ:    eServ,
+		chatServ:     cServ,
+		qrCodeServ:   qServ,
+		modServ:      mServ,
+		gotchaServ:   gServ,
+		timeEditServ: tServ,
 	}
 
 	schedular.StartDailyTableCleanup(
