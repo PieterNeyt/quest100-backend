@@ -23,7 +23,7 @@ func NewTimeEditService() TimeEditService {
 }
 
 func (s *timeEditService) TimeEditTokenReq() (string, error) {
-	req, _ := http.NewRequest("POST", "https://api.test.timeedit.net/v1/organizations/"+os.Getenv("ORG_ID")+"/api-keys/authenticate", nil)
+	req, _ := http.NewRequest("POST", os.Getenv("TIME_EDIT_URL")+"organizations/"+os.Getenv("ORG_ID")+"/api-keys/authenticate", nil)
 	req.Header.Set("Authorization", os.Getenv("API_KEY"))
 	req.Header.Set("X-Region", "EU_EES")
 
@@ -47,7 +47,7 @@ func (s *timeEditService) TimeEditReservationsReq(token string, typeID domain.Ty
 	body := domain.CreateRequestBody(typeID, employeeId)
 
 	jsonBody, _ := json.Marshal(body)
-	req, _ := http.NewRequest("POST", "https://api.test.timeedit.net/v1/reservations/find", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("POST", os.Getenv("TIME_EDIT_URL")+"reservations/find", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
