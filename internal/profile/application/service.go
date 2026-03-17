@@ -3,7 +3,7 @@ package application
 import (
 	"Quest100Backend/internal/profile/domain"
 	"Quest100Backend/internal/util/timeEdit/application"
-	domain2 "Quest100Backend/internal/util/timeEdit/domain"
+	timeDom "Quest100Backend/internal/util/timeEdit/domain"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -66,7 +66,7 @@ func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*do
 	if err != nil {
 		return nil, 0, false, err
 	}
-	posClassId, err := s.timeEditService.TimeEditReservationsReq(token, domain2.Student, profile.EmployeeID)
+	posClassId, err := s.timeEditService.TimeEditReservationsReq(token, timeDom.Student, profile.EmployeeID)
 	if err != nil {
 		return nil, 0, false, err
 	}
