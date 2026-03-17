@@ -27,7 +27,7 @@ func (h *QRCodeHandler) GenerateQRCode(c *gin.Context) {
 
 	qrCodeBase64, err := h.qrService.GenerateAttendanceQRCode(profileId.(uuid.UUID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -110,21 +110,15 @@ func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
-		// TODO automatisch seeden van paar avatar items mogelijks verbeteren
-		assets, err := s.profileRepo.GetAllAssets()
+		assetBody, err := s.profileRepo.GetDefaultBodyAsset()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get assets: %w", err)
+			return nil, fmt.Errorf("failed to get default body asset: %w", err)
 		}
-		var assetBodyId string
-		var assetEyesId string
-		for _, asset := range *assets {
-			if asset.Category == "Body" && asset.Name == "blue gopher" {
-				assetBodyId = asset.ID
-			} else if asset.Category == "Eyes" && asset.Name == "crazy eyes" {
-				assetEyesId = asset.ID
-			}
+		assetEyes, err := s.profileRepo.GetDefaultEyesAsset()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default eyes asset: %w", err)
 		}
-		profile = domain.CreateProfile(graphProfile, assetBodyId, assetEyesId)
+		profile = domain.CreateProfile(graphProfile, assetBody.ID, assetEyes.ID)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {
 			return nil, fmt.Errorf("failed to save profile: %w", err)
 		}

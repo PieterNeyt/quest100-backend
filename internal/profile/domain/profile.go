@@ -20,6 +20,8 @@ type ProfileRepository interface {
 	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
 	GetAllAssets() (*[]Asset, error)
+	GetDefaultBodyAsset() (*Asset, error)
+	GetDefaultEyesAsset() (*Asset, error)
 	GetAssetById(assetId string) (*Asset, error)
 	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
 	GetProfileAvatar(profileId uuid.UUID) (*Avatar, error)
