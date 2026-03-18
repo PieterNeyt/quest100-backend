@@ -5,6 +5,7 @@ import (
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
 	gotchaRouting "Quest100Backend/internal/gotcha/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
+	"Quest100Backend/internal/leaderboard/infrastructure/server"
 	moderationRouting "Quest100Backend/internal/moderation/infrastructure/server"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
 	qrcodeRouting "Quest100Backend/internal/util/qrcode/infrastructure/server"
@@ -29,7 +30,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	eventRouting.SetupEventRoutes(api, s.eventServ)
 	qrcodeRouting.SetupQRCodeRoutes(api, s.qrCodeServ)
 	moderationRouting.SetupModerationRoutes(api, s.modServ)
-
+	server.SetupLeaderboardRoutes(api, s.lbServ)
 	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
 	gotchaRouting.SetupGotchaRoutes(api, s.gotchaServ)
 

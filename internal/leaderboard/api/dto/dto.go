@@ -13,14 +13,14 @@ type PrizeRequest struct {
 }
 
 type CreateLeaderboardRequest struct {
-	CourseID  uuid.UUID    `json:"course_id" binding:"required"`
-	StartDate time.Time    `json:"start_date" binding:"required"`
-	EndDate   time.Time    `json:"end_date" binding:"required"`
+	CourseID  uuid.UUID    `json:"courseId" binding:"required"`
+	StartDate time.Time    `json:"startDate" binding:"required"`
+	EndDate   time.Time    `json:"endDate" binding:"required"`
 	Prize     PrizeRequest `json:"prize"`
 }
 
 type UpdateLeaderboardRequest struct {
-	StartDate *time.Time    `json:"start_date"`
-	EndDate   *time.Time    `json:"end_date"`
+	StartDate *time.Time    `json:"startDate"`
+	EndDate   *time.Time    `json:"endDate"`
 	Prize     *PrizeRequest `json:"prize"`
 }
