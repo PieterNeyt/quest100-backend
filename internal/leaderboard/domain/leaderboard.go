@@ -1,26 +1,31 @@
 package domain
 
 import (
+	"Quest100Backend/internal/profile/domain"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type LeaderboardRepository interface {
+	GetAllCoursesWithClasses() ([]*domain.Course, error)
+	GetClassesByCourseID(courseID uuid.UUID) ([]*domain.Class, error)
+	CreateLeaderboard(lb *Leaderboard) error
+	GetLeaderboardByID(id uuid.UUID) (*Leaderboard, error)
+	UpdateLeaderboard(lb *Leaderboard) error
 }
-type Participant struct {
-	LeaderboardID uuid.UUID `gorm:"type:char(36);not null;index"`
-	ClassName     string    `gorm:"type:varchar(255);not null"`
+type LeaderboardClass struct {
+	LeaderboardID uuid.UUID `gorm:"type:char(36);primaryKey"`
+	ClassId       uuid.UUID `gorm:"type:char(36);primaryKey"`
 	TotalKudos    int       `gorm:"default:0"`
 }
-
 type Leaderboard struct {
-	ID           uuid.UUID      `gorm:"type:char(36);primaryKey"`
-	Direction    string         `gorm:"type:varchar(255);not null"`
-	StartDate    time.Time      `gorm:"not null"`
-	EndDate      time.Time      `gorm:"not null"`
-	Prize        Prize          `gorm:"embedded;embeddedPrefix:prize_"`
-	Participants []*Participant `gorm:"foreignKey:LeaderboardID"`
+	ID        uuid.UUID           `gorm:"type:char(36);primaryKey"`
+	CourseId  uuid.UUID           `gorm:"type:char(36);not null"`
+	StartDate time.Time           `gorm:"not null"`
+	EndDate   time.Time           `gorm:"not null"`
+	Prize     Prize               `gorm:"embedded;embeddedPrefix:prize_"`
+	Classes   []*LeaderboardClass `gorm:"foreignKey:LeaderboardID"`
 }
 
 type Prize struct {
