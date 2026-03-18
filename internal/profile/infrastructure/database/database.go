@@ -13,7 +13,8 @@ import (
 
 func AutoMigration(db *gorm.DB) {
 	if err := db.AutoMigrate(&domain.Profile{}, &domain.KudosEntry{}, &domain.ProfileStats{},
-		&domain.AwardHistoryEntry{}, &domain.Avatar{}, &domain.AttendanceRecord{}, &domain.Asset{}); err != nil {
+		&domain.AwardHistoryEntry{}, &domain.Avatar{}, &domain.AttendanceRecord{}, &domain.Asset{},
+		&domain.Course{}, &domain.Class{}); err != nil {
 		log.Printf("Failed to migrate database: %v", err)
 	}
 
@@ -164,6 +165,48 @@ func seedDatabase(db *gorm.DB) {
 	}
 
 	seedAvatars(db, defaultBody.ID, defaultEyes.ID)
+	seedCourses(db)
+}
+func seedCourses(db *gorm.DB) {
+	courses := []domain.Course{
+		{
+			Id:   uuid.MustParse("10000000-0000-0000-0000-000000000001"),
+			Name: "INF",
+			Classes: []*domain.Class{
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000001"), Name: "101"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000002"), Name: "102"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000003"), Name: "103"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000004"), Name: "104"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000005"), Name: "105"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000006"), Name: "106"},
+			},
+		},
+		{
+			Id:   uuid.MustParse("10000000-0000-0000-0000-000000000002"),
+			Name: "ACS",
+			Classes: []*domain.Class{
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000007"), Name: "101"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000008"), Name: "102"},
+				{Id: uuid.MustParse("20000000-0000-0000-0000-000000000009"), Name: "103"},
+			},
+		},
+	}
+
+	for _, course := range courses {
+		c := course
+		if err := db.Where(domain.Course{Id: c.Id}).FirstOrCreate(&c).Error; err != nil {
+			log.Printf("Could not seed course %s: %v", c.Name, err)
+			continue
+		}
+
+		for _, class := range c.Classes {
+			cl := class
+			cl.CourseId = c.Id
+			if err := db.Where(domain.Class{Id: cl.Id}).FirstOrCreate(cl).Error; err != nil {
+				log.Printf("Could not seed class %s for course %s: %v", cl.Name, c.Name, err)
+			}
+		}
+	}
 }
 
 func seedAvatars(db *gorm.DB, bodyID string, eyesID string) {
