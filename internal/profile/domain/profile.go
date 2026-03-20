@@ -14,6 +14,7 @@ type ProfileRepository interface {
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
+	GetProfilesByCourseId(courseId uuid.UUID) (*[]Profile, error)
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)

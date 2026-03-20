@@ -241,9 +241,21 @@ func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, k
 }
 
 func (s *profileService) GetProfilesWithAward(profileId uuid.UUID) (*[]domain.ProfileAward, error) {
-	profiles, err := s.GetProfiles()
+	requester, err := s.profileRepo.GetProfileById(profileId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get profiles: %w", err)
+		return nil, fmt.Errorf("failed to get requester profile: %w", err)
+	}
+
+	if requester.ClassID == nil || requester.Class == nil {
+		var empty []domain.ProfileAward
+		return &empty, nil
+	}
+
+	courseId := requester.Class.CourseId
+
+	profiles, err := s.profileRepo.GetProfilesByCourseId(courseId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profiles by course: %w", err)
 	}
 
 	receivers, err := s.profileRepo.GetSentAwardReceivers(profileId)
