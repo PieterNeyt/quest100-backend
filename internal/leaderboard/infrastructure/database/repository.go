@@ -45,14 +45,15 @@ func (r *LeaderboardRepository) GetLeaderboardByID(id uuid.UUID) (*domain.Leader
 	return &lb, nil
 }
 
-func (r *LeaderboardRepository) GetLeaderboardByCourseId(id uuid.UUID) (*domain.Leaderboard, error) {
-	var lb domain.Leaderboard
+func (r *LeaderboardRepository) GetLeaderboardByCourseId(id uuid.UUID) ([]*domain.Leaderboard, error) {
+	var leaderboards []*domain.Leaderboard
 	if err := r.db.
 		Preload("Classes").
-		First(&lb, "course_id = ?", id).Error; err != nil {
+		Where("course_id = ?", id).
+		Find(&leaderboards).Error; err != nil {
 		return nil, err
 	}
-	return &lb, nil
+	return leaderboards, nil
 }
 
 func (r *LeaderboardRepository) GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*domain.Leaderboard, error) {

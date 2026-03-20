@@ -15,7 +15,7 @@ type LeaderboardRepository interface {
 	GetLeaderboardByID(id uuid.UUID) (*Leaderboard, error)
 	UpdateLeaderboard(lb *Leaderboard) error
 	GetLeaderboardWithStandings(id uuid.UUID) (*Leaderboard, error)
-	GetLeaderboardByCourseId(id uuid.UUID) (*Leaderboard, error)
+	GetLeaderboardByCourseId(id uuid.UUID) ([]*Leaderboard, error)
 	GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*Leaderboard, error)
 }
 

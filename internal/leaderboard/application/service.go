@@ -15,7 +15,7 @@ type LeaderboardService interface {
 	UpdateLeaderboard(id uuid.UUID, req dto.UpdateLeaderboardRequest) (*domain.Leaderboard, error)
 	GetAllLeaderboards() ([]*domain.Leaderboard, error)
 	GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error)
-	GetLeaderboardByCourseId(id uuid.UUID) (*domain.Leaderboard, error)
+	GetLeaderboardByCourseId(id uuid.UUID) ([]*domain.Leaderboard, error)
 }
 
 type leaderboardService struct {
@@ -32,7 +32,7 @@ func (s *leaderboardService) GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboa
 	return s.leaderboardRepo.GetLeaderboardByID(id)
 }
 
-func (s *leaderboardService) GetLeaderboardByCourseId(id uuid.UUID) (*domain.Leaderboard, error) {
+func (s *leaderboardService) GetLeaderboardByCourseId(id uuid.UUID) ([]*domain.Leaderboard, error) {
 	return s.leaderboardRepo.GetLeaderboardByCourseId(id)
 }
 
