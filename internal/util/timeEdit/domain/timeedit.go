@@ -6,6 +6,50 @@ import (
 	"time"
 )
 
+type TypeID string
+
+const (
+	Student  TypeID = "person.student"
+	Lector          = "person.staff"
+	Teaching        = "activitytype.teaching"
+)
+
+type Field struct {
+	FieldID string   `json:"fieldId"`
+	Values  []string `json:"values"`
+}
+
+type Object struct {
+	ObjectID string `json:"objectId"`
+	TypeID   string `json:"typeId"`
+}
+
+type Result struct {
+	ID      int      `json:"id"`
+	Begin   int64    `json:"begin"`
+	End     int64    `json:"end"`
+	Status  []string `json:"status"`
+	Objects []Object `json:"objects"`
+	Fields  []Field  `json:"fields"`
+}
+
+type ResponseBody struct {
+	Limit        int      `json:"limit"`
+	Page         int      `json:"page"`
+	TotalPages   int      `json:"totalPages"`
+	TotalResults int      `json:"totalResults"`
+	Results      []Result `json:"results"`
+}
+
+type CourseObject struct {
+	ExtID  string  `json:"extId"`
+	Fields []Field `json:"fields"`
+}
+
+type CourseObjectsResponse struct {
+	Results []CourseObject `json:"results"`
+}
+
 type Date struct {
 	StartDate int64 `json:"startDate"`
 	EndDate   int64 `json:"endDate"`
@@ -27,59 +71,6 @@ type RequestBody struct {
 	SearchObjects []SearchObject `json:"searchObjects"`
 	TypeFields    []TypeField    `json:"typeFields,omitempty"`
 	Statuses      []string       `json:"statuses,omitempty"`
-}
-type TypeID string
-
-const (
-	Student  TypeID = "person.student"
-	Lector          = "person.staff"
-	Teaching        = "activitytype.teaching"
-)
-
-type FieldValue struct {
-	ID     string `json:"id"`
-	TypeID string `json:"typeId"`
-	Fields []struct {
-		FieldID string `json:"fieldId"`
-		Values  []struct {
-			Value string `json:"value"`
-		} `json:"values"`
-	} `json:"fields"`
-}
-
-type Object struct {
-	ObjectID   string       `json:"objectId"`
-	TypeID     string       `json:"typeId"`
-	FieldValue []FieldValue `json:"fieldValues,omitempty"`
-}
-
-type Result struct {
-	ID      int      `json:"id"`
-	Begin   int64    `json:"begin"`
-	End     int64    `json:"end"`
-	Status  []string `json:"status"`
-	Objects []Object `json:"objects"`
-	Fields  []struct {
-		FieldID string   `json:"fieldId"`
-		Values  []string `json:"values"`
-	} `json:"fields"`
-}
-
-type ResponseBody struct {
-	Limit        int      `json:"limit"`
-	Page         int      `json:"page"`
-	TotalPages   int      `json:"totalPages"`
-	TotalResults int      `json:"totalResults"`
-	Results      []Result `json:"results"`
-}
-type CourseObjectsResponse struct {
-	Results []struct {
-		ExtID  string `json:"extId"`
-		Fields []struct {
-			FieldID string   `json:"fieldId"`
-			Values  []string `json:"values"`
-		} `json:"fields"`
-	} `json:"results"`
 }
 
 type AgendaItem struct {
