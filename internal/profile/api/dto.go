@@ -15,6 +15,7 @@ type AwardTransaction struct {
 type SyncProfileResponse struct {
 	Profile                 *domain.Profile `json:"profile"`
 	MicrosoftProfilePicture string          `json:"microsoftProfilePicture"`
+	HasClass                bool            `json:"hasClass"`
 }
 
 type AssetDTO struct {

@@ -17,7 +17,7 @@ import (
 
 type ProfileService interface {
 	HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error)
-	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error)
+	Sync(graphProfile *domain.GraphProfile) (profile *domain.Profile, isNew bool, err error)
 	GetGraphProfile(token string) (*domain.GraphProfile, error)
 	GetProfileById(id uuid.UUID) (*domain.Profile, error)
 	UpdateProfile(profile *domain.Profile) error
@@ -37,6 +37,7 @@ type ProfileService interface {
 	ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error)
 	FetchExternalAsset(url string) (contentType string, body io.ReadCloser, err error)
 	GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error)
+	UpdateClass(profileId uuid.UUID, classId uuid.UUID) (*domain.Profile, error)
 }
 
 type profileService struct {
@@ -54,7 +55,6 @@ func (s *profileService) GetCampusByProfileID(id uuid.UUID) (string, error) {
 }
 
 func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
-
 	profile, err := s.GetProfileById(profileId)
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
@@ -82,6 +82,7 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 
 	return profile, kudos, false, nil
 }
+
 func (s *profileService) GetProfileById(id uuid.UUID) (*domain.Profile, error) {
 	return s.profileRepo.GetProfileById(id)
 }
@@ -93,13 +94,13 @@ func (s *profileService) GetProfiles() (*[]domain.Profile, error) {
 func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 	return s.profileRepo.SaveProfile(profile)
 }
-func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error) {
+
+func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, bool, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
-		// TODO automatisch seeden van paar avatar items mogelijks verbeteren
 		assets, err := s.profileRepo.GetAllAssets()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get assets: %w", err)
+			return nil, false, fmt.Errorf("failed to get assets: %w", err)
 		}
 		var assetBodyId string
 		var assetEyesId string
@@ -112,17 +113,32 @@ func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profil
 		}
 		profile = domain.CreateProfile(graphProfile, assetBodyId, assetEyesId)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {
-			return nil, fmt.Errorf("failed to save profile: %w", err)
+			return nil, false, fmt.Errorf("failed to save profile: %w", err)
 		}
-		return profile, nil
+		return profile, true, nil
 	}
 
 	if err := profile.Sync(graphProfile); err != nil {
-		return nil, fmt.Errorf("failed to sync profile: %w", err)
+		return nil, false, fmt.Errorf("failed to sync profile: %w", err)
 	}
 
 	if err := s.UpdateProfile(profile); err != nil {
-		return nil, fmt.Errorf("failed to update profile: %w", err)
+		return nil, false, fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return profile, false, nil
+}
+
+func (s *profileService) UpdateClass(profileId uuid.UUID, classId uuid.UUID) (*domain.Profile, error) {
+	profile, err := s.profileRepo.GetProfileById(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	profile.ClassID = &classId
+
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
+		return nil, fmt.Errorf("failed to save profile: %w", err)
 	}
 
 	return profile, nil
@@ -148,6 +164,7 @@ func (s *profileService) GetGraphProfile(token string) (*domain.GraphProfile, er
 
 	return &user, nil
 }
+
 func (s *profileService) GetGraphProfilePicture(token string) (string, error) {
 	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/me/photo/$value", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
