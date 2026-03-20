@@ -15,6 +15,7 @@ type LeaderboardService interface {
 	UpdateLeaderboard(id uuid.UUID, req dto.UpdateLeaderboardRequest) (*domain.Leaderboard, error)
 	GetAllLeaderboards() ([]*domain.Leaderboard, error)
 	GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error)
+	GetLeaderboardByCourseId(id uuid.UUID) (*domain.Leaderboard, error)
 }
 
 type leaderboardService struct {
@@ -31,9 +32,14 @@ func (s *leaderboardService) GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboa
 	return s.leaderboardRepo.GetLeaderboardByID(id)
 }
 
+func (s *leaderboardService) GetLeaderboardByCourseId(id uuid.UUID) (*domain.Leaderboard, error) {
+	return s.leaderboardRepo.GetLeaderboardByCourseId(id)
+}
+
 func (s *leaderboardService) GetAllLeaderboards() ([]*domain.Leaderboard, error) {
 	return s.leaderboardRepo.GetAllLeaderboards()
 }
+
 func (s *leaderboardService) GetAllCoursesWithClasses() ([]*profileDomain.Course, error) {
 	return s.leaderboardRepo.GetAllCoursesWithClasses()
 }
@@ -41,6 +47,12 @@ func (s *leaderboardService) GetAllCoursesWithClasses() ([]*profileDomain.Course
 func (s *leaderboardService) CreateLeaderboard(req dto.CreateLeaderboardRequest) (*domain.Leaderboard, error) {
 	if req.EndDate.Before(req.StartDate) {
 		return nil, fmt.Errorf("end_date must be after start_date")
+	}
+
+	// Controleer of er al een actief leaderboard bestaat voor deze course (op basis van datum)
+	existing, err := s.leaderboardRepo.GetActiveLeaderboardByCourseId(req.CourseID)
+	if err == nil && existing != nil {
+		return nil, fmt.Errorf("there is already an active leaderboard for this course")
 	}
 
 	classes, err := s.leaderboardRepo.GetClassesByCourseID(req.CourseID)
@@ -89,6 +101,13 @@ func (s *leaderboardService) UpdateLeaderboard(id uuid.UUID, req dto.UpdateLeade
 	if lb.EndDate.Before(lb.StartDate) {
 		return nil, fmt.Errorf("end_date must be after start_date")
 	}
+
+	// Controleer of de nieuwe datumrange overlapt met een ander actief leaderboard voor dezelfde course
+	existing, err := s.leaderboardRepo.GetActiveLeaderboardByCourseId(lb.CourseId)
+	if err == nil && existing != nil && existing.ID != lb.ID {
+		return nil, fmt.Errorf("there is already an active leaderboard for this course in this period")
+	}
+
 	if req.Prize != nil {
 		lb.Prize = domain.Prize{
 			Name:        req.Prize.Name,

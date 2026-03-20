@@ -15,13 +15,17 @@ type LeaderboardRepository interface {
 	GetLeaderboardByID(id uuid.UUID) (*Leaderboard, error)
 	UpdateLeaderboard(lb *Leaderboard) error
 	GetLeaderboardWithStandings(id uuid.UUID) (*Leaderboard, error)
+	GetLeaderboardByCourseId(id uuid.UUID) (*Leaderboard, error)
+	GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*Leaderboard, error)
 }
+
 type LeaderboardClass struct {
 	LeaderboardID uuid.UUID `gorm:"type:char(36);primaryKey"`
 	ClassId       uuid.UUID `gorm:"type:char(36);primaryKey"`
 	ClassName     string    `gorm:"-"`
 	TotalKudos    int       `gorm:"default:0"`
 }
+
 type Leaderboard struct {
 	ID        uuid.UUID           `gorm:"type:char(36);primaryKey"`
 	CourseId  uuid.UUID           `gorm:"type:char(36);not null"`
@@ -29,6 +33,15 @@ type Leaderboard struct {
 	EndDate   time.Time           `gorm:"not null"`
 	Prize     Prize               `gorm:"embedded;embeddedPrefix:prize_"`
 	Classes   []*LeaderboardClass `gorm:"foreignKey:LeaderboardID"`
+}
+
+func (lb *Leaderboard) IsActive() bool {
+	now := time.Now()
+	return now.After(lb.StartDate) && now.Before(lb.EndDate)
+}
+
+func (lb *Leaderboard) IsFinished() bool {
+	return time.Now().After(lb.EndDate)
 }
 
 type Prize struct {

@@ -37,7 +37,7 @@ func (h *LeaderboardHandler) CreateLeaderboard(c *gin.Context) {
 
 	leaderboard, err := h.leaderboardService.CreateLeaderboard(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, leaderboard)
@@ -59,7 +59,7 @@ func (h *LeaderboardHandler) UpdateLeaderboard(c *gin.Context) {
 
 	leaderboard, err := h.leaderboardService.UpdateLeaderboard(id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, leaderboard)
@@ -81,6 +81,20 @@ func (h *LeaderboardHandler) GetLeaderboardByID(c *gin.Context) {
 		return
 	}
 	lb, err := h.leaderboardService.GetLeaderboardByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lb)
+}
+
+func (h *LeaderboardHandler) GetLeaderboardByCourseId(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("courseId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	lb, err := h.leaderboardService.GetLeaderboardByCourseId(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

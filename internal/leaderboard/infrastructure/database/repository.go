@@ -3,6 +3,7 @@ package database
 import (
 	"Quest100Backend/internal/leaderboard/domain"
 	profileDomain "Quest100Backend/internal/profile/domain"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -39,6 +40,28 @@ func (r *LeaderboardRepository) CreateLeaderboard(lb *domain.Leaderboard) error 
 func (r *LeaderboardRepository) GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error) {
 	var lb domain.Leaderboard
 	if err := r.db.Preload("Classes").First(&lb, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &lb, nil
+}
+
+func (r *LeaderboardRepository) GetLeaderboardByCourseId(id uuid.UUID) (*domain.Leaderboard, error) {
+	var lb domain.Leaderboard
+	if err := r.db.
+		Preload("Classes").
+		First(&lb, "course_id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &lb, nil
+}
+
+func (r *LeaderboardRepository) GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*domain.Leaderboard, error) {
+	var lb domain.Leaderboard
+	now := time.Now()
+	if err := r.db.
+		Preload("Classes").
+		Where("course_id = ? AND start_date <= ? AND end_date >= ?", courseID, now, now).
+		First(&lb).Error; err != nil {
 		return nil, err
 	}
 	return &lb, nil
