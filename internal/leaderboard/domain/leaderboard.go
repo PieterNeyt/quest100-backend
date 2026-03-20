@@ -10,13 +10,16 @@ import (
 type LeaderboardRepository interface {
 	GetAllCoursesWithClasses() ([]*domain.Course, error)
 	GetClassesByCourseID(courseID uuid.UUID) ([]*domain.Class, error)
+	GetAllLeaderboards() ([]*Leaderboard, error)
 	CreateLeaderboard(lb *Leaderboard) error
 	GetLeaderboardByID(id uuid.UUID) (*Leaderboard, error)
 	UpdateLeaderboard(lb *Leaderboard) error
+	GetLeaderboardWithStandings(id uuid.UUID) (*Leaderboard, error)
 }
 type LeaderboardClass struct {
 	LeaderboardID uuid.UUID `gorm:"type:char(36);primaryKey"`
 	ClassId       uuid.UUID `gorm:"type:char(36);primaryKey"`
+	ClassName     string    `gorm:"-"`
 	TotalKudos    int       `gorm:"default:0"`
 }
 type Leaderboard struct {

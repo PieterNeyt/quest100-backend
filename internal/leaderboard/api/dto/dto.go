@@ -9,7 +9,7 @@ import (
 type PrizeRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	PhotoURL    string `json:"photo_url"`
+	PhotoURL    string `json:"photoUrl"`
 }
 
 type CreateLeaderboardRequest struct {

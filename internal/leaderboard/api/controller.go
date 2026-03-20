@@ -64,3 +64,26 @@ func (h *LeaderboardHandler) UpdateLeaderboard(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, leaderboard)
 }
+
+func (h *LeaderboardHandler) GetAllLeaderboards(c *gin.Context) {
+	leaderboards, err := h.leaderboardService.GetAllLeaderboards()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, leaderboards)
+}
+
+func (h *LeaderboardHandler) GetLeaderboardByID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	lb, err := h.leaderboardService.GetLeaderboardByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lb)
+}

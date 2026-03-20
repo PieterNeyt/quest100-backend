@@ -12,6 +12,8 @@ func SetupLeaderboardRoutes(r *gin.RouterGroup, lbServ application.LeaderboardSe
 	lbGroup := r.Group("/leaderboard")
 	{
 		lbGroup.GET("/courses", leaderboardHandler.GetAllCoursesWithClasses)
+		lbGroup.GET("", leaderboardHandler.GetAllLeaderboards)
+		lbGroup.GET("/:id", leaderboardHandler.GetLeaderboardByID)
 		lbGroup.POST("", leaderboardHandler.CreateLeaderboard)
 		lbGroup.PUT("/:id", leaderboardHandler.UpdateLeaderboard)
 	}

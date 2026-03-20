@@ -53,3 +53,19 @@ func (r *LeaderboardRepository) UpdateLeaderboard(lb *domain.Leaderboard) error 
 		"prize_photo_url":   lb.Prize.PhotoURL,
 	}).Error
 }
+
+func (r *LeaderboardRepository) GetAllLeaderboards() ([]*domain.Leaderboard, error) {
+	var leaderboards []*domain.Leaderboard
+	if err := r.db.Preload("Classes").Find(&leaderboards).Error; err != nil {
+		return nil, err
+	}
+	return leaderboards, nil
+}
+
+func (r *LeaderboardRepository) GetLeaderboardWithStandings(id uuid.UUID) (*domain.Leaderboard, error) {
+	var lb domain.Leaderboard
+	if err := r.db.Preload("Classes").First(&lb, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &lb, nil
+}

@@ -13,6 +13,8 @@ type LeaderboardService interface {
 	GetAllCoursesWithClasses() ([]*profileDomain.Course, error)
 	CreateLeaderboard(req dto.CreateLeaderboardRequest) (*domain.Leaderboard, error)
 	UpdateLeaderboard(id uuid.UUID, req dto.UpdateLeaderboardRequest) (*domain.Leaderboard, error)
+	GetAllLeaderboards() ([]*domain.Leaderboard, error)
+	GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error)
 }
 
 type leaderboardService struct {
@@ -25,6 +27,13 @@ func NewLeaderboardService(leaderboardRepo domain.LeaderboardRepository) Leaderb
 	}
 }
 
+func (s *leaderboardService) GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error) {
+	return s.leaderboardRepo.GetLeaderboardByID(id)
+}
+
+func (s *leaderboardService) GetAllLeaderboards() ([]*domain.Leaderboard, error) {
+	return s.leaderboardRepo.GetAllLeaderboards()
+}
 func (s *leaderboardService) GetAllCoursesWithClasses() ([]*profileDomain.Course, error) {
 	return s.leaderboardRepo.GetAllCoursesWithClasses()
 }
