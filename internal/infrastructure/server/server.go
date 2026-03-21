@@ -54,7 +54,7 @@ func NewServer() *http.Server {
 	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
 	lbRepo := database5.NewLeaderboardRepository(db.GetDB())
 
-	pServ := profileApp.NewProfileService(pRepo)
+	pServ := profileApp.NewProfileService(pRepo, lbRepo)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	mServ := modApp.NewModerationService(mRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ, mServ)

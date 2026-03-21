@@ -3,6 +3,8 @@ package database
 import (
 	"Quest100Backend/internal/leaderboard/domain"
 	profileDomain "Quest100Backend/internal/profile/domain"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,11 +61,16 @@ func (r *LeaderboardRepository) GetLeaderboardByCourseId(id uuid.UUID) ([]*domai
 func (r *LeaderboardRepository) GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*domain.Leaderboard, error) {
 	var lb domain.Leaderboard
 	now := time.Now()
-	if err := r.db.
+	err := r.db.
 		Preload("Classes").
 		Where("course_id = ? AND start_date <= ? AND end_date >= ?", courseID, now, now).
-		First(&lb).Error; err != nil {
-		return nil, err
+		First(&lb).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil // geen actief leaderboard, geen fout
+	}
+	if err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
 	}
 	return &lb, nil
 }
@@ -92,4 +99,16 @@ func (r *LeaderboardRepository) GetLeaderboardWithStandings(id uuid.UUID) (*doma
 		return nil, err
 	}
 	return &lb, nil
+}
+
+func (r *LeaderboardRepository) AddKudosToLeaderboardClass(leaderboardId uuid.UUID, classId uuid.UUID, kudos int) error {
+	result := r.db.
+		Model(&domain.LeaderboardClass{}).
+		Where("leaderboard_id = ? AND class_id = ?", leaderboardId, classId).
+		UpdateColumn("total_kudos", gorm.Expr("total_kudos + ?", kudos))
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update leaderboard class kudos: %w", result.Error)
+	}
+	return nil
 }

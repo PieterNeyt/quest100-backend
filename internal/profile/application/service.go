@@ -1,6 +1,7 @@
 package application
 
 import (
+	leaderboardDomain "Quest100Backend/internal/leaderboard/domain"
 	"Quest100Backend/internal/profile/domain"
 	"encoding/base64"
 	"encoding/json"
@@ -38,15 +39,18 @@ type ProfileService interface {
 	FetchExternalAsset(url string) (contentType string, body io.ReadCloser, err error)
 	GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error)
 	UpdateClass(profileId uuid.UUID, classId uuid.UUID) (*domain.Profile, error)
+	AddKudosWithLeaderboard(profileId uuid.UUID, kudos int, reason string, kudoType domain.KudoType, senderID ...uuid.UUID) (*domain.Profile, error)
 }
 
 type profileService struct {
-	profileRepo domain.ProfileRepository
+	profileRepo     domain.ProfileRepository
+	leaderboardRepo leaderboardDomain.LeaderboardRepository
 }
 
-func NewProfileService(profileRepo domain.ProfileRepository) ProfileService {
+func NewProfileService(profileRepo domain.ProfileRepository, leaderboardRepo leaderboardDomain.LeaderboardRepository) ProfileService {
 	return &profileService{
-		profileRepo: profileRepo,
+		profileRepo:     profileRepo,
+		leaderboardRepo: leaderboardRepo,
 	}
 }
 
@@ -54,11 +58,53 @@ func (s *profileService) GetCampusByProfileID(id uuid.UUID) (string, error) {
 	return s.profileRepo.GetCampusByProfileID(id)
 }
 
+func (s *profileService) AddKudosWithLeaderboard(
+	profileId uuid.UUID,
+	kudos int,
+	reason string,
+	kudoType domain.KudoType,
+	senderID ...uuid.UUID,
+) (*domain.Profile, error) {
+
+	profile, err := s.profileRepo.GetProfileById(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	if err := profile.AddKudos(kudos, reason, kudoType, senderID...); err != nil {
+		return nil, fmt.Errorf("failed to add kudos: %w", err)
+	}
+
+	if err := s.profileRepo.SaveProfile(profile); err != nil {
+		return nil, fmt.Errorf("failed to save profile: %w", err)
+	}
+
+	if profile.Class == nil || profile.ClassID == nil {
+		return profile, nil
+	}
+
+	lb, err := s.leaderboardRepo.GetActiveLeaderboardByCourseId(profile.Class.CourseId)
+	if err != nil {
+		fmt.Printf("warning: failed to get active leaderboard for course %s: %v\n", profile.Class.CourseId, err)
+		return profile, nil
+	}
+	if lb == nil {
+		return profile, nil
+	}
+
+	if err := s.leaderboardRepo.AddKudosToLeaderboardClass(lb.ID, *profile.ClassID, kudos); err != nil {
+		fmt.Printf("warning: failed to update leaderboard class kudos: %v\n", err)
+	}
+
+	return profile, nil
+}
+
 func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
-	profile, err := s.GetProfileById(profileId)
+	profile, err := s.profileRepo.GetProfileById(profileId)
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
 	}
+
 	if err := profile.RecordAttendance(classId); err != nil {
 		var dupErr *domain.DuplicateAttendanceError
 		if errors.As(err, &dupErr) {
@@ -72,12 +118,9 @@ func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID
 		return nil, 0, false, fmt.Errorf("invalid ATTENDANCE_KUDOS value: %w", err)
 	}
 
-	if err := profile.AddKudos(kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance); err != nil {
-		return nil, 0, false, fmt.Errorf("failed to add kudos: %w", err)
-	}
-
-	if err := s.UpdateProfile(profile); err != nil {
-		return nil, 0, false, fmt.Errorf("failed to update profile: %w", err)
+	profile, err = s.AddKudosWithLeaderboard(profileId, kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance)
+	if err != nil {
+		return nil, 0, false, fmt.Errorf("failed to add kudos with leaderboard: %w", err)
 	}
 
 	return profile, kudos, false, nil
@@ -218,23 +261,18 @@ func (s *profileService) DeleteProfilePicture(profileId uuid.UUID) (*domain.Prof
 }
 
 func (s *profileService) GiveAwardTo(senderId uuid.UUID, receiverId uuid.UUID, kudoType domain.KudoType, message string) (*domain.Profile, error) {
-	profile, err := s.profileRepo.GetProfileById(receiverId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get profile: %w", err)
-	}
-
 	if err := s.profileRepo.AddAwardHistoryEntry(senderId, receiverId); err != nil {
 		return nil, fmt.Errorf("failed to add award history entry: %w", err)
 	}
 
-	if kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS")); err == nil {
-		if err := profile.AddKudos(kudos, message, kudoType, senderId); err != nil {
-			return nil, fmt.Errorf("failed to add kudos: %w", err)
-		}
+	kudos, err := strconv.Atoi(os.Getenv("AWARD_KUDOS"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid AWARD_KUDOS value: %w", err)
 	}
 
-	if err := s.profileRepo.SaveProfile(profile); err != nil {
-		return nil, fmt.Errorf("failed to update profile: %w", err)
+	profile, err := s.AddKudosWithLeaderboard(receiverId, kudos, message, kudoType, senderId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add kudos with leaderboard: %w", err)
 	}
 
 	return profile, nil
