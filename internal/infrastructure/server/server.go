@@ -10,6 +10,8 @@ import (
 	gotchaDB "Quest100Backend/internal/gotcha/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/schedular"
+	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
+	nerdleDB "Quest100Backend/internal/minigame/nerdle/infrastructure/database"
 	modApp "Quest100Backend/internal/moderation/application"
 	modDatabase "Quest100Backend/internal/moderation/infrastructure/database"
 	profileApp "Quest100Backend/internal/profile/application"
@@ -35,6 +37,7 @@ type Server struct {
 	gotchaServ   gotchaApp.GotchaService
 	modServ      modApp.ModerationService
 	timeEditServ timeApp.TimeEditService
+	nerdleServ   nerdleApp.NerdleService
 }
 
 func NewServer() *http.Server {
@@ -49,6 +52,7 @@ func NewServer() *http.Server {
 	gPartRepo := gotchaDB.NewParticipantRepository(db.GetDB())
 	gKillRepo := gotchaDB.NewKillRepository(db.GetDB())
 	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
+	nRepo := nerdleDB.NewNerdleRepository(db.GetDB())
 
 	tServ := timeApp.NewTimeEditService()
 	pServ := profileApp.NewProfileService(pRepo, tServ)
@@ -57,6 +61,7 @@ func NewServer() *http.Server {
 	eServ := eventApp.NewEventService(eRepo, cServ, mServ)
 	qServ := utilApp.NewQRCodeService(qrGen, pServ, tServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
+	nServ := nerdleApp.NewNerdleService(nRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
@@ -70,6 +75,7 @@ func NewServer() *http.Server {
 		modServ:      mServ,
 		gotchaServ:   gServ,
 		timeEditServ: tServ,
+		nerdleServ:   nServ,
 	}
 
 	schedular.StartDailyTableCleanup(
@@ -77,7 +83,7 @@ func NewServer() *http.Server {
 		[]string{"award_history_entries"},
 		"02:00",
 	)
-
+	schedular.StartDailyNerdleGame(nServ)
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", newServer.port),
