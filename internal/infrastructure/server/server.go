@@ -10,6 +10,8 @@ import (
 	gotchaDB "Quest100Backend/internal/gotcha/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/schedular"
+	minesweeperApp "Quest100Backend/internal/minigame/minesweeper/application"
+	minesweeperDB "Quest100Backend/internal/minigame/minesweeper/infrastructure/database"
 	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
 	nerdleDB "Quest100Backend/internal/minigame/nerdle/infrastructure/database"
 	modApp "Quest100Backend/internal/moderation/application"
@@ -27,17 +29,18 @@ import (
 )
 
 type Server struct {
-	port         int
-	db           database.Service
-	hub          *server2.Hub
-	profileServ  profileApp.ProfileService
-	eventServ    eventApp.EventService
-	chatServ     comApp.ChatService
-	qrCodeServ   utilApp.QRCodeService
-	gotchaServ   gotchaApp.GotchaService
-	modServ      modApp.ModerationService
-	timeEditServ timeApp.TimeEditService
-	nerdleServ   nerdleApp.NerdleService
+	port            int
+	db              database.Service
+	hub             *server2.Hub
+	profileServ     profileApp.ProfileService
+	eventServ       eventApp.EventService
+	chatServ        comApp.ChatService
+	qrCodeServ      utilApp.QRCodeService
+	gotchaServ      gotchaApp.GotchaService
+	modServ         modApp.ModerationService
+	timeEditServ    timeApp.TimeEditService
+	nerdleServ      nerdleApp.NerdleService
+	minesweeperServ minesweeperApp.MinesweeperService
 }
 
 func NewServer() *http.Server {
@@ -53,6 +56,7 @@ func NewServer() *http.Server {
 	gKillRepo := gotchaDB.NewKillRepository(db.GetDB())
 	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
 	nRepo := nerdleDB.NewNerdleRepository(db.GetDB())
+	mnswRepo := minesweeperDB.NewMinesweeperRepository(db.GetDB())
 
 	tServ := timeApp.NewTimeEditService()
 	pServ := profileApp.NewProfileService(pRepo, tServ)
@@ -62,20 +66,22 @@ func NewServer() *http.Server {
 	qServ := utilApp.NewQRCodeService(qrGen, pServ, tServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 	nServ := nerdleApp.NewNerdleService(nRepo, pServ)
+	mnswServ := minesweeperApp.NewMinesweeperService(mnswRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
-		port:         port,
-		db:           db,
-		hub:          server2.NewHub(),
-		profileServ:  pServ,
-		eventServ:    eServ,
-		chatServ:     cServ,
-		qrCodeServ:   qServ,
-		modServ:      mServ,
-		gotchaServ:   gServ,
-		timeEditServ: tServ,
-		nerdleServ:   nServ,
+		port:            port,
+		db:              db,
+		hub:             server2.NewHub(),
+		profileServ:     pServ,
+		eventServ:       eServ,
+		chatServ:        cServ,
+		qrCodeServ:      qServ,
+		modServ:         mServ,
+		gotchaServ:      gServ,
+		timeEditServ:    tServ,
+		nerdleServ:      nServ,
+		minesweeperServ: mnswServ,
 	}
 
 	schedular.StartDailyTableCleanup(

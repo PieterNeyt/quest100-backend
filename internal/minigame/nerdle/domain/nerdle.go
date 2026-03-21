@@ -29,6 +29,29 @@ type NerdleSession struct {
 	CreatedAt   time.Time       `json:"createdAt"`
 }
 
+func NewSession(profileID uuid.UUID, gameID uuid.UUID) *NerdleSession {
+	return &NerdleSession{
+		ID:        uuid.New(),
+		GameID:    gameID,
+		ProfileID: profileID,
+		Solved:    false,
+		CreatedAt: time.Now().UTC(),
+		Attempts:  []NerdleAttempt{},
+	}
+}
+
+func (s *NerdleSession) IsCompleted() bool {
+	return s.Solved || len(s.Attempts) >= MaxAttempts
+}
+
+func (s *NerdleSession) AttemptsLeft() int {
+	left := MaxAttempts - len(s.Attempts)
+	if left < 0 {
+		return 0
+	}
+	return left
+}
+
 type NerdleAttempt struct {
 	ID        uuid.UUID    `gorm:"type:uuid;primaryKey;" json:"id"`
 	SessionID uuid.UUID    `gorm:"type:uuid;not null;index" json:"sessionId"`
@@ -113,7 +136,6 @@ func EvaluateGuess(guess, formula string) []TileResult {
 	fUsed := make([]bool, n)
 	gMatched := make([]bool, n)
 
-	// Pass 1: correct positions
 	for i := 0; i < n; i++ {
 		if i < len(g) && g[i] == f[i] {
 			results[i] = TileResult{Char: string(g[i]), Status: TileCorrect}
@@ -122,7 +144,6 @@ func EvaluateGuess(guess, formula string) []TileResult {
 		}
 	}
 
-	// Pass 2: present in wrong position
 	for i := 0; i < n; i++ {
 		if gMatched[i] || i >= len(g) {
 			if i >= len(g) {

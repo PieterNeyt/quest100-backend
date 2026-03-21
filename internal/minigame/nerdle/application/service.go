@@ -11,9 +11,9 @@ import (
 )
 
 type NerdleService interface {
-	GetTodayGame() (*domain.NerdleGame, error)
 	GetOrCreateSession(profileID uuid.UUID) (*domain.NerdleSession, error)
 	SubmitGuess(profileID uuid.UUID, guess string) (*GuessResponse, error)
+	PrepareDailyGame() error
 }
 
 type GuessResponse struct {
@@ -37,7 +37,7 @@ func NewNerdleService(repo domain.NerdleRepository, profileService profileApp.Pr
 	}
 }
 
-func (s *nerdleService) GetTodayGame() (*domain.NerdleGame, error) {
+func (s *nerdleService) getOrCreateGame() (*domain.NerdleGame, error) {
 	today := domain.TodayUTC()
 	game, err := s.repo.GetGameByDate(today)
 	if err == nil {
@@ -49,11 +49,10 @@ func (s *nerdleService) GetTodayGame() (*domain.NerdleGame, error) {
 		return nil, fmt.Errorf("failed to fetch today's game: %w", err)
 	}
 
-	formula := domain.GenerateDailyFormula(today)
 	game = &domain.NerdleGame{
 		ID:      uuid.New(),
 		Date:    today,
-		Formula: formula,
+		Formula: domain.GenerateDailyFormula(today),
 	}
 	if err := s.repo.CreateGame(game); err != nil {
 		return nil, fmt.Errorf("failed to create today's game: %w", err)
@@ -61,12 +60,7 @@ func (s *nerdleService) GetTodayGame() (*domain.NerdleGame, error) {
 	return game, nil
 }
 
-func (s *nerdleService) GetOrCreateSession(profileID uuid.UUID) (*domain.NerdleSession, error) {
-	game, err := s.GetTodayGame()
-	if err != nil {
-		return nil, err
-	}
-
+func (s *nerdleService) getOrCreateSessionForGame(profileID uuid.UUID, game *domain.NerdleGame) (*domain.NerdleSession, error) {
 	session, err := s.repo.GetSessionByProfileAndGame(profileID, game.ID)
 	if err == nil {
 		attempts, aErr := s.repo.GetAttemptsBySession(session.ID)
@@ -77,29 +71,28 @@ func (s *nerdleService) GetOrCreateSession(profileID uuid.UUID) (*domain.NerdleS
 		return session, nil
 	}
 
-	now := time.Now().UTC()
-	session = &domain.NerdleSession{
-		ID:        uuid.New(),
-		GameID:    game.ID,
-		ProfileID: profileID,
-		Solved:    false,
-		CreatedAt: now,
-		Attempts:  []domain.NerdleAttempt{},
-	}
+	session = domain.NewSession(profileID, game.ID)
 	if err := s.repo.CreateSession(session); err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 	return session, nil
 }
 
+func (s *nerdleService) GetOrCreateSession(profileID uuid.UUID) (*domain.NerdleSession, error) {
+	game, err := s.getOrCreateGame()
+	if err != nil {
+		return nil, err
+	}
+	return s.getOrCreateSessionForGame(profileID, game)
+}
+
 func (s *nerdleService) SubmitGuess(profileID uuid.UUID, guess string) (*GuessResponse, error) {
-	today := domain.TodayUTC()
-	game, err := s.repo.GetGameByDate(today)
+	game, err := s.getOrCreateGame()
 	if err != nil {
 		return nil, err
 	}
 
-	session, err := s.GetOrCreateSession(profileID)
+	session, err := s.getOrCreateSessionForGame(profileID, game)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +100,6 @@ func (s *nerdleService) SubmitGuess(profileID uuid.UUID, guess string) (*GuessRe
 	if session.Solved {
 		return nil, &domain.AlreadySolvedError{ProfileID: profileID}
 	}
-
 	if len(session.Attempts) >= domain.MaxAttempts {
 		return nil, &domain.MaxAttemptsReachedError{ProfileID: profileID}
 	}
@@ -118,8 +110,8 @@ func (s *nerdleService) SubmitGuess(profileID uuid.UUID, guess string) (*GuessRe
 
 	results := domain.EvaluateGuess(guess, game.Formula)
 	solved := domain.IsSolved(results)
-
 	now := time.Now().UTC()
+
 	attempt := &domain.NerdleAttempt{
 		ID:        uuid.New(),
 		SessionID: session.ID,
@@ -130,7 +122,6 @@ func (s *nerdleService) SubmitGuess(profileID uuid.UUID, guess string) (*GuessRe
 	if err := s.repo.AddAttempt(attempt); err != nil {
 		return nil, fmt.Errorf("failed to save attempt: %w", err)
 	}
-
 	session.Attempts = append(session.Attempts, *attempt)
 
 	kudosEarned := 0
@@ -146,8 +137,7 @@ func (s *nerdleService) SubmitGuess(profileID uuid.UUID, guess string) (*GuessRe
 		kudosEarned = kudos
 	}
 
-	attemptsUsed := len(session.Attempts)
-	gameOver := solved || attemptsUsed >= domain.MaxAttempts
+	gameOver := session.IsCompleted()
 	if gameOver && session.CompletedAt == nil {
 		session.CompletedAt = &now
 	}
@@ -156,14 +146,17 @@ func (s *nerdleService) SubmitGuess(profileID uuid.UUID, guess string) (*GuessRe
 		return nil, fmt.Errorf("failed to update session: %w", err)
 	}
 
-	attemptsLeft := domain.MaxAttempts - attemptsUsed
-
 	return &GuessResponse{
 		Attempt:      attempt,
 		Session:      session,
 		Solved:       solved,
 		GameOver:     gameOver,
-		AttemptsLeft: attemptsLeft,
+		AttemptsLeft: session.AttemptsLeft(),
 		KudosEarned:  kudosEarned,
 	}, nil
+}
+
+func (s *nerdleService) PrepareDailyGame() error {
+	_, err := s.getOrCreateGame()
+	return err
 }

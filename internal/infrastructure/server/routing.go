@@ -5,6 +5,7 @@ import (
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
 	gotchaRouting "Quest100Backend/internal/gotcha/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
+	minesweeperRouting "Quest100Backend/internal/minigame/minesweeper/infrastructure/server"
 	nerdleRouting "Quest100Backend/internal/minigame/nerdle/infrastructure/server"
 	moderationRouting "Quest100Backend/internal/moderation/infrastructure/server"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
@@ -35,6 +36,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
 	gotchaRouting.SetupGotchaRoutes(api, s.gotchaServ)
 	nerdleRouting.SetupNerdleRoutes(api, s.nerdleServ)
+	minesweeperRouting.SetupMinesweeperRoutes(api, s.minesweeperServ)
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
 	r.GET("/debug/ws", func(c *gin.Context) {

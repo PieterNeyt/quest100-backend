@@ -11,7 +11,6 @@ import (
 )
 
 func StartDailyTableCleanup(db *gorm.DB, tables []string, atTime string) {
-
 	loc, _ := time.LoadLocation("Europe/Brussels")
 	scheduler := gocron.NewScheduler(loc)
 
@@ -43,7 +42,7 @@ func StartDailyNerdleGame(nerdleServ application.NerdleService) {
 
 	_, err := scheduler.Every(1).Day().At("00:01").Do(func() {
 		log.Println("Nerdle: generating daily puzzle for", time.Now().Format("2006-01-02"))
-		if _, err := nerdleServ.GetTodayGame(); err != nil {
+		if err := nerdleServ.PrepareDailyGame(); err != nil {
 			log.Printf("Nerdle: failed to generate daily game: %v", err)
 		} else {
 			log.Println("Nerdle: daily puzzle ready")

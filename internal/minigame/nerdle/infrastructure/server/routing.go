@@ -12,7 +12,6 @@ func SetupNerdleRoutes(r *gin.RouterGroup, nerdleServ application.NerdleService)
 
 	nerdleGroup := r.Group("/nerdle")
 	{
-		nerdleGroup.GET("/today", handler.GetTodayStatus)
 		nerdleGroup.GET("/session", handler.GetSession)
 		nerdleGroup.POST("/guess", handler.SubmitGuess)
 	}
