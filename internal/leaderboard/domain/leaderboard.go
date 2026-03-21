@@ -17,6 +17,8 @@ type LeaderboardRepository interface {
 	GetLeaderboardWithStandings(id uuid.UUID) (*Leaderboard, error)
 	GetLeaderboardByCourseId(id uuid.UUID) ([]*Leaderboard, error)
 	GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*Leaderboard, error)
+	HasOverlappingLeaderboard(courseID uuid.UUID, startDate, endDate time.Time) (bool, error)
+	HasOverlappingLeaderboardExcludingId(courseID uuid.UUID, startDate, endDate time.Time, excludeID uuid.UUID) (bool, error)
 	AddKudosToLeaderboardClass(leaderboardId uuid.UUID, classId uuid.UUID, kudos int) error
 }
 

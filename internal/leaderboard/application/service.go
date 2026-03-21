@@ -49,10 +49,12 @@ func (s *leaderboardService) CreateLeaderboard(req dto.CreateLeaderboardRequest)
 		return nil, fmt.Errorf("end_date must be after start_date")
 	}
 
-	// Controleer of er al een actief leaderboard bestaat voor deze course (op basis van datum)
-	existing, err := s.leaderboardRepo.GetActiveLeaderboardByCourseId(req.CourseID)
-	if err == nil && existing != nil {
-		return nil, fmt.Errorf("there is already an active leaderboard for this course")
+	overlaps, err := s.leaderboardRepo.HasOverlappingLeaderboard(req.CourseID, req.StartDate, req.EndDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for overlapping leaderboards: %w", err)
+	}
+	if overlaps {
+		return nil, fmt.Errorf("leaderboard overlaps with an existing leaderboard for this course")
 	}
 
 	classes, err := s.leaderboardRepo.GetClassesByCourseID(req.CourseID)
@@ -102,10 +104,12 @@ func (s *leaderboardService) UpdateLeaderboard(id uuid.UUID, req dto.UpdateLeade
 		return nil, fmt.Errorf("end_date must be after start_date")
 	}
 
-	// Controleer of de nieuwe datumrange overlapt met een ander actief leaderboard voor dezelfde course
-	existing, err := s.leaderboardRepo.GetActiveLeaderboardByCourseId(lb.CourseId)
-	if err == nil && existing != nil && existing.ID != lb.ID {
-		return nil, fmt.Errorf("there is already an active leaderboard for this course in this period")
+	overlaps, err := s.leaderboardRepo.HasOverlappingLeaderboardExcludingId(lb.CourseId, lb.StartDate, lb.EndDate, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for overlapping leaderboards: %w", err)
+	}
+	if overlaps {
+		return nil, fmt.Errorf("leaderboard overlaps with an existing leaderboard for this course")
 	}
 
 	if req.Prize != nil {

@@ -58,6 +58,28 @@ func (r *LeaderboardRepository) GetLeaderboardByCourseId(id uuid.UUID) ([]*domai
 	return leaderboards, nil
 }
 
+func (r *LeaderboardRepository) HasOverlappingLeaderboard(courseID uuid.UUID, startDate, endDate time.Time) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.Leaderboard{}).
+		Where("course_id = ? AND start_date < ? AND end_date > ?", courseID, endDate, startDate).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("database error: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *LeaderboardRepository) HasOverlappingLeaderboardExcludingId(courseID uuid.UUID, startDate, endDate time.Time, excludeID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.Leaderboard{}).
+		Where("course_id = ? AND start_date < ? AND end_date > ? AND id != ?", courseID, endDate, startDate, excludeID).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("database error: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *LeaderboardRepository) GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*domain.Leaderboard, error) {
 	var lb domain.Leaderboard
 	now := time.Now()
