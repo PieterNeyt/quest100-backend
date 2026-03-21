@@ -3,6 +3,7 @@ package server
 import (
 	gotchaAPI "Quest100Backend/internal/gotcha/api"
 	"Quest100Backend/internal/gotcha/application"
+	"Quest100Backend/internal/infrastructure/auth"
 	"log"
 	"time"
 
@@ -30,7 +31,7 @@ func SetupGotchaRoutes(r *gin.RouterGroup, service application.GotchaService) {
 	{
 		// Game
 		g.GET("/game", handler.GetCurrentGame)
-		g.POST("/games", handler.CreateGame)
+		g.POST("/games", auth.RequireRole(auth.Lector), handler.CreateGame)
 
 		// History
 		g.GET("/games/history", handler.GetGameHistory)
@@ -44,7 +45,7 @@ func SetupGotchaRoutes(r *gin.RouterGroup, service application.GotchaService) {
 
 		// Kills
 		g.POST("/kills", handler.SubmitKill)
-		g.PUT("/kills/:killId/review", handler.ReviewKill)
+		g.PUT("/kills/:killId/review", auth.RequireRole(auth.Lector), handler.ReviewKill)
 		g.POST("/kills/:killId/like", handler.LikeKill)
 		g.DELETE("/kills/:killId/like", handler.UnlikeKill)
 		g.GET("/kills/pending/next", handler.GetNextPendingKill)
@@ -55,9 +56,9 @@ func SetupGotchaRoutes(r *gin.RouterGroup, service application.GotchaService) {
 		g.GET("/leaderboard", handler.GetLeaderboard)
 		g.GET("/end-screen", handler.GetEndScreen)
 
-		g.GET("/props", handler.GetAllProps)
-		g.POST("/props", handler.CreateProp)
-		g.PUT("/props/:propId", handler.UpdateProp)
-		g.DELETE("/props/:propId", handler.DeleteProp)
+		g.GET("/props", auth.RequireRole(auth.Lector), handler.GetAllProps)
+		g.POST("/props", auth.RequireRole(auth.Lector), handler.CreateProp)
+		g.PUT("/props/:propId", auth.RequireRole(auth.Lector), handler.UpdateProp)
+		g.DELETE("/props/:propId", auth.RequireRole(auth.Lector), handler.DeleteProp)
 	}
 }

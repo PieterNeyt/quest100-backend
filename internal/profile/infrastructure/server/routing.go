@@ -1,6 +1,7 @@
 package server
 
 import (
+	"Quest100Backend/internal/infrastructure/auth"
 	"Quest100Backend/internal/profile/api"
 	"Quest100Backend/internal/profile/application"
 
@@ -11,7 +12,7 @@ func SetupProfileRoutes(r *gin.RouterGroup, profServ application.ProfileService)
 	profileHandler := api.NewProfileHandler(profServ)
 	profileGroup := r.Group("/profiles")
 	{
-		profileGroup.POST("/attendance/:classId", profileHandler.HandleAttendance)
+		profileGroup.POST("/attendance/:classId", auth.RequireRole(auth.Student), profileHandler.HandleAttendance)
 		profileGroup.POST("/award", profileHandler.GiveAwardTo)
 		profileGroup.GET("/award", profileHandler.GetProfilesForAwards)
 		profileGroup.GET("/stats", profileHandler.GetProfilesStatistics)
