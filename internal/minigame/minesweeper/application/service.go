@@ -44,7 +44,7 @@ func NewMinesweeperService(repo domain.MinesweeperRepository, profileService pro
 }
 
 func (s *minesweeperService) GetOrCreateSession(profileID uuid.UUID) (*domain.MinesweeperSession, error) {
-	today := domain.TodayUTC()
+	today := domain.TodayBrussels()
 
 	session, err := s.repo.GetSessionByProfileAndDate(profileID, today)
 	if err == nil {

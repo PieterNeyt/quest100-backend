@@ -85,8 +85,9 @@ type NerdleRepository interface {
 	GetAttemptsBySession(sessionID uuid.UUID) ([]NerdleAttempt, error)
 }
 
-func TodayUTC() time.Time {
-	now := time.Now().UTC()
+func TodayBrussels() time.Time {
+	loc, _ := time.LoadLocation("Europe/Brussels")
+	now := time.Now().In(loc)
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 }
 

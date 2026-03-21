@@ -38,7 +38,7 @@ func NewNerdleService(repo domain.NerdleRepository, profileService profileApp.Pr
 }
 
 func (s *nerdleService) getOrCreateGame() (*domain.NerdleGame, error) {
-	today := domain.TodayUTC()
+	today := domain.TodayBrussels()
 	game, err := s.repo.GetGameByDate(today)
 	if err == nil {
 		return game, nil

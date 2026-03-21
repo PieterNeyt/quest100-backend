@@ -7,6 +7,7 @@ import (
 	"Quest100Backend/internal/infrastructure/auth"
 	minesweeperRouting "Quest100Backend/internal/minigame/minesweeper/infrastructure/server"
 	nerdleRouting "Quest100Backend/internal/minigame/nerdle/infrastructure/server"
+	sudokuRouting "Quest100Backend/internal/minigame/sudoku/infrastructure/server"
 	moderationRouting "Quest100Backend/internal/moderation/infrastructure/server"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
 	qrcodeRouting "Quest100Backend/internal/util/qrcode/infrastructure/server"
@@ -37,6 +38,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	gotchaRouting.SetupGotchaRoutes(api, s.gotchaServ)
 	nerdleRouting.SetupNerdleRoutes(api, s.nerdleServ)
 	minesweeperRouting.SetupMinesweeperRoutes(api, s.minesweeperServ)
+	sudokuRouting.SetupSudokuRoutes(api, s.sudokuServ)
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
 	r.GET("/debug/ws", func(c *gin.Context) {

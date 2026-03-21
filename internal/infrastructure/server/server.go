@@ -14,6 +14,8 @@ import (
 	minesweeperDB "Quest100Backend/internal/minigame/minesweeper/infrastructure/database"
 	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
 	nerdleDB "Quest100Backend/internal/minigame/nerdle/infrastructure/database"
+	sudokuApp "Quest100Backend/internal/minigame/sudoku/application"
+	sudokuDB "Quest100Backend/internal/minigame/sudoku/infrastructure/database"
 	modApp "Quest100Backend/internal/moderation/application"
 	modDatabase "Quest100Backend/internal/moderation/infrastructure/database"
 	profileApp "Quest100Backend/internal/profile/application"
@@ -41,6 +43,7 @@ type Server struct {
 	timeEditServ    timeApp.TimeEditService
 	nerdleServ      nerdleApp.NerdleService
 	minesweeperServ minesweeperApp.MinesweeperService
+	sudokuServ      sudokuApp.SudokuService
 }
 
 func NewServer() *http.Server {
@@ -57,6 +60,7 @@ func NewServer() *http.Server {
 	gPropRepo := gotchaDB.NewPropRepository(db.GetDB())
 	nRepo := nerdleDB.NewNerdleRepository(db.GetDB())
 	mnswRepo := minesweeperDB.NewMinesweeperRepository(db.GetDB())
+	sRepo := sudokuDB.NewSudokuRepository(db.GetDB())
 
 	tServ := timeApp.NewTimeEditService()
 	pServ := profileApp.NewProfileService(pRepo, tServ)
@@ -67,6 +71,7 @@ func NewServer() *http.Server {
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 	nServ := nerdleApp.NewNerdleService(nRepo, pServ)
 	mnswServ := minesweeperApp.NewMinesweeperService(mnswRepo, pServ)
+	sudServ := sudokuApp.NewSudokuService(sRepo, pServ)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	newServer := &Server{
@@ -82,6 +87,7 @@ func NewServer() *http.Server {
 		timeEditServ:    tServ,
 		nerdleServ:      nServ,
 		minesweeperServ: mnswServ,
+		sudokuServ:      sudServ,
 	}
 
 	schedular.StartDailyTableCleanup(
@@ -90,6 +96,8 @@ func NewServer() *http.Server {
 		"02:00",
 	)
 	schedular.StartDailyNerdleGame(nServ)
+	schedular.StartDailySudokuGame(sudServ)
+
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", newServer.port),

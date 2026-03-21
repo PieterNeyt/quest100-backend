@@ -1,7 +1,8 @@
 package schedular
 
 import (
-	"Quest100Backend/internal/minigame/nerdle/application"
+	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
+	sudokuApp "Quest100Backend/internal/minigame/sudoku/application"
 	"fmt"
 	"log"
 	"time"
@@ -36,7 +37,7 @@ func emptyTables(db *gorm.DB, tables []string) {
 	}
 }
 
-func StartDailyNerdleGame(nerdleServ application.NerdleService) {
+func StartDailyNerdleGame(nerdleServ nerdleApp.NerdleService) {
 	loc, _ := time.LoadLocation("Europe/Brussels")
 	scheduler := gocron.NewScheduler(loc)
 
@@ -50,6 +51,25 @@ func StartDailyNerdleGame(nerdleServ application.NerdleService) {
 	})
 	if err != nil {
 		log.Fatalf("Nerdle: failed to register daily scheduler job: %v", err)
+	}
+
+	scheduler.StartAsync()
+}
+
+func StartDailySudokuGame(sudokuServ sudokuApp.SudokuService) {
+	loc, _ := time.LoadLocation("Europe/Brussels")
+	scheduler := gocron.NewScheduler(loc)
+
+	_, err := scheduler.Every(1).Day().At("00:01").Do(func() {
+		log.Println("Sudoku: generating daily puzzle for", time.Now().Format("2006-01-02"))
+		if err := sudokuServ.PrepareDailyGame(); err != nil {
+			log.Printf("Sudoku: failed to generate daily game: %v", err)
+		} else {
+			log.Println("Sudoku: daily puzzle ready")
+		}
+	})
+	if err != nil {
+		log.Fatalf("Sudoku: failed to register daily scheduler job: %v", err)
 	}
 
 	scheduler.StartAsync()
