@@ -4,8 +4,8 @@ import (
 	"Quest100Backend/internal/profile/application"
 	"Quest100Backend/internal/profile/domain"
 	"net/http"
-	"strconv"
 	"slices"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -457,4 +457,19 @@ func (h *ProfileHandler) GetKudoEntrieById(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, entry)
+}
+func (h *ProfileHandler) GetTodayAgenda(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	items, err := h.profileService.GetTodayAgendaWithAttendance(profileID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
 }
