@@ -1,6 +1,7 @@
 package server
 
 import (
+	"Quest100Backend/internal/infrastructure/auth"
 	"Quest100Backend/internal/moderation/api"
 	"Quest100Backend/internal/moderation/application"
 
@@ -13,7 +14,7 @@ func SetupModerationRoutes(r *gin.RouterGroup, modSer application.ModerationServ
 	moderationGroup := r.Group("/moderation")
 	{
 		moderationGroup.POST("/report", modHandler.CreateReport)
-		moderationGroup.GET("/reports", modHandler.GetReports)
-		moderationGroup.PATCH("/report/:reportId/resolve", modHandler.ResolveReport)
+		moderationGroup.GET("/reports", auth.RequireRole(auth.Admin), modHandler.GetReports)
+		moderationGroup.PATCH("/report/:reportId/resolve", auth.RequireRole(auth.Admin), modHandler.ResolveReport)
 	}
 }

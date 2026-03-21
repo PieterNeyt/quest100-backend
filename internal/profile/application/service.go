@@ -18,6 +18,7 @@ import (
 )
 
 type ProfileService interface {
+	GetTodayAgendaWithAttendance(profileId uuid.UUID) ([]timeDom.AgendaItem, error)
 	HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error)
 	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error)
 	GetGraphProfile(token string) (*domain.GraphProfile, error)
@@ -394,4 +395,27 @@ func (s *profileService) GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, err
 		return nil, fmt.Errorf("failed to get kudo entry: %w", err)
 	}
 	return entry, nil
+}
+
+func (s *profileService) GetTodayAgendaWithAttendance(profileId uuid.UUID) ([]timeDom.AgendaItem, error) {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	token, err := s.timeEditService.TimeEditTokenReq()
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := s.timeEditService.GetTodayAgenda(token, profile.EmployeeID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, item := range items {
+		items[i].Attended = profile.HasAttendedClass(item.ID)
+	}
+
+	return items, nil
 }
