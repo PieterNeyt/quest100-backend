@@ -21,7 +21,7 @@ import (
 type ProfileService interface {
 	GetTodayAgendaWithAttendance(profileId uuid.UUID) ([]timeDom.AgendaItem, error)
 	HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error)
-	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, error)
+	Sync(graphProfile *domain.GraphProfile) (*domain.Profile, bool, error)
 	GetGraphProfile(token string) (*domain.GraphProfile, error)
 	GetProfileById(id uuid.UUID) (*domain.Profile, error)
 	UpdateProfile(profile *domain.Profile) error
@@ -52,8 +52,7 @@ type profileService struct {
 	timeEditService application.TimeEditService
 }
 
-func NewProfileService(profileRepo domain.ProfileRepository, leaderboardRepo leaderboardDomain.LeaderboardRepository) ProfileService {
-func NewProfileService(profileRepo domain.ProfileRepository, timeEditService application.TimeEditService) ProfileService {
+func NewProfileService(profileRepo domain.ProfileRepository, leaderboardRepo leaderboardDomain.LeaderboardRepository, timeEditService application.TimeEditService) ProfileService {
 	return &profileService{
 		profileRepo:     profileRepo,
 		timeEditService: timeEditService,
@@ -65,6 +64,27 @@ func (s *profileService) GetCampusByProfileID(id uuid.UUID) (string, error) {
 	return s.profileRepo.GetCampusByProfileID(id)
 }
 
+func (s *profileService) AddKudosMinigame(profileId uuid.UUID) (*domain.Profile, int, error) {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	kudos, err := strconv.Atoi(os.Getenv("MINIGAME_KUDOS"))
+	if err != nil {
+		return nil, 0, fmt.Errorf("invalid MINIGAME_KUDOS value: %w", err)
+	}
+
+	if _, err := s.AddKudosWithLeaderboard(profileId, kudos, os.Getenv("MINIGAME_MESSAGE"), domain.KudoKnowledge); err != nil {
+		return nil, 0, fmt.Errorf("failed to add kudos: %w", err)
+	}
+
+	if err := s.UpdateProfile(profile); err != nil {
+		return nil, 0, fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return profile, kudos, nil
+}
 
 func (s *profileService) AddKudosWithLeaderboard(
 	profileId uuid.UUID,
@@ -107,47 +127,44 @@ func (s *profileService) AddKudosWithLeaderboard(
 	return profile, nil
 }
 
-	func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
-		profile, err := s.GetProfileById(profileId)
-		if err != nil {
-			return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
-		}
-		token, err := s.timeEditService.TimeEditTokenReq()
-		if err != nil {
-			return nil, 0, false, err
-		}
-		posClassId, err := s.timeEditService.TimeEditReservationsReq(token, timeDom.Student, profile.EmployeeID)
-		if err != nil {
-			return nil, 0, false, err
-		}
-		if posClassId != classId {
-			return nil, 0, false, fmt.Errorf("student is not in this class")
-		}
-
-
-		if err := profile.RecordAttendance(classId); err != nil {
-			var dupErr *domain.DuplicateAttendanceError
-			if errors.As(err, &dupErr) {
-				return profile, 0, true, nil
-			}
-			return nil, 0, false, fmt.Errorf("failed to record attendance: %w", err)
-		}
-
-		kudos, err := strconv.Atoi(os.Getenv("ATTENDANCE_KUDOS"))
-		if err != nil {
-			return nil, 0, false, fmt.Errorf("invalid ATTENDANCE_KUDOS value: %w", err)
-		}
-
-		profile, err = s.AddKudosWithLeaderboard(profileId, kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance)
-		if err != nil {
-			return nil, 0, false, fmt.Errorf("failed to add kudos with leaderboard: %w", err)
-		}
-
-		return profile, kudos, false, nil
+func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
+	}
+	token, err := s.timeEditService.TimeEditTokenReq()
+	if err != nil {
+		return nil, 0, false, err
+	}
+	posClassId, err := s.timeEditService.TimeEditReservationsReq(token, timeDom.Student, profile.EmployeeID)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if posClassId != classId {
+		return nil, 0, false, fmt.Errorf("student is not in this class")
 	}
 
-func (s *profileService) HandleAttendance(classId uuid.UUID, profileId uuid.UUID) (*domain.Profile, int, bool, error) {
-	profile, err := s.profileRepo.GetProfileById(profileId)
+	if err := profile.RecordAttendance(classId); err != nil {
+		var dupErr *domain.DuplicateAttendanceError
+		if errors.As(err, &dupErr) {
+			return profile, 0, true, nil
+		}
+		return nil, 0, false, fmt.Errorf("failed to record attendance: %w", err)
+	}
+
+	kudos, err := strconv.Atoi(os.Getenv("ATTENDANCE_KUDOS"))
+	if err != nil {
+		return nil, 0, false, fmt.Errorf("invalid ATTENDANCE_KUDOS value: %w", err)
+	}
+
+	profile, err = s.AddKudosWithLeaderboard(profileId, kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance)
+	if err != nil {
+		return nil, 0, false, fmt.Errorf("failed to add kudos with leaderboard: %w", err)
+	}
+
+	return profile, kudos, false, nil
+}
+
 func (s *profileService) GetProfileById(id uuid.UUID) (*domain.Profile, error) {
 	return s.profileRepo.GetProfileById(id)
 }
@@ -163,15 +180,13 @@ func (s *profileService) UpdateProfile(profile *domain.Profile) error {
 func (s *profileService) Sync(graphProfile *domain.GraphProfile) (*domain.Profile, bool, error) {
 	profile, err := s.GetProfileById(graphProfile.Id)
 	if err != nil {
-		assets, err := s.profileRepo.GetAllAssets()
 		assetBody, err := s.profileRepo.GetDefaultBodyAsset()
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to get assets: %w", err)
-			return nil, fmt.Errorf("failed to get default body asset: %w", err)
 		}
 		assetEyes, err := s.profileRepo.GetDefaultEyesAsset()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get default eyes asset: %w", err)
+			return nil, false, fmt.Errorf("failed to get default eyes asset: %w", err)
 		}
 		profile = domain.CreateProfile(graphProfile, assetBody.ID, assetEyes.ID)
 		if err := s.profileRepo.SaveProfile(profile); err != nil {

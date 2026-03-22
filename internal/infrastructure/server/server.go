@@ -10,14 +10,14 @@ import (
 	gotchaDB "Quest100Backend/internal/gotcha/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/schedular"
+	lbApp "Quest100Backend/internal/leaderboard/application"
+	database5 "Quest100Backend/internal/leaderboard/infrastructure/database"
 	minesweeperApp "Quest100Backend/internal/minigame/minesweeper/application"
 	minesweeperDB "Quest100Backend/internal/minigame/minesweeper/infrastructure/database"
 	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
 	nerdleDB "Quest100Backend/internal/minigame/nerdle/infrastructure/database"
 	sudokuApp "Quest100Backend/internal/minigame/sudoku/application"
 	sudokuDB "Quest100Backend/internal/minigame/sudoku/infrastructure/database"
-	lbApp "Quest100Backend/internal/leaderboard/application"
-	database5 "Quest100Backend/internal/leaderboard/infrastructure/database"
 	modApp "Quest100Backend/internal/moderation/application"
 	modDatabase "Quest100Backend/internal/moderation/infrastructure/database"
 	profileApp "Quest100Backend/internal/profile/application"
@@ -48,7 +48,7 @@ type Server struct {
 	nerdleServ      nerdleApp.NerdleService
 	minesweeperServ minesweeperApp.MinesweeperService
 	sudokuServ      sudokuApp.SudokuService
-	lbServ      lbApp.LeaderboardService
+	lbServ          lbApp.LeaderboardService
 }
 
 func NewServer() *http.Server {
@@ -68,12 +68,11 @@ func NewServer() *http.Server {
 	sRepo := sudokuDB.NewSudokuRepository(db.GetDB())
 	lbRepo := database5.NewLeaderboardRepository(db.GetDB())
 
-	pServ := profileApp.NewProfileService(pRepo, lbRepo)
 	tServ := timeApp.NewTimeEditService()
-	cServ := comApp.NewChatService(pServ, cRepo, eRepo,tServ)
+	pServ := profileApp.NewProfileService(pRepo, lbRepo, tServ)
+	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	mServ := modApp.NewModerationService(mRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ, mServ)
-	qServ := utilApp.NewQRCodeService(qrGen)
 	lbServ := lbApp.NewLeaderboardService(lbRepo)
 	qServ := utilApp.NewQRCodeService(qrGen, pServ, tServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
@@ -96,7 +95,7 @@ func NewServer() *http.Server {
 		nerdleServ:      nServ,
 		minesweeperServ: mnswServ,
 		sudokuServ:      sudServ,
-		lbServ:      lbServ,
+		lbServ:          lbServ,
 	}
 
 	schedular.StartDailyTableCleanup(
