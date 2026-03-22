@@ -27,7 +27,7 @@ func (h *NerdleHandler) GetSession(c *gin.Context) {
 
 	session, err := h.nerdleService.GetOrCreateSession(profileID.(uuid.UUID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Failed to load session"})
 		return
 	}
 	c.JSON(http.StatusOK, session)
@@ -63,7 +63,7 @@ func (h *NerdleHandler) SubmitGuess(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process guess"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to process guess"})
 		return
 	}
 	c.JSON(http.StatusOK, resp)

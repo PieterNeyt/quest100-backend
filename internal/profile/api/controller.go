@@ -47,7 +47,7 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 	profile.PreferredLanguage = domain.Language(input.Language)
 
 	if err := h.profileService.UpdateProfile(profile); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update language"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update language"})
 		return
 	}
 

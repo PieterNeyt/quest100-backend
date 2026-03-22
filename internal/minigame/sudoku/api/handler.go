@@ -27,7 +27,7 @@ func (h *SudokuHandler) GetSession(c *gin.Context) {
 
 	resp, err := h.sudokuService.GetSessionResponse(profileID.(uuid.UUID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Failed to load session"})
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -58,7 +58,7 @@ func (h *SudokuHandler) SubmitMove(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process move"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to process move"})
 		return
 	}
 
