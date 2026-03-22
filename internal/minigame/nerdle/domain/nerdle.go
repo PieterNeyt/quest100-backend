@@ -20,7 +20,7 @@ type NerdleGame struct {
 
 type NerdleSession struct {
 	ID          uuid.UUID       `gorm:"type:uuid;primaryKey;" json:"id"`
-	GameID      uuid.UUID       `gorm:"type:uuid;not null;index" json:"gameId"`
+	GameID      uuid.UUID       `gorm:"type:uuid;not null;uniqueIndex:idx_nerdle_session_game_profile" json:"gameId"`
 	ProfileID   uuid.UUID       `gorm:"type:uuid;not null;uniqueIndex:idx_nerdle_session_game_profile" json:"profileId"`
 	Attempts    []NerdleAttempt `gorm:"foreignKey:SessionID" json:"attempts"`
 	Solved      bool            `gorm:"default:false" json:"solved"`
