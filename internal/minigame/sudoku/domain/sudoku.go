@@ -25,8 +25,6 @@ type SudokuGame struct {
 	Solution [][]int   `gorm:"serializer:json" json:"-"`
 }
 
-// ── Session (per player per game) ─────────────────────────────────────────
-
 type SudokuSession struct {
 	GameID      uuid.UUID     `gorm:"type:uuid;primaryKey" json:"gameId"`
 	ProfileID   uuid.UUID     `gorm:"type:uuid;primaryKey" json:"profileId"`

@@ -42,7 +42,6 @@ func NewSudokuService(repo domain.SudokuRepository, profileService profileApp.Pr
 	}
 }
 
-// getOrCreateGame fetches today's game or generates and persists a new one.
 func (s *sudokuService) getOrCreateGame() (*domain.SudokuGame, error) {
 	today := domain.TodayBrussels()
 
