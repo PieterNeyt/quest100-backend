@@ -40,6 +40,7 @@ type ProfileService interface {
 	ToggleAsset(profileId uuid.UUID, assetId string) ([]domain.Asset, error)
 	FetchExternalAsset(url string) (contentType string, body io.ReadCloser, err error)
 	GetKudoEntryById(id uuid.UUID) (*domain.KudosEntry, error)
+	AddKudosMinigame(profileId uuid.UUID) (*domain.Profile, int, error)
 }
 
 type profileService struct {
@@ -100,6 +101,28 @@ func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*do
 }
 func (s *profileService) GetProfileById(id uuid.UUID) (*domain.Profile, error) {
 	return s.profileRepo.GetProfileById(id)
+}
+
+func (s *profileService) AddKudosMinigame(profileId uuid.UUID) (*domain.Profile, int, error) {
+	profile, err := s.GetProfileById(profileId)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	kudos, err := strconv.Atoi(os.Getenv("MINIGAME_KUDOS"))
+	if err != nil {
+		return nil, 0, fmt.Errorf("invalid MINIGAME_KUDOS value: %w", err)
+	}
+
+	if err := profile.AddKudos(kudos, os.Getenv("MINIGAME_MESSAGE"), domain.KudoKnowledge); err != nil {
+		return nil, 0, fmt.Errorf("failed to add kudos: %w", err)
+	}
+
+	if err := s.UpdateProfile(profile); err != nil {
+		return nil, 0, fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return profile, kudos, nil
 }
 
 func (s *profileService) GetProfiles() (*[]domain.Profile, error) {

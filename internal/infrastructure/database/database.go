@@ -4,6 +4,9 @@ import (
 	databaseComm "Quest100Backend/internal/communication/infrastructure/database"
 	databaseEvent "Quest100Backend/internal/event/infrastructure/database"
 	databaseGotcha "Quest100Backend/internal/gotcha/infrastructure/database"
+	databaseMinesweeper "Quest100Backend/internal/minigame/minesweeper/infrastructure/database"
+	databaseNerdle "Quest100Backend/internal/minigame/nerdle/infrastructure/database"
+	databaseSudoku "Quest100Backend/internal/minigame/sudoku/infrastructure/database"
 	databaseModeration "Quest100Backend/internal/moderation/infrastructure/database"
 	databaseProfile "Quest100Backend/internal/profile/infrastructure/database"
 	"fmt"
@@ -104,6 +107,9 @@ func autoMigration(db *gorm.DB) {
 	databaseGotcha.AutoMigration(db)
 	databaseComm.AutoMigration(db)
 	databaseModeration.AutoMigration(db)
+	databaseNerdle.AutoMigration(db)
+	databaseMinesweeper.AutoMigration(db)
+	databaseSudoku.AutoMigration(db)
 }
 
 func (s *service) GetDB() *gorm.DB {
