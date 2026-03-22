@@ -5,6 +5,7 @@ import (
 	"Quest100Backend/internal/profile/domain"
 	"net/http"
 	"slices"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -46,7 +47,7 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 	profile.PreferredLanguage = domain.Language(input.Language)
 
 	if err := h.profileService.UpdateProfile(profile); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update language"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update language"})
 		return
 	}
 
@@ -57,9 +58,10 @@ func (h *ProfileHandler) UpdateLanguage(c *gin.Context) {
 }
 
 func (h *ProfileHandler) HandleAttendance(c *gin.Context) {
-	classId, err := uuid.Parse(c.Param("classId"))
+	classIdStr := c.Param("classId")
+	classId, err := strconv.Atoi(classIdStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class ID format"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Class ID not found"})
 		return
 	}
 
@@ -185,7 +187,6 @@ func (h *ProfileHandler) UpdateProfilePicture(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
-
 func (h *ProfileHandler) GetProfileById(c *gin.Context) {
 	idStr := c.Param("id")
 	profileId, err := uuid.Parse(idStr)
@@ -202,7 +203,6 @@ func (h *ProfileHandler) GetProfileById(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
-
 func (h *ProfileHandler) DeleteProfilePicture(c *gin.Context) {
 	profileID, exists := c.Get("profileID")
 	if !exists {
@@ -253,7 +253,6 @@ func (h *ProfileHandler) GiveAwardTo(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, profile)
 }
-
 func (h *ProfileHandler) GetProfiles(c *gin.Context) {
 	profiles, err := h.profileService.GetProfiles()
 	if err != nil {
@@ -380,6 +379,7 @@ func (h *ProfileHandler) GetAvatarItems(c *gin.Context) {
 	}
 
 	var responseArray []CategoryDTO
+
 	for _, catName := range categoryOrder {
 		responseArray = append(responseArray, *categoryMap[catName])
 	}
@@ -488,4 +488,19 @@ func (h *ProfileHandler) GetKudoEntrieById(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, entry)
+}
+func (h *ProfileHandler) GetTodayAgenda(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+
+	items, err := h.profileService.GetTodayAgendaWithAttendance(profileID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
 }

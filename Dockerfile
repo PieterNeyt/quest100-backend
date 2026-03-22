@@ -6,6 +6,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /quest100 ./cmd/api/main.go
 
 FROM alpine:3.23
+RUN apk --no-cache add ca-certificates tzdata
 COPY --from=builder /quest100 /quest100
 EXPOSE 8080
 CMD ["/quest100"]

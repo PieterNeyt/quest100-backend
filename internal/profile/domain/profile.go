@@ -21,6 +21,8 @@ type ProfileRepository interface {
 	GetCampusByProfileID(id uuid.UUID) (string, error)
 	GetLastKudosEntries(profileId uuid.UUID, limit int) ([]KudosEntry, error)
 	GetAllAssets() (*[]Asset, error)
+	GetDefaultBodyAsset() (*Asset, error)
+	GetDefaultEyesAsset() (*Asset, error)
 	GetAssetById(assetId string) (*Asset, error)
 	GetProfileAssets(profileId uuid.UUID) (*[]Asset, error)
 	GetProfileAvatar(profileId uuid.UUID) (*Avatar, error)
@@ -36,6 +38,7 @@ const (
 
 type Profile struct {
 	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
+	EmployeeID           int                `gorm:"not null" json:"employeeId"`
 	FirstName            string    `json:"firstName"`
 	LastName             string    `json:"lastName"`
 	Email                string    `gorm:"uniqueIndex" json:"email"`
@@ -67,7 +70,7 @@ type ProfileStats struct {
 type AttendanceRecord struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
 	ProfileID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"profileId"`
-	ClassID   uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_profile_class_unique" json:"classId"`
+	ClassID   int       `gorm:"uniqueIndex:idx_profile_class_unique" json:"classId"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -107,7 +110,7 @@ type Avatar struct {
 	Extras   *Asset `gorm:"foreignKey:ExtrasID"`
 }
 
-func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
+func (p *Profile) HasAttendedClass(classId int) bool {
 	for _, record := range p.AttendanceRecords {
 		if record.ClassID == classId {
 			return true
@@ -116,7 +119,7 @@ func (p *Profile) HasAttendedClass(classId uuid.UUID) bool {
 	return false
 }
 
-func (p *Profile) RecordAttendance(classId uuid.UUID) error {
+func (p *Profile) RecordAttendance(classId int) error {
 	if p.HasAttendedClass(classId) {
 		return &DuplicateAttendanceError{
 			ProfileID: p.ID,

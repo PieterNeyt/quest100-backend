@@ -1,6 +1,7 @@
 services:
-  psql_bp:
+  psql-bp:
     image: postgres:latest
+    container_name: psql-bp
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${QUEST_DB_DATABASE}
@@ -9,7 +10,81 @@ services:
     ports:
       - "5443:5432"
     volumes:
-      - psql_volume_bp:/var/lib/postgresql
+      - psql-volume_bp:/var/lib/postgresql
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${QUEST_DB_USERNAME} -d ${QUEST_DB_DATABASE}" ]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    image: registry.gitlab.com/kdg-ti/the-lab/teams-25-26/42_unco/quest100backend/backend:latest
+    container_name: backend
+    depends_on:
+      psql-bp:
+        condition: service_healthy
+    networks:
+      - backend
+    ports:
+      - '8080:8080'
+    env_file:
+      - .env
+      - .env.secret
+    environment:
+      QUEST_DB_HOST: psql-bp
+      QUEST_DB_PORT: 5432
+      FRONTEND_URL: https://invitation-counseling-wise-adventure.trycloudflare.com
+
+  frontend:
+    image: registry.gitlab.com/kdg-ti/the-lab/teams-25-26/42_unco/quest100frontend/frontend:latest
+    container_name: frontend
+    ports:
+      - '4200:8080'
+    environment:
+      URI: localhost
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - backend
+
+  nginx:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+
+    ports:
+      # These ports are in format <host-port>:<container-port>
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+
+    environment:
+      TZ: "Europe/Brussels"
+
+      # Uncomment this if you want to change the location of
+      # the SQLite DB file within the container
+      # DB_SQLITE_FILE: "/data/database.sqlite"
+
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    networks:
+      - backend
 
 volumes:
-  psql_volume_bp:
+  psql-volume_bp:
+
+networks:
+  backend:
+    name: back-network
+    driver: bridge

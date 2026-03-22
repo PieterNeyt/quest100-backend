@@ -13,6 +13,24 @@ type ProfileRepository struct {
 	db *gorm.DB
 }
 
+func (r *ProfileRepository) GetDefaultBodyAsset() (*domain.Asset, error) {
+	var asset domain.Asset
+	result := r.db.First(&asset, "name = ? AND category = ?", "blue gopher", "Body")
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &asset, nil
+}
+
+func (r *ProfileRepository) GetDefaultEyesAsset() (*domain.Asset, error) {
+	var asset domain.Asset
+	result := r.db.First(&asset, "name = ? AND category = ?", "crazy eyes", "Eyes")
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &asset, nil
+}
+
 func NewProfileRepository(db *gorm.DB) *ProfileRepository {
 	return &ProfileRepository{db: db}
 }
@@ -52,6 +70,7 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 	result := r.db.Debug().
 		Preload("KudosHistory").
 		Preload("AttendanceRecords").
+		Preload("PlayerStats").
 		Preload("Avatar").Preload("Avatar.Body").Preload("Avatar.Eyes").Preload("Avatar.Shirts").
 		Preload("Avatar.Hair").Preload("Avatar.FacialHair").Preload("Avatar.Glasses").Preload("Avatar.Accessories").
 		Preload("Avatar.Extras").
@@ -78,6 +97,10 @@ func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
 			return err
 		}
 		if err := tx.Save(profile).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(&profile.PlayerStats).Error; err != nil {
 			return err
 		}
 		return nil

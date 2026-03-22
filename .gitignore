@@ -31,3 +31,10 @@ go.work.sum
 .idea/
 # .vscode/
 /main
+/.env.secret
+/data/access/
+/data/custom_ssl/
+/data/letsencrypt-acme-challenge/
+/data/logs/
+/data/database.sqlite
+/data/keys.json

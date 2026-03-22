@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -24,11 +25,12 @@ type Role string
 const (
 	Student Role = "student"
 	Lector       = "lector"
+	Admin        = "admin"
 )
 
 var jwks *keyfunc.JWKS
 
-func init() {
+func InitAuth() {
 	var err error
 	jwksURL := fmt.Sprintf(
 		"https://login.microsoftonline.com/%s/discovery/v2.0/keys",
@@ -127,11 +129,9 @@ func RequireRole(role Role) gin.HandlerFunc {
 			return
 		}
 
-		for _, r := range roles.([]Role) {
-			if r == role {
-				c.Next()
-				return
-			}
+		if slices.Contains(roles.([]Role), role) {
+			c.Next()
+			return
 		}
 
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})

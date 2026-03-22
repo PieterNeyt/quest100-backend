@@ -5,11 +5,15 @@ import (
 	eventRouting "Quest100Backend/internal/event/infrastructure/server"
 	gotchaRouting "Quest100Backend/internal/gotcha/infrastructure/server"
 	"Quest100Backend/internal/infrastructure/auth"
+	minesweeperRouting "Quest100Backend/internal/minigame/minesweeper/infrastructure/server"
+	nerdleRouting "Quest100Backend/internal/minigame/nerdle/infrastructure/server"
+	sudokuRouting "Quest100Backend/internal/minigame/sudoku/infrastructure/server"
 	"Quest100Backend/internal/leaderboard/infrastructure/server"
 	moderationRouting "Quest100Backend/internal/moderation/infrastructure/server"
 	profileRouting "Quest100Backend/internal/profile/infrastructure/server"
 	qrcodeRouting "Quest100Backend/internal/util/qrcode/infrastructure/server"
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,7 +23,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:4200"},
+		AllowOrigins:     []string{os.Getenv("FRONTEND_URL")},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "X-Graph-Token"},
 		AllowCredentials: true,
@@ -33,11 +37,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	server.SetupLeaderboardRoutes(api, s.lbServ)
 	commRouting.SetupCommunicationsRoutes(api, s.chatServ)
 	gotchaRouting.SetupGotchaRoutes(api, s.gotchaServ)
-
+	nerdleRouting.SetupNerdleRoutes(api, s.nerdleServ)
+	minesweeperRouting.SetupMinesweeperRoutes(api, s.minesweeperServ)
+	sudokuRouting.SetupSudokuRoutes(api, s.sudokuServ)
 	commRouting.SetupWebSocketRoutes(r, s.chatServ, s.hub)
 
 	r.GET("/debug/ws", func(c *gin.Context) {
-		// Calling the method we just created
 		snapshot := s.hub.GetSnapshot()
 
 		c.JSON(200, snapshot)
