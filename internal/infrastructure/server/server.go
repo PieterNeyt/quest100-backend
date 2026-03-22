@@ -105,6 +105,7 @@ func NewServer() *http.Server {
 	)
 	schedular.StartDailyNerdleGame(nServ)
 	schedular.StartDailySudokuGame(sudServ)
+	schedular.StartLeaderboardStatusUpdater(lbServ)
 
 	// Declare Server config
 	server := &http.Server{

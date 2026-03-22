@@ -80,6 +80,24 @@ func (r *LeaderboardRepository) HasOverlappingLeaderboardExcludingId(courseID uu
 	return count > 0, nil
 }
 
+func (r *LeaderboardRepository) UpdateLeaderboardStatuses() error {
+	now := time.Now()
+
+	if err := r.db.Model(&domain.Leaderboard{}).
+		Where("end_date < ? AND active = ?", now, true).
+		Update("active", false).Error; err != nil {
+		return fmt.Errorf("failed to close finished leaderboards: %w", err)
+	}
+
+	if err := r.db.Model(&domain.Leaderboard{}).
+		Where("start_date <= ? AND end_date >= ? AND active = ?", now, now, false).
+		Update("active", true).Error; err != nil {
+		return fmt.Errorf("failed to activate leaderboards: %w", err)
+	}
+
+	return nil
+}
+
 func (r *LeaderboardRepository) GetActiveLeaderboardByCourseId(courseID uuid.UUID) (*domain.Leaderboard, error) {
 	var lb domain.Leaderboard
 	now := time.Now()

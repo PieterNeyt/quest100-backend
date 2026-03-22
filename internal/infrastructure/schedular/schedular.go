@@ -1,6 +1,7 @@
 package schedular
 
 import (
+	lbApp "Quest100Backend/internal/leaderboard/application"
 	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
 	sudokuApp "Quest100Backend/internal/minigame/sudoku/application"
 	"fmt"
@@ -70,6 +71,25 @@ func StartDailySudokuGame(sudokuServ sudokuApp.SudokuService) {
 	})
 	if err != nil {
 		log.Fatalf("Sudoku: failed to register daily scheduler job: %v", err)
+	}
+
+	scheduler.StartAsync()
+}
+
+func StartLeaderboardStatusUpdater(lbServ lbApp.LeaderboardService) {
+	loc, _ := time.LoadLocation("Europe/Brussels")
+	scheduler := gocron.NewScheduler(loc)
+
+	_, err := scheduler.Every(1).Day().At("00:00").Do(func() {
+		log.Println("Leaderboard: updating active statuses for", time.Now().Format("2006-01-02"))
+		if err := lbServ.UpdateLeaderboardStatuses(); err != nil {
+			log.Printf("Leaderboard: failed to update statuses: %v", err)
+		} else {
+			log.Println("Leaderboard: statuses updated successfully")
+		}
+	})
+	if err != nil {
+		log.Fatalf("Leaderboard: failed to register scheduler job: %v", err)
 	}
 
 	scheduler.StartAsync()

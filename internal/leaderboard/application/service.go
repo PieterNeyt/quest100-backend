@@ -5,6 +5,7 @@ import (
 	"Quest100Backend/internal/leaderboard/domain"
 	profileDomain "Quest100Backend/internal/profile/domain"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -16,6 +17,7 @@ type LeaderboardService interface {
 	GetAllLeaderboards() ([]*domain.Leaderboard, error)
 	GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error)
 	GetLeaderboardByCourseId(id uuid.UUID) ([]*domain.Leaderboard, error)
+	UpdateLeaderboardStatuses() error
 }
 
 type leaderboardService struct {
@@ -26,6 +28,10 @@ func NewLeaderboardService(leaderboardRepo domain.LeaderboardRepository) Leaderb
 	return &leaderboardService{
 		leaderboardRepo: leaderboardRepo,
 	}
+}
+
+func (s *leaderboardService) UpdateLeaderboardStatuses() error {
+	return s.leaderboardRepo.UpdateLeaderboardStatuses()
 }
 
 func (s *leaderboardService) GetLeaderboardByID(id uuid.UUID) (*domain.Leaderboard, error) {
@@ -62,11 +68,15 @@ func (s *leaderboardService) CreateLeaderboard(req dto.CreateLeaderboardRequest)
 		return nil, fmt.Errorf("failed to fetch classes for course: %w", err)
 	}
 
+	now := time.Now()
+	isActive := !now.Before(req.StartDate) && now.Before(req.EndDate)
+
 	lb := &domain.Leaderboard{
 		ID:        uuid.New(),
 		CourseId:  req.CourseID,
 		StartDate: req.StartDate,
 		EndDate:   req.EndDate,
+		Active:    isActive,
 		Prize: domain.Prize{
 			Name:        req.Prize.Name,
 			Description: req.Prize.Description,
@@ -119,6 +129,9 @@ func (s *leaderboardService) UpdateLeaderboard(id uuid.UUID, req dto.UpdateLeade
 			PhotoURL:    req.Prize.PhotoURL,
 		}
 	}
+
+	now := time.Now()
+	lb.Active = !now.Before(lb.StartDate) && now.Before(lb.EndDate)
 
 	if err := s.leaderboardRepo.UpdateLeaderboard(lb); err != nil {
 		return nil, err

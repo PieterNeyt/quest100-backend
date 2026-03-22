@@ -20,6 +20,7 @@ type LeaderboardRepository interface {
 	HasOverlappingLeaderboard(courseID uuid.UUID, startDate, endDate time.Time) (bool, error)
 	HasOverlappingLeaderboardExcludingId(courseID uuid.UUID, startDate, endDate time.Time, excludeID uuid.UUID) (bool, error)
 	AddKudosToLeaderboardClass(leaderboardId uuid.UUID, classId uuid.UUID, kudos int) error
+	UpdateLeaderboardStatuses() error
 }
 
 type LeaderboardClass struct {
@@ -34,6 +35,7 @@ type Leaderboard struct {
 	CourseId  uuid.UUID           `gorm:"type:char(36);not null"`
 	StartDate time.Time           `gorm:"not null"`
 	EndDate   time.Time           `gorm:"not null"`
+	Active    bool                `gorm:"default:false"`
 	Prize     Prize               `gorm:"embedded;embeddedPrefix:prize_"`
 	Classes   []*LeaderboardClass `gorm:"foreignKey:LeaderboardID"`
 }
