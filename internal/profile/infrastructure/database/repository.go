@@ -38,7 +38,24 @@ func NewProfileRepository(db *gorm.DB) *ProfileRepository {
 func (r *ProfileRepository) GetProfiles() (*[]domain.Profile, error) {
 	var profiles []domain.Profile
 
-	result := r.db.Find(&profiles)
+	result := r.db.Preload("Class").Find(&profiles)
+	if result.Error != nil {
+		return nil, fmt.Errorf("database error: %w", result.Error)
+	}
+
+	return &profiles, nil
+}
+
+// GetProfilesByCourseId returns all profiles whose class belongs to the given course,
+// filtering and joining entirely in the database.
+func (r *ProfileRepository) GetProfilesByCourseId(courseId uuid.UUID) (*[]domain.Profile, error) {
+	var profiles []domain.Profile
+
+	result := r.db.
+		Preload("Class").
+		Joins("JOIN classes ON classes.id = profiles.class_id").
+		Where("classes.course_id = ?", courseId).
+		Find(&profiles)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("database error: %w", result.Error)
@@ -57,6 +74,7 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 		Preload("Avatar").Preload("Avatar.Body").Preload("Avatar.Eyes").Preload("Avatar.Shirts").
 		Preload("Avatar.Hair").Preload("Avatar.FacialHair").Preload("Avatar.Glasses").Preload("Avatar.Accessories").
 		Preload("Avatar.Extras").
+		Preload("Class").
 		Preload("Assets").
 		First(&profile, "id = ?", profileId)
 
@@ -71,16 +89,13 @@ func (r *ProfileRepository) GetProfileById(profileId uuid.UUID) (*domain.Profile
 }
 
 func (r *ProfileRepository) SaveProfile(profile *domain.Profile) error {
-
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Omit("PlayerStats", "KudosHistory", "Avatar", "Assets").Save(profile).Error; err != nil {
 			return err
 		}
-
 		if err := tx.Save(&profile.Avatar).Error; err != nil {
 			return err
 		}
-
 		if err := tx.Save(profile).Error; err != nil {
 			return err
 		}
@@ -148,6 +163,7 @@ func (r *ProfileRepository) GetProfileStats(profileId uuid.UUID) (domain.Profile
 
 	return stats, nil
 }
+
 func (r *ProfileRepository) GetCampusByProfileID(profileId uuid.UUID) (string, error) {
 	var campus string
 	result := r.db.

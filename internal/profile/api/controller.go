@@ -105,7 +105,7 @@ func (h *ProfileHandler) Sync(c *gin.Context) {
 		return
 	}
 
-	profile, err := h.profileService.Sync(graphProfile)
+	profile, isNew, err := h.profileService.Sync(graphProfile)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -127,9 +127,40 @@ func (h *ProfileHandler) Sync(c *gin.Context) {
 	response := SyncProfileResponse{
 		Profile:                 profile,
 		MicrosoftProfilePicture: microsoftPicture,
+		HasClass:                profile.ClassID != nil,
+	}
+
+	if isNew {
+		c.JSON(http.StatusCreated, response)
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *ProfileHandler) UpdateClass(c *gin.Context) {
+	profileID, exists := c.Get("profileID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Profile ID not found"})
+		return
+	}
+	profileId := profileID.(uuid.UUID)
+
+	var body struct {
+		ClassID uuid.UUID `json:"classId" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	profile, err := h.profileService.UpdateClass(profileId, body.ClassID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
 }
 
 func (h *ProfileHandler) UpdateProfilePicture(c *gin.Context) {

@@ -10,6 +10,8 @@ import (
 	gotchaDB "Quest100Backend/internal/gotcha/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/database"
 	"Quest100Backend/internal/infrastructure/schedular"
+	lbApp "Quest100Backend/internal/leaderboard/application"
+	database5 "Quest100Backend/internal/leaderboard/infrastructure/database"
 	minesweeperApp "Quest100Backend/internal/minigame/minesweeper/application"
 	minesweeperDB "Quest100Backend/internal/minigame/minesweeper/infrastructure/database"
 	nerdleApp "Quest100Backend/internal/minigame/nerdle/application"
@@ -28,6 +30,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 type Server struct {
@@ -44,6 +48,7 @@ type Server struct {
 	nerdleServ      nerdleApp.NerdleService
 	minesweeperServ minesweeperApp.MinesweeperService
 	sudokuServ      sudokuApp.SudokuService
+	lbServ          lbApp.LeaderboardService
 }
 
 func NewServer() *http.Server {
@@ -61,12 +66,14 @@ func NewServer() *http.Server {
 	nRepo := nerdleDB.NewNerdleRepository(db.GetDB())
 	mnswRepo := minesweeperDB.NewMinesweeperRepository(db.GetDB())
 	sRepo := sudokuDB.NewSudokuRepository(db.GetDB())
+	lbRepo := database5.NewLeaderboardRepository(db.GetDB())
 
 	tServ := timeApp.NewTimeEditService()
-	pServ := profileApp.NewProfileService(pRepo, tServ)
+	pServ := profileApp.NewProfileService(pRepo, lbRepo, tServ)
 	cServ := comApp.NewChatService(pServ, cRepo, eRepo)
 	mServ := modApp.NewModerationService(mRepo)
 	eServ := eventApp.NewEventService(eRepo, cServ, mServ)
+	lbServ := lbApp.NewLeaderboardService(lbRepo)
 	qServ := utilApp.NewQRCodeService(qrGen, pServ, tServ)
 	gServ := gotchaApp.NewGotchaService(gGameRepo, gPartRepo, gKillRepo, gPropRepo, pServ)
 	nServ := nerdleApp.NewNerdleService(nRepo, pServ)
@@ -88,6 +95,7 @@ func NewServer() *http.Server {
 		nerdleServ:      nServ,
 		minesweeperServ: mnswServ,
 		sudokuServ:      sudServ,
+		lbServ:          lbServ,
 	}
 
 	schedular.StartDailyTableCleanup(
@@ -97,6 +105,7 @@ func NewServer() *http.Server {
 	)
 	schedular.StartDailyNerdleGame(nServ)
 	schedular.StartDailySudokuGame(sudServ)
+	schedular.StartLeaderboardStatusUpdater(lbServ)
 
 	// Declare Server config
 	server := &http.Server{

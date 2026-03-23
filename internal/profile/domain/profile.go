@@ -14,6 +14,7 @@ type ProfileRepository interface {
 	SaveProfile(profile *Profile) error
 	AddAwardHistoryEntry(senderId uuid.UUID, receiverId uuid.UUID) error
 	GetProfiles() (*[]Profile, error)
+	GetProfilesByCourseId(courseId uuid.UUID) (*[]Profile, error)
 	HasSentAward(senderId uuid.UUID, recieverId uuid.UUID) (bool, error)
 	GetSentAwardReceivers(id uuid.UUID) ([]uuid.UUID, error)
 	GetProfileStats(profileId uuid.UUID) (ProfileStats, error)
@@ -36,21 +37,25 @@ const (
 )
 
 type Profile struct {
-	ID                   uuid.UUID          `gorm:"type:uuid;primaryKey;" json:"id"`
+	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
 	EmployeeID           int                `gorm:"not null" json:"employeeId"`
-	FirstName            string             `json:"firstName"`
-	LastName             string             `json:"lastName"`
-	Email                string             `gorm:"uniqueIndex" json:"email"`
-	Kudos                int                `json:"kudos"`
-	CustomProfilePicture *string            `gorm:"type:text" json:"customProfilePicture"`
-	Campus               string             `gorm:"type:varchar(100)" json:"campus"`
-	ArchetypeID          int                `json:"archetypeId"`
-	PreferredLanguage    Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
-	PlayerStats          ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
-	KudosHistory         []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
-	AttendanceRecords    []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
-	Assets               []Asset            `gorm:"many2many:user_assets;" json:"assets"`
-	Avatar               Avatar             `gorm:"foreignKey:ProfileID;references:ID" json:"avatar"`
+	FirstName            string    `json:"firstName"`
+	LastName             string    `json:"lastName"`
+	Email                string    `gorm:"uniqueIndex" json:"email"`
+	Kudos                int       `json:"kudos"`
+	CustomProfilePicture *string   `gorm:"type:text" json:"customProfilePicture"`
+	Campus               string    `gorm:"type:varchar(100)" json:"campus"`
+	ArchetypeID          int       `json:"archetypeId"`
+
+	PreferredLanguage Language           `gorm:"type:varchar(2);check:preferred_language IN ('NL','EN')" json:"preferredLanguage"`
+	PlayerStats       ProfileStats       `gorm:"foreignKey:ProfileID;references:ID"`
+	KudosHistory      []KudosEntry       `gorm:"foreignKey:ProfileID;references:ID"`
+	AttendanceRecords []AttendanceRecord `gorm:"foreignKey:ProfileID;references:ID" json:"attendanceRecords"`
+	Assets            []Asset            `gorm:"many2many:user_assets;" json:"assets"`
+	Avatar            Avatar             `gorm:"foreignKey:ProfileID;references:ID" json:"avatar"`
+
+	ClassID *uuid.UUID `gorm:"type:uuid"               json:"classId"`
+	Class   *Class     `gorm:"foreignKey:ClassID"       json:"class"`
 }
 
 type ProfileStats struct {
@@ -198,7 +203,6 @@ func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID stri
 
 	profile := &Profile{
 		ID:          graph.Id,
-		EmployeeID:  graph.EmployeeID,
 		FirstName:   graph.Name,
 		LastName:    graph.Surname,
 		Email:       graph.Mail,
