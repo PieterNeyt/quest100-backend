@@ -35,7 +35,7 @@ services:
     environment:
       QUEST_DB_HOST: psql-bp
       QUEST_DB_PORT: 5432
-      FRONTEND_URL: https://invitation-counseling-wise-adventure.trycloudflare.com
+      FRONTEND_URL: https://valuation-ascii-pottery-assumed.trycloudflare.com
 
   frontend:
     image: registry.gitlab.com/kdg-ti/the-lab/teams-25-26/42_unco/quest100frontend/frontend:latest
