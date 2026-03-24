@@ -38,7 +38,7 @@ const (
 
 type Profile struct {
 	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;" json:"id"`
-	EmployeeID           int                `gorm:"not null" json:"employeeId"`
+	EmployeeID           int       `gorm:"not null" json:"employeeId"`
 	FirstName            string    `json:"firstName"`
 	LastName             string    `json:"lastName"`
 	Email                string    `gorm:"uniqueIndex" json:"email"`
@@ -209,6 +209,7 @@ func CreateProfile(graph *GraphProfile, defaultBodyID string, defaultEyesID stri
 		Campus:      graph.OfficeLocation,
 		Kudos:       285,
 		ArchetypeID: 1,
+		EmployeeID:  graph.EmployeeID,
 		PlayerStats: ProfileStats{
 			ProfileID:      graph.Id,
 			KudoKnowledge:  80,
