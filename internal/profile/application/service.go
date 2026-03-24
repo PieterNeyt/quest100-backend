@@ -95,6 +95,17 @@ func (s *profileService) AddKudosWithLeaderboard(
 		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
 
+	return s.addKudosWithLeaderboardForProfile(profile, kudos, reason, kudoType, senderID...)
+}
+
+func (s *profileService) addKudosWithLeaderboardForProfile(
+	profile *domain.Profile,
+	kudos int,
+	reason string,
+	kudoType domain.KudoType,
+	senderID ...uuid.UUID,
+) (*domain.Profile, error) {
+
 	if err := profile.AddKudos(kudos, reason, kudoType, senderID...); err != nil {
 		return nil, fmt.Errorf("failed to add kudos: %w", err)
 	}
@@ -128,14 +139,17 @@ func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*do
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to get profile: %w", err)
 	}
+
 	token, err := s.timeEditService.TimeEditTokenReq()
 	if err != nil {
 		return nil, 0, false, err
 	}
+
 	posClassId, err := s.timeEditService.TimeEditReservationsReq(token, timeDom.Student, profile.EmployeeID)
 	if err != nil {
 		return nil, 0, false, err
 	}
+
 	if posClassId != classId {
 		return nil, 0, false, fmt.Errorf("student is not in this class")
 	}
@@ -153,7 +167,7 @@ func (s *profileService) HandleAttendance(classId int, profileId uuid.UUID) (*do
 		return nil, 0, false, fmt.Errorf("invalid ATTENDANCE_KUDOS value: %w", err)
 	}
 
-	profile, err = s.AddKudosWithLeaderboard(profileId, kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance)
+	profile, err = s.addKudosWithLeaderboardForProfile(profile, kudos, os.Getenv("ATTENDANCE_MESSAGE"), domain.KudoAttendance)
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("failed to add kudos with leaderboard: %w", err)
 	}

@@ -87,7 +87,7 @@ type AgendaItem struct {
 func CreateRequestBody(typeID TypeID, employeeId int) *RequestBody {
 	timeNow := time.Now().Unix()
 	// TODO dit gebruiken voor een valide les voor een andere les te gebruiken moet je een datum naar unix (int64) formaat zetten
-	//timeNow = 1773932400
+	timeNow = 1773925800
 	return &RequestBody{
 		Date: Date{
 			StartDate: timeNow,
@@ -116,8 +116,8 @@ func CreateAgendaRequestBody(employeeId int, isStudent bool) *RequestBody {
 	}
 
 	now := time.Now()
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Unix()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day()-5, 0, 0, 0, 0, now.Location()).Unix()
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day()-5, 23, 59, 59, 0, now.Location()).Unix()
 
 	return &RequestBody{
 		Date:     Date{StartDate: startOfDay, EndDate: endOfDay},
