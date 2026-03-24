@@ -79,10 +79,6 @@ func (s *profileService) AddKudosMinigame(profileId uuid.UUID) (*domain.Profile,
 		return nil, 0, fmt.Errorf("failed to add kudos: %w", err)
 	}
 
-	if err := s.UpdateProfile(profile); err != nil {
-		return nil, 0, fmt.Errorf("failed to update profile: %w", err)
-	}
-
 	return profile, kudos, nil
 }
 
