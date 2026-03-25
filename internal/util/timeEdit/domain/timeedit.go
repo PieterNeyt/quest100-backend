@@ -116,8 +116,8 @@ func CreateAgendaRequestBody(employeeId int, isStudent bool) *RequestBody {
 	}
 
 	now := time.Now()
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day()-5, 0, 0, 0, 0, now.Location()).Unix()
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day()-5, 23, 59, 59, 0, now.Location()).Unix()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day()-6, 0, 0, 0, 0, now.Location()).Unix()
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day()-6, 23, 59, 59, 0, now.Location()).Unix()
 
 	return &RequestBody{
 		Date:     Date{StartDate: startOfDay, EndDate: endOfDay},

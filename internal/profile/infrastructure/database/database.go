@@ -76,7 +76,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000002"),
 			FirstName:         "Wout",
-			LastName:          "Brandhout",
+			LastName:          "Van Herck",
 			Email:             "wout.Brandhout@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       2,
@@ -87,7 +87,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000003"),
 			FirstName:         "Bart",
-			LastName:          "slechtinbiljart",
+			LastName:          "Peleman",
 			Email:             "bart.slechtinbiljart@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       3,
@@ -98,7 +98,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000004"),
 			FirstName:         "Miezel",
-			LastName:          "De Kiezel",
+			LastName:          "Lambert",
 			Email:             "steen.dekiezel@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       1,
@@ -109,7 +109,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000005"),
 			FirstName:         "Tim",
-			LastName:          "Simsalabim",
+			LastName:          "Peeters",
 			Email:             "tim.Simsalabim@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       2,
@@ -120,7 +120,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000006"),
 			FirstName:         "Lien",
-			LastName:          "Bijnaderinzien",
+			LastName:          "Dor",
 			Email:             "lien.Bijnaderinzien@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       3,
@@ -131,7 +131,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000007"),
 			FirstName:         "Luis",
-			LastName:          "Steengruis",
+			LastName:          "Van Acker",
 			Email:             "Luis.Steengruis@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       1,
@@ -142,7 +142,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000008"),
 			FirstName:         "Ann",
-			LastName:          "De Mortelman",
+			LastName:          "Neyt",
 			Email:             "ann.demortelman@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       2,
@@ -153,7 +153,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000009"),
 			FirstName:         "Rein",
-			LastName:          "Azijn",
+			LastName:          "Dorst",
 			Email:             "rein.Azijn@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       3,
@@ -164,7 +164,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000010"),
 			FirstName:         "Noel",
-			LastName:          "Zonderdoel",
+			LastName:          "Blondeel",
 			Email:             "noel.Zonderdoel@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       1,
@@ -175,7 +175,7 @@ func seedDatabase(db *gorm.DB) {
 		{
 			ID:                uuid.MustParse("00000000-0000-0000-0000-000000000011"),
 			FirstName:         "Mark",
-			LastName:          "Benchmark",
+			LastName:          "Van Mele",
 			Email:             "mark.Benchmark@student.kdg.be",
 			Kudos:             0,
 			ArchetypeID:       2,
