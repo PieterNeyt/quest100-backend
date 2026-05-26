@@ -12,3 +12,5 @@ Makefile in root heeft startup gedeclareerd. Makkelijk opstarten met ```make```.
 Klassen van de student automatisch koppelen.
 
 ## Gekende bugs
+Er gaat nog iets mis, bij het bekijken van reports als admin
+(indien je niet in dat event zit krijg je een error, maar dit is een makkelijke fiks nrml gezien)
